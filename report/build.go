@@ -22,8 +22,8 @@ import (
 // reports don't leak them. Target-server paths in findings (LFI /etc/passwd Wait.) are NOT
 // touched (they're legitimate vuln content, no antifox-data marker / not /var/folders).
 var (
-	reAntiFoxDataPath = regexp.MustCompile(`/[^\s,, ;;)")']*antifox[^\s,, ;;)")']*data[^\s,, ;;)")']*`)
-	reVarFolders      = regexp.MustCompile(`(?:/private)?/var/folders/[^\s,, ;;)")']+`)
+	reAntiFoxDataPath = regexp.MustCompile(`/[^\s,，、；）;")']*antifox[^\s,，、；）;")']*data[^\s,，、；）;")']*`)
+	reVarFolders      = regexp.MustCompile(`(?:/private)?/var/folders/[^\s,，、；）;")']+`)
 )
 
 // redactInternalPaths collapses the platform's own absolute scratch paths to a bare
@@ -32,7 +32,7 @@ func redactInternalPaths(s, dataDir string) string {
 	strip := func(m string) string { return filepath.Base(m) }
 	if d := strings.TrimSpace(dataDir); d != "" {
 		if abs, err := filepath.Abs(d); err == nil && abs != "/" {
-			s = regexp.MustCompile(regexp.QuoteMeta(abs)+`/[^\s,, ;;)")']+`).ReplaceAllStringFunc(s, strip)
+			s = regexp.MustCompile(regexp.QuoteMeta(abs)+`/[^\s,，、；）;")']+`).ReplaceAllStringFunc(s, strip)
 		}
 	}
 	s = reAntiFoxDataPath.ReplaceAllStringFunc(s, strip)

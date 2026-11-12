@@ -57,3 +57,16 @@ func TestCleanTitleSeverityPrefixes(t *testing.T) {
 		}
 	}
 }
+
+func TestRedactInternalPathsStopsAtPunctuation(t *testing.T) {
+	cases := []struct{ in, want string }{
+		{"see /tmp/antifox-data/verify/full_poc.py, then continue", "see full_poc.py, then continue"},
+		{"路径 /tmp/antifox-data/verify/full_poc.py，随后", "路径 full_poc.py，随后"},
+		{"路径 /var/folders/ab/cd/antifox-data/verify/x.py；随后", "路径 x.py；随后"},
+	}
+	for _, c := range cases {
+		if got := redactInternalPaths(c.in, ""); got != c.want {
+			t.Errorf("redactInternalPaths(%q) = %q, want %q", c.in, got, c.want)
+		}
+	}
+}

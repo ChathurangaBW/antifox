@@ -262,7 +262,7 @@ func (s *Server) pgSendConversationMessage(w http.ResponseWriter, r *http.Reques
 	if _, err := pg.AppendConvActivity(c.ID, db.Activity{Worker: c.AgentKey, Kind: "user", Summary: firstLine(msg, 200), Detail: msg}); err != nil {
 		log.Printf("[conv %d] append user msg failed: %v", c.ID, err)
 	}
-	if c.Title == "" || c.Title == "New Dialogue" {
+	if c.Title == "" || c.Title == "New Dialogue" || c.Title == "新对话" { // legacy default title
 		_ = pg.RenameConversation(c.ID, firstLine(msg, 40))
 	}
 	_ = pg.TouchConversation(c.ID)

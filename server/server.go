@@ -2143,14 +2143,24 @@ func (s *Server) fallbackChat(t *Task, msg string) string {
 	m := strings.TrimSpace(msg)
 	lower := strings.ToLower(m)
 	switch {
-	case strings.HasPrefix(m, "Intention") || strings.HasPrefix(lower, "intent"):
-		text := strings.TrimSpace(strings.TrimPrefix(strings.TrimPrefix(m, "Intention"), "intent"))
+	case strings.HasPrefix(lower, "intention") || strings.HasPrefix(lower, "intent") || strings.HasPrefix(m, "意图"):
+		prefix := "intent"
+		if strings.HasPrefix(lower, "intention") {
+			prefix = "intention"
+		} else if strings.HasPrefix(m, "意图") {
+			prefix = "意图"
+		}
+		text := strings.TrimSpace(m[len(prefix):])
 		_, _ = t.Store.AddIntent(map[string]any{"summary": text}, 9, nil, "human")
-		return "A high-priority intent has been inserted:" + text
-	case strings.HasPrefix(m, "Hint") || strings.HasPrefix(lower, "hint"):
-		text := strings.TrimSpace(strings.TrimPrefix(strings.TrimPrefix(m, "Hint"), "hint"))
+		return "A high-priority intent has been inserted: " + text
+	case strings.HasPrefix(lower, "hint") || strings.HasPrefix(m, "提示"):
+		prefix := "hint"
+		if strings.HasPrefix(m, "提示") {
+			prefix = "提示"
+		}
+		text := strings.TrimSpace(m[len(prefix):])
 		_, _ = t.Store.AddNode(db.KindHint, map[string]any{"text": text}, 0, "active", "human", nil)
-		return "The tips are recorded and the planners will read:" + text
+		return "The hint has been recorded for the planner: " + text
 	default:
 		assetCounts, _ := s.m.Assets().CountsByType()
 		assets := 0
@@ -2159,7 +2169,7 @@ func (s *Server) fallbackChat(t *Task, msg string) string {
 		}
 		fnd, _ := t.Store.ListByKind(db.KindFinding, 1000)
 		fr, _ := t.Store.Frontier(1000)
-		return fmt.Sprintf("(Rule mode, not configured LLM)Current situation: assets %d,To be expected %d,Confirmed. %d. \nAvailable commands: by\"Intention ...\"I don't know.\"Hint ...\"Give the planners a hint.", assets, len(fr), len(fnd))
+		return fmt.Sprintf("(Rule mode, no LLM configured) Current state: assets %d, pending intents %d, confirmed findings %d.\nAvailable commands: \"intent ...\" to inject an intent, \"hint ...\" to give the planner a hint.", assets, len(fr), len(fnd))
 	}
 }
 
