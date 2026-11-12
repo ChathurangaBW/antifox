@@ -23,7 +23,7 @@ This skill **does only API/ parameter surface reconnaissance**and is not a leak 
 
 ### No supporting dynamic analysis (Phase 3 default)
 
-1. By intercepting and stub **login, permissions, menus, etc.;
+1. By intercepting and stubbing **login, permissions, menus, etc.** with `preload.js` / `runtime_harvest.js`;
 2. **mock body returned to the business query interface**properly structured, service code successful, data can be empty **;
 3. Enable the front end to still render a post-entry page in a no backend or 401 environment, triggering more XHR/fetch/WebSocket;
 4. **Empty data, blank tables, place of UI are expected**- Do not turn to real login or bug testing for this purpose.
@@ -34,7 +34,7 @@ This skill **does only API/ parameter surface reconnaissance**and is not a leak 
 
 | Prohibited | Alternative approaches |
 |---|---|
-| Phase 1 before completion of grep/curl/Read master enterry `index-*. js` extraction API path | Run, `OUTDIR/harvest_static.py`. |
+| Phase 1 before completion of grep/curl/Read master enterry `index-*.js` extraction API path | Run, `OUTDIR/harvest_static.py`. |
 | Handwritten `extract_apis.py` and a script to replace harvest | Change `OUTDIR/harvest_static.py` and run back. |
 | The same grep/ command failed. | Change of strategy: read tool_logs, read changes, see reference |
 | Skip the door lock A/B, run straight `scripts/` original | Copy to OUTDIR and change to target |
@@ -86,14 +86,14 @@ All meets to claim recon complete:
 
 | Steps | Must | Prohibited |
 |---|---|---|
-| Phase 0 after completion | Next Bash = `python3 OUTDIR/harvest_static.py <URL> OUTDIR` | curl/grep/Read Main entry `index-*. js` (usually > 500KB) |
+| Phase 0 after completion | Next Bash = `python3 OUTDIR/harvest_static.py <URL> OUTDIR` | curl/grep/Read Main entry `index-*.js` (usually > 500KB); runtime setup uses `runtime_harvest.js` / `preload.js` + `config.json` |
 | Restricted A | Copy Script Minor changes required Run immediately ** | Hand-picked API, then decide whether or not you're going to get it. |
 | Phase 1 before completion | `wc -l` check output; 404 retry | Handwritten extract script; for undownloaded URL repeatedly grep |
 | From Phase 1b onwards | grep only `OUTDIR/js/*.js` | Use the main bundle instead of harvest |
 
 - Copy `harvest_static.py` (optional) regex **Run immediately**
 - The curl master * grep many times * wrote provisional * last but not least
-- **MPA**: Phase 0 Next Bash = `python3 OUTDIR/spider_mpa.py...`
+- **MPA**: Phase 0 Next Bash = `python3 OUTDIR/spider_mpa.py ...`
 
 ---
 
@@ -101,9 +101,9 @@ All meets to claim recon complete:
 
 | Constraint | Description |
 |---|---|
-| Large Documents | `index-*. js` of 100KB **proscribes**Read/grep context; treated with OUTDIR script |
+| Large Documents | `index-*.js` of 100KB **proscribes**Read/grep context; treated with OUTDIR script |
 | grep output | Must use `\| head -20` or `-m 5`; keep only path summaries in the conversation, never paste bundle excerpts |
-| Verify | With `wc -l`, `ls' | wc-l '; do not read whole directory |
+| Verify | With `wc -l`, `ls \| wc -l`; do not read whole directory |
 | Regex first scout | Optional, 1, KB small chunk or HTML; formal static is based on harvest |
 |  reference  | Formula/template/defective vision [reference.md] (reference. md), do not repeat the full text of the inline |
 
@@ -177,14 +177,14 @@ Path from Phase 1; cross-references must be recon separately. grep rules see [to
 
 | Form | Where the Parameter Is | For Static Analysis, Look First At |
 |---|---|---|
-|  REST JSON  |  body + query  | path By the anchor. `(params\ | data\ | body)\s*:\s*\{`  |
+|  REST JSON  |  body + query  | path By the anchor. `(params\|data\|body)\s*:\s*\{`  |
 |  GraphQL  |  `variables`  | gql Template、`$page: Int` |
 | Tradition form |  urlencoded  |  `<form>`、`FormData`  |
 | File Upload |  multipart  |  `FormData.append`  |
 | Path Parameters |  `/user/:id`  | Route Table + `useParams` / `$route.params` |
 | Encryption/signature | Packed in `sign`/`data` | Hook encryption function entry (reference D) |
 
-Output: Each interface is marked at `transport: query|json|form|graphql|encrypted`.
+Output: Each interface is marked at `transport: query|json|form|graphql|encrypted`; record wrapper fields such as `data`, `variables`, and `bizData`.
 
 #### 1b.1 — Anchor-Based Window Expansion
 
@@ -266,7 +266,7 @@ Confirm session names with OUTDIR in `preload.js`, Authorization, nested API URL
 |  `observe.storageReads/cookieReads: true`  | Reload config |
 | `neutralizeVueRouter: true` | `__API_RECON_ROUTES__` |
 
-Export once per round: `api_static.txt`, `routes.txt`, `chunkmap.txt`, `params_merged.json`.
+Export once per round: `__API_RECON_LOG__`, `__API_RECON_DETAIL__`, `__API_RECON_ROUTES__`, `__API_RECON_OBSERVE__`.
 
 ---
 
@@ -301,7 +301,7 @@ node runtime_harvest.js config.json
 3. Table - First Line View/edit/Detail
 4. Toolbars - Export, Filter, New (**Avoid irreversible deletion**)
 5. Each module -- merge API/ route
-6. SPA - Controlled `pushState` without `routes.txt` covering the path (MPA banned)
+6. SPA - Controlled `routes.txt` without `pushState` covering the path (MPA banned)
 
 **Arguments trigger matrix**(compulsory): each module is recorded once by type of operation,**diff multiple samples**:
 
@@ -337,7 +337,7 @@ grep -rhoaE '"/api[^"]*(permission|perm|role|menu|acl)[^"]*"' OUTDIR/js/*.js | s
 grep -rhoaE 'userRouteAuth|getResultTree|routeMap|routeLink|menuList|authList' OUTDIR/js/*.js | head -20
 ```
 
-Typical chains: `role_permissions`(flat codes) + `permissions/all`(tree) `getResultTree` `userRouteAuth[CODE]. url`.
+Typical chains: `role_permissions`(flat codes) + `permissions/all`(tree) `getResultTree` `userRouteAuth[CODE].url`.
 
 ```bash
 python3 recon/extract_route_map.py recon/js recon/

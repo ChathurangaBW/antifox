@@ -245,7 +245,7 @@ Save under `specs/<feature>.plan.md`. Use this structure:
 
 ### 1. <Group Name>
 
-**Seed:** `tests/seed.spec.ts`
+**Seed:** `tests/seed.spec.ts`; create scenarios as `tests/<group>/<kebab-case-scenario-name>.spec.ts`
 
 #### 1.1. <kebab-case-scenario-name>
 

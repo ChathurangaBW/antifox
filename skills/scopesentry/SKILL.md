@@ -79,7 +79,7 @@ You need to know how many `count_assets`es are used for the "total number" (comp
 
 When the user or context **has project conditions**, give priority to `filter.project` to narrow the range so that too much cross-project data does not slow the response. If there are no specified items, project screening is not mandatory.
 
-1. `list_projects` or `list_projects_data` to target item **ObjectID**(`id` / `children[]. value`)
+1. `list_projects` or `list_projects_data` to target item **ObjectID**(`id` / `children[].value`)
 2. `list_assets` to `filter.project` (**must be ID and cannot write the Chinese name of the item**)
 
 ```json
@@ -220,7 +220,7 @@ Custom DSL (**not SQL**):
 | `==` | Accurate Matching (All Levels) | **Uses an Index** | `port==443` |
 | `!=` | Exclude | — | `port!="80"` |
 | `&&` | and | — | `domain==example.com && port==443` |
-| ` | | ` | or | — | `title=admin | | body=login` |
+| `||` | or | — | `title=admin || body=login` |
 
 
 **Indexes and operators:**`domain`, `ip`, `port`, `title` are indexed, but only**`==` full **or**values match the prefix at `^` **(e.g. `domain=^example.com`) can walk index;**`=` changes to regex blurry matching, cannot use index**data are often slow.
@@ -250,7 +250,7 @@ Custom DSL (**not SQL**):
 - `domain==www.example.com && port==443` (full, index)
 - `domain=^example.com` (prefix matching, indexing)
 - `ip==192.168.1.1`
-- `task=="<first-phase task name>"`
+- `task=="<task name>"`
 - `level==high` (vulnerability)
 - `statuscode==200` (DirScanResult)
 
@@ -266,7 +266,7 @@ JSON object:**OR**, different Key **AND**for more than one value than Key.
 | filter key | Meaning | Value-forward description |
 | ------------ | -------- | -------------------------------------------------------- |
 | `project` | Items to which | **ObjectID**, fetched with `list_projects`/ `list_projects_data` |
-| `task` | Source task | **Job name**, `name` with `list_tasks` |
+| `task` | Source task | **Job name**, `list_tasks` with `name` |
 | `port` | Port | Like `"443"` |
 | `service` | Services/agreements | Like `"https"` |
 | `app` | Apply Fingerprints | Like `"Nginx"` |

@@ -39,7 +39,7 @@ Find links `isLogin = f(getUser())` `getUser = decode(storage.read(KEY))`, deter
 | Explicit Strings / `"1"` / token | `"value": "anything-truthy"` |
 | `JSON.parse(x)` | `"value": "json:{\"id\":1,\"username\":\"admin\"}"` |
 | `JSON.parse(atob(x))` | `"value": "b64json:{\"id\":1,\"username\":\"admin\"}"` |
-| JWT | An unsigned (`alg: none`) JWT, or a JWT signed with the bundle's internal key |
+| JWT | An unsigned (`alg:none`) JWT, or a JWT signed with the bundle's internal key |
 | Encryption (SM2/AES/RSA) | Find hard encoded keys; rendering doors only needs to decode blob when forge; otherwise, static header |
 
 → Write `cookies` / `localStorage`。
@@ -152,10 +152,10 @@ Read consumer code confirmation: `getResultTree(tree, permissions)` how to filte
 
 Field description:
 - `runtimeMode`:`depth` (Puppeteer), `coverage` (browser MCP), `both`
-- `cookies[]. value` prefix: `b64json:` base64 (JSON); `json:` original JSON; no prefix literal
+- `cookies[].value` prefix: `b64json:` base64 (JSON); `json:` original JSON; no prefix literal
 - `forward: true` forwards the real request and rewrites the code field;`false` completely offline stub
 - `mockTier`: coverage mode preload enable layers such as `L1+L2`, `L1+L2+L3`
-- `routes` from `routes.txt`; extra `<a href>` after the `routes. txt`; forge menu
+- `routes` from `routes.txt`; extra `<a href>` after the `routes.txt`; forge menu
 - `captureResponses` / `recordWs` only depth mode is valid
 - `waitUntil`: Large SPA with `domcontentloaded`, avoid `networkidle2` hanging
 - `routeTimeout`: Single route `page.goto` timeout (ms)
@@ -224,7 +224,7 @@ Export of recording results:
 JSON.stringify({
   apis: [...window.__API_RECON_LOG__],
   detail: window.__API_RECON_DETAIL__,
-  routes: [...(window.__API_RECON_ROUTES__ || [])],
+  routes: [...(window.__API_RECON_ROUTES__ || [])], // `__API_RECON_ROUTES__`
   observe: window.__API_RECON_OBSERVE__,
 }, null, 2)
 ```
@@ -251,7 +251,7 @@ Viewer built in preload (coverage) and runtime_harvest (depth):
 
 ## E. Endpoint extraction norm (when there is too little static)
 
-`extract_endpoints` relaxed in `harvest_static.py`, or manually:
+`harvest_static.py` relaxed in `extract_endpoints`, or manually:
 
 ```bash
 grep -rhoaE '"/[a-z][A-Za-z0-9_/\-]{3,}"' js | sort -u
@@ -339,7 +339,7 @@ grep -rhoaE '([A-Z_][A-Z0-9_]*):\{name:"[^"]*",link:"/[^"]+"\}' js | head -20
 ### I3. Build permission tree + stub
 
 ```bash
-python3 scripts/build_perm_tree.py recon/js recon/ --config recon/config.json
+python3 scripts/build_perm_tree.py recon/js recon/ --config recon/config.json  # `--config` uses `config.json`
 ```
 
 Script logic:

