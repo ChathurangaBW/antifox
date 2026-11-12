@@ -116,8 +116,8 @@ Building on its solid foundation (exploration-graph engine, MITM traffic recordi
 
 | Area | Details |
 | --- | --- |
-| **Evidence-driven delivery** | Reproduction captured in place, findings laid out as a kill chain, every step auto-linked to its real packet (syntax highlight / body search / match counts) |
-| **Human-grade reports** | AI narrative + python-docx into delivery-grade .docx (cover / TOC / page numbers / per-vuln tables), full report in zh / zh-TW / en |
+| **Evidence-driven delivery** | Reproduction captured in place, findings laid out as an exploit chain, every step auto-linked to its real packet (syntax highlight / body search / match counts) |
+| **Human-grade reports** | AI narrative + python-docx into delivery-grade .docx (cover / TOC / page numbers / per-vuln tables), full report in Simplified Chinese / Traditional Chinese / English |
 | Report management | Org settings, named templates (issuer / logo / personnel / CVSS), per-task generation, select which findings to include |
 | Deeper vuln management | AI enrichment into structured data (CVSS / impact / fix / structured reproduction), 4 severity levels, batch enrichment, session finding capture |
 | Trilingual i18n | Full UI in Simplified Chinese / Traditional Chinese / English |
