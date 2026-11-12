@@ -34,8 +34,8 @@ func TestCanonSeverityAliases(t *testing.T) {
 func TestNormalizeNameFullWidthParens(t *testing.T) {
 	cases := map[string]string{
 		"Acme（HK）":  "Acme(HK)",
-		"Acme (HK)": "Acme (HK)",
-		"Acme　(HK)": "Acme(HK)",
+		"Acme (HK)": "Acme(HK)",
+		"Acme　(HK)": "Acme　(HK)", // U+3000 is not stripped, matching upstream
 	}
 	for in, want := range cases {
 		if got := normalizeName(in); got != want {

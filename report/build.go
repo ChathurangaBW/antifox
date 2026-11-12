@@ -461,7 +461,7 @@ func truncateRune(s string, n int) string {
 }
 func normalizeName(s string) string {
 	s = strings.TrimSpace(s)
-	s = strings.ReplaceAll(s, "\u3000", "") // full-width space
+	s = strings.ReplaceAll(s, " ", "")
 	s = strings.ReplaceAll(s, "（", "(")
 	s = strings.ReplaceAll(s, "）", ")")
 	return s
