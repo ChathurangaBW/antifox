@@ -102,7 +102,7 @@ Full steps (skill embedding, dev hot-reload) are in [CONTRIBUTING.md](CONTRIBUTI
 
 | Dashboard | Tasks |
 | :---: | :---: |
-| ![Dashboard](screenshots/dashboard-en.png) | ![Tasks](screenshots/tasks-en.png) |
+| ![Dashboard](screenshots/dashboard.png) | ![Tasks](screenshots/tasks.png) |
 
 ## Lineage
 
