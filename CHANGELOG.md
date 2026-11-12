@@ -11,18 +11,18 @@ This project's version update summary. The format follows [Keep a Changelog](htt
 - **Report management**: New reports list only confirmed vulnerabilities by default (including status and CVSS); the body reuses enriched data.
 - **Automatic evidence captions**: Evidence screenshot captions are generated from reproduction-step text and remain editable.
 - **Vulnerability detail refinements**: Status dropdown, section headings, and one-click copy.
-- **Flow Job Screening Repair**:The task-screening superimposed task activity window and multiple tests of the same target do not lead to traffic.
-- Change the system configuration page to two columns to fit the layout.
+- **Traffic task filtering fix**: Task filtering now combines the task activity window, so repeated tests of the same target no longer mix traffic.
+- Changed the system configuration page to a responsive two-column layout.
 
 ## v2.0.2
 
-- **One Key Update**:Check and install from the system configuration page GitHub New versionSHA256 Verify / Atom replacement / Failed to roll back automatically) and data is not affected.
-- Publication of products attached `start.sh` Protect Scripts with systemd template.
+- **One-click update**: Check for and install new GitHub releases from the system configuration page (SHA256 verification, atomic replacement, and automatic rollback on failure) without affecting data.
+- Release packages include the `start.sh` daemon script and a systemd template.
 
 ## v2.0.1
 
-- Auto-link real flow packages when the step is dropped.
+- Automatically link real traffic packets when reproduction steps are saved.
 
 ## v2.0.0
 
-- Evidence-driven delivery: recurrence process in-situ storage, discovery pages step by step, real flow packages per step; manual trilingual reporting.
+- Evidence-driven delivery: save reproduction steps in place, organize discovery pages by exploit-chain steps, link a real traffic packet to every step, and generate manually graded trilingual reports.

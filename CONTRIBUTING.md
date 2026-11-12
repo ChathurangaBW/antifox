@@ -1,12 +1,12 @@
 # Contributing to AntiFox
 
-[Chinese](#Chinese) | [English](#english)
+[Chinese](#chinese) | [English](#english)
 
 ---
 
 ## Chinese
 
-Contribution codes, documentation, translation and problem feedback are welcome.
+Contributions of code, documentation, translations, and issue feedback are welcome.
 
 ### Build from Source
 
