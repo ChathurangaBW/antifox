@@ -58,7 +58,9 @@ This skill **does only API/ parameter surface reconnaissance**and is not a leak 
 |---|---|---|
 |  **depth**  | `runtime_harvest.js` (Puppeteer) | API List, METHOD/params/ Response, WS/SSE, Recoverable Bulk Run |
 |  **coverage**  |  browser + `preload.js`  | Point Tab/ window/table, function point cover deeper |
-|  **both**  **Parameter method **(no universal script): Path with harvest/ rule; parameter with**anchor extension window + UI binding chain + multiple sample diff + error invert **(grep formulation see [reference.md] (reference. md) J).
+| **both** | Run depth first, then coverage | Most complete; takes the longest |
+
+**Parameter methodology** (no universal script): use harvest/regex for paths; use **anchor-window expansion + UI binding chains + multi-sample diffs + error-driven inference** for parameters (see section J of [reference.md](reference.md) for grep recipes).
 
 ---
 
@@ -68,7 +70,7 @@ All meets to claim recon complete:
 
 - [ ] **Static**: Phase 1 Harvey output `api_static.txt`, `routes.txt`, `js/`
 - [ ] **Run-time**: at least one depth or coverage; coverage/both must **Hook Entry + Dynamic Element Ring**
-**Hell**: non-`/login` on access to business path (hash route)
+- [ ] **Enter the shell**: accessing a business path does not redirect to `/login` (watch hash routes)
 - [ ] **Arguments**: coverage/both finish parameters trigger matrix + `param_samples.json`; Phase 5 merge `params_merged.json`
 - [ ] **Depth**(if the module page is blank): Phase 4 permission tree is restored and rerun until it appears **module level API**(not only locale/bootstrap)
 - [ ] **Delivery**: Phase 5 full output (see Phase 5 output table); `insert_assets` written into service and end-point assets
@@ -77,12 +79,16 @@ All meets to claim recon complete:
 
 ## Scripts and Gates
 
-`scripts/` is a reference template only,**it is prohibited to run the original directly and as the final result.**Rule **: Read first Write to `OUTDIR` (e.g. `recon/`) `CHANGES.md`; non-matching rewrites by method and borrow structures only.
+`scripts/` is a reference template only; **do not** run the original unchanged as the final result.
+
+**Rule**: read it first → adapt it to the target → write it to `OUTDIR` (for example `recon/`) → record changes in `CHANGES.md`; if it does not fit, rewrite it using the methodology and borrow only its structure.
 
 | Restricted. | When? | Reference Script OUTDIR copy | Frequent Changes |
 |---|---|---|---|
 | **A (static)** **first**run harvest/spider before |  `harvest_static.py` / `spider_mpa.py`  | **Most sites default regex to run**; only endpoints, webpack/Vite `publicPath`, MPA exclude/cookie when manifest/ dialects do not match |
-| **B (Run-time)** **SPA forced order **(non-exchange; Phase number over "exploration before script"):
+| **B (runtime)** | After Phase 2, before depth/coverage | `runtime_harvest.js` / `preload.js` + `config.json` | Cookie/localStorage keys, neutralize-success values, stubs, login regex, API prefixes, and hash/history |
+
+**SPA mandatory order** (not interchangeable; phase order takes precedence over “explore before scripts”):
 
 | Steps | Must | Prohibited |
 |---|---|---|

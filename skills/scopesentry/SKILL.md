@@ -140,9 +140,13 @@ When the user or context **has project conditions**, give priority to `filter.pr
 
 ### 3.3 Complete collection of root domain names (recommends two phases)
 
-When entered as **root domain**and complete information collection **, it is recommended to scan it twice and not run the full stream.**Reason:**Distributed tasks are distributed in**individual objectives **. When the root domain name is targeted, the sub-domain name that has been removed from the node will also continue to implement the follow-up module at the node after the node has been assigned to the node, which is likely to result in uneven loads, slow speeds and easy errors.**Best practices:**
+When the input is a **root domain** and a **complete information collection** is required, run two scans rather than the complete pipeline at once.
 
-**First phase - collection of subdomain names only**
+**Why:** Distributed tasks are assigned per **individual target**. When a root domain is assigned to one node, every subdomain it discovers continues through the later modules on that same node. This can create uneven load, slow execution, and errors.
+
+**Best practice:**
+
+1. **Phase 1 — collect subdomains only**
    - `targetSource`: `general`
    - `target`: All root domain names (multiline)
    - Template: only `SubdomainScan`, `SubdomainSecurity` is enabled (subdomain name scan + subdomain name takes over)
@@ -223,9 +227,13 @@ Custom DSL (**not SQL**):
 | `||` | or | — | `title=admin || body=login` |
 
 
-**Indexes and operators:**`domain`, `ip`, `port`, `title` are indexed, but only**`==` full **or**values match the prefix at `^` **(e.g. `domain=^example.com`) can walk index;**`=` changes to regex blurry matching, cannot use index**data are often slow.
+**Indexes and operators:** `domain`, `ip`, `port`, and `title` are indexed, but only **exact `==` matches** or **prefix matches whose value starts with `^`** (for example `domain=^example.com`) use the index. `=` performs a regex fuzzy match and cannot use the index, so it can be slow on large datasets.
 
-**All types of common search fields:**`tag`, `task` (mission name), `rootDomain`**project cannot be written in search **(invalid or misreported with `&&`). Use `filter.project` for sifting items.**Common search fields for each type:**
+**Common `search` fields for all types:** `tag`, `task` (task name), and `rootDomain`.
+
+**Do not put `project` in `search`**; it is invalid or fails when combined with `&&`. Use `filter.project` to restrict projects.
+
+**Common `search` fields by type:**
 
 
 | asset_type | Fields |
