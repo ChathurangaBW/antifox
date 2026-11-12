@@ -89,22 +89,22 @@ jobs:
           name: bin-linux-${{ matrix.goarch }}
           path: antifox
 
-  # â‘¢ Summary zip â†’ Create GitHub Release
+  # Ã¢â€˜Â¢ Summary zip Ã¢â€ â€™ Create GitHub Release
   release:
     needs: binaries
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4 # Remove CHANGELOG.md Do it. release Annotations
+      - uses: actions/checkout@v4 # Retrieve CHANGELOG.md for the release notes
       - uses: actions/download-artifact@v4
         with:
           pattern: pkg-*
           merge-multiple: true
           path: dist
-      # Checksum list: one key self-up(selfupdate Package)Check it after download. SHA256,Without it, the installation is refused.
+      # Checksum manifest: after a one-click update downloads a selfupdate package, it verifies its SHA256 against this file and refuses installation if it is absent.
       # The file name is the basename (sha256sum is generated inside dist/), and it matches selfupdate.AssetName exactly.
       - name: Generate SHA256SUMS
         run: cd dist && sha256sum *.zip > SHA256SUMS && cat SHA256SUMS
-      # "This Update" is short: CHANGELOG The top version. release Text.
+      # Keep the "This update" summary concise: use the topmost version section from CHANGELOG as the release body.
       - name: Extract release notes
         run: |
           awk '/^## /{n++} n==1{print}' CHANGELOG.md | tail -n +2 > RELEASE_NOTES.md
@@ -116,8 +116,8 @@ jobs:
             dist/SHA256SUMS
           body_path: RELEASE_NOTES.md
 
-  # â‘£ Multistructure Mirror â†’ Push! GHCR(Reuse binaries Make it up. Linux Binary.
-  #    Only tools in the mirror + Binary;arm64 Simulation only apt Layer, much faster.
+  # 4. Push multi-architecture images to GHCR, reusing the prebuilt Linux binaries
+  #    The image contains only tools and binaries; arm64 needs only the emulated apt layer, making builds much faster.
   docker:
     needs: binaries
     runs-on: ubuntu-latest
@@ -125,7 +125,7 @@ jobs:
       contents: read
       packages: write
     steps:
-      - uses: actions/checkout@v4 # Remove Dockerfile and skills/
+      - uses: actions/checkout@v4 # Retrieve Dockerfile and skills/
       - uses: actions/download-artifact@v4
         with:
           name: bin-linux-amd64
