@@ -32,7 +32,7 @@ func (s *Server) extractFindings(w http.ResponseWriter, r *http.Request) {
 	// Use record_fact Write it back, but it didn't work out. finding Exposure/Information leak, Jean."Combination"You can raise them.
 	if facts, ferr := t.Store.ListByKind(db.KindFact, 200); ferr == nil && len(facts) > 0 {
 		var fb strings.Builder
-		fb.WriteString("\n\n[Discovery chart documented facts (possibly including exposure not upgraded to discovery)/♪ The face of the attack ♪\n")
+		fb.WriteString("\n\n[Facts recorded in the exploration graph (may include exposures or attack surface not yet promoted to findings)]\n")
 		for _, n := range facts {
 			var p struct {
 				Summary string `json:"summary"`
@@ -68,7 +68,7 @@ func (s *Server) extractFindings(w http.ResponseWriter, r *http.Request) {
 		}
 		_ = json.Unmarshal(n.Payload, &p)
 		labels = append(labels, strings.TrimSpace(p.VulnClass+" — "+p.Summary))
-		existingKeys = append(existingKeys, normalizeVuln(p.VulnClass+p.Summary))
+		existingKeys = append(existingKeys, vulnDedupKey(p.VulnClass, p.Summary))
 	}
 
 	extracted, err := report.ExtractFindings(s.ctx, s.m.pg, transcript, labels)
@@ -84,7 +84,7 @@ func (s *Server) extractFindings(w http.ResponseWriter, r *http.Request) {
 		if strings.TrimSpace(e.Summary) == "" && strings.TrimSpace(e.VulnClass) == "" {
 			continue
 		}
-		key := normalizeVuln(e.VulnClass + e.Summary)
+		key := vulnDedupKey(e.VulnClass, e.Summary)
 		if containsSimilar(existingKeys, key) {
 			continue // already recorded
 		}
@@ -108,8 +108,10 @@ func (s *Server) extractFindings(w http.ResponseWriter, r *http.Request) {
 
 func normalizeSeverity(s string) string {
 	switch strings.ToLower(strings.TrimSpace(s)) {
-	case "critical", "serious", "severe", "high", "high risk", "高危", "高", "严重", "嚴重":
-		return "high" // AntiFox severity set is high|medium|low
+	case "critical", "serious", "severe", "crit", "严重", "嚴重":
+		return "critical"
+	case "high", "high risk", "高危", "高":
+		return "high"
 	case "medium", "medium risk", "moderate", "med", "中危", "中", "it's dangerous.":
 		return "medium"
 	case "low", "low risk", "low risk.", "低危", "低", "info", "information", "informational", "信息", "資訊":
@@ -129,22 +131,47 @@ func normalizeVuln(s string) string {
 	return b.String()
 }
 
-// containsSimilar reports whether key strongly overlaps any existing key (either
-// contains the other on a ≥8-char prefix) — a light dedup on top of the AI's.
+func vulnDedupKey(vulnClass, summary string) string {
+	return normalizeVuln(vulnClass) + "|" + normalizeVuln(summary)
+}
+
+func splitDedupKey(k string) (string, string) {
+	if c, s, ok := strings.Cut(k, "|"); ok {
+		return c, s
+	}
+	return "", k
+}
+
+// containsSimilar reports whether key strongly overlaps any existing key without
+// collapsing distinct findings that merely share the same English VulnClass prefix.
 func containsSimilar(existing []string, key string) bool {
-	if key == "" {
+	kClass, kSum := splitDedupKey(key)
+	if kClass == "" && kSum == "" {
 		return false
 	}
 	for _, e := range existing {
 		if e == "" {
 			continue
 		}
-		if strings.Contains(e, key) || strings.Contains(key, e) {
+		if e == key {
 			return true
 		}
-		n := 12
-		if len([]rune(key)) >= n && len([]rune(e)) >= n {
-			if string([]rune(key)[:n]) == string([]rune(e)[:n]) {
+		eClass, eSum := splitDedupKey(e)
+		if kSum == "" || eSum == "" {
+			continue
+		}
+		sameOrEmptyClass := kClass == "" || eClass == "" || kClass == eClass ||
+			strings.Contains(kClass, eClass) || strings.Contains(eClass, kClass)
+		if !sameOrEmptyClass {
+			continue
+		}
+		if strings.Contains(eSum, kSum) || strings.Contains(kSum, eSum) {
+			return true
+		}
+		if containsCJK(kSum) && containsCJK(eSum) {
+			const n = 10
+			kr, er := []rune(kSum), []rune(eSum)
+			if len(kr) >= n && len(er) >= n && string(kr[:n]) == string(er[:n]) {
 				return true
 			}
 		}

@@ -46,13 +46,32 @@ func (d *DB) AddFinding(taskID, nodeID int64, vulnclass, severity, summary, evid
 }
 
 // SetFindingReproduction stores the agent-captured structured reproduction recipe for
-// the finding at nodeID (report_finding writes it inline). No-op on empty input.
+// the finding at nodeID (report_finding writes it inline) and auto-links any resolved
+// step exchange IDs in finding_traffic. No-op on empty input.
 func (d *DB) SetFindingReproduction(nodeID int64, repro json.RawMessage) error {
 	if len(repro) == 0 {
 		return nil
 	}
-	_, err := d.Exec(`UPDATE findings SET reproduction=$1 WHERE node_id=$2`, string(repro), nodeID)
-	return err
+	if _, err := d.Exec(`UPDATE findings SET reproduction=$1 WHERE node_id=$2`, string(repro), nodeID); err != nil {
+		return err
+	}
+	var rp struct {
+		Steps []struct {
+			ExchangeID string `json:"exchange_id"`
+		} `json:"steps"`
+	}
+	if json.Unmarshal(repro, &rp) == nil && len(rp.Steps) > 0 {
+		var eids []string
+		for _, st := range rp.Steps {
+			if st.ExchangeID != "" {
+				eids = append(eids, st.ExchangeID)
+			}
+		}
+		if len(eids) > 0 {
+			_ = d.LinkFindingTraffic(nodeID, eids, "auto")
+		}
+	}
+	return nil
 }
 
 // GetFindingByNodeID returns the standalone finding row for an exploration node

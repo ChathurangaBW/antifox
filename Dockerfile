@@ -12,11 +12,12 @@
 #   docker build -t antifox:local .
 FROM python:3.12-slim-bookworm
 ARG TARGETARCH
-# Common tools: ripgrep / curl / vim plus standard reconnaissance utilities.
+# Common tools: ripgrep / curl / vim plus standard Kali/Debian reconnaissance and verification utilities.
 # Install Node 20.x from NodeSource because Bookworm ships Node 18 and Playwright requires >=20.
 RUN apt-get update && apt-get install -y --no-install-recommends \
-      ca-certificates ripgrep curl wget vim git jq unzip \
+      ca-certificates ripgrep curl wget vim git jq unzip tar perl ruby \
       dnsutils iputils-ping netcat-openbsd whois nmap \
+      whatweb wafw00f sqlmap gobuster ffuf nikto sslscan hydra \
     && curl -fsSL https://deb.nodesource.com/setup_20.x | bash - \
     && apt-get install -y --no-install-recommends nodejs \
     && rm -rf /var/lib/apt/lists/*
@@ -35,7 +36,8 @@ WORKDIR /app
 COPY dist/${TARGETARCH}/antifox /app/antifox
 RUN chmod +x /app/antifox
 COPY skills/ /app/skills/
-# Persistence point for data/ (SQLite + jwt.key).
+# Persistence point for data/ (SQLite, jwt.key, and on-demand latest CLI binaries in /app/data/bin).
+ENV PATH="/app/data/bin:/root/.local/bin:${PATH}"
 VOLUME ["/app/data"]
 EXPOSE 8787 8788
 ENTRYPOINT ["/app/antifox"]

@@ -3,6 +3,7 @@ package agent
 import (
 	"context"
 	"encoding/json"
+	"strings"
 	"testing"
 
 	"antifox/db"
@@ -392,5 +393,36 @@ func TestInsertAssetsDedup(t *testing.T) {
 	id1, id2 := getID(out1), getID(out2)
 	if id1 == 0 || id1 != id2 {
 		t.Errorf("dedup: want same ID on double insert, got %v vs %v", id1, id2)
+	}
+}
+
+func TestParseScanRecords(t *testing.T) {
+	jsonl := strings.Join([]string{
+		`{"host":"api.example.com","a":["1.2.3.4"]}`,
+		`{"ip":"1.2.3.4","host":"api.example.com","port":8443}`,
+		`{"url":"https://api.example.com:8443","status_code":200,"content_length":512,"title":"API Gateway","tech":["Nginx","Go"],"a":["1.2.3.4"]}`,
+		`{"request":{"method":"POST","endpoint":"https://api.example.com:8443/v1/auth/login"}}`,
+	}, "\n")
+	items := parseScanRecords(jsonl)
+	if len(items) != 4 {
+		t.Fatalf("parseScanRecords: want 4 items, got %d (%+v)", len(items), items)
+	}
+	if items[0].Type != "subdomain" || items[0].Domain != "api.example.com" || items[0].RecordType != "A" {
+		t.Errorf("item[0] subdomain mismatch: %+v", items[0])
+	}
+	if items[1].Type != "ip" || items[1].IP != "1.2.3.4" || len(items[1].OpenPorts) != 1 || items[1].OpenPorts[0].Port != 8443 {
+		t.Errorf("item[1] naabu ip/port mismatch: %+v", items[1])
+	}
+	if items[2].Type != "service" || items[2].URL != "https://api.example.com:8443" || items[2].PageTitle != "API Gateway" || len(items[2].Technologies) != 2 {
+		t.Errorf("item[2] httpx service mismatch: %+v", items[2])
+	}
+	if items[3].Type != "endpoint" || items[3].Method != "POST" || items[3].URL != "https://api.example.com:8443/v1/auth/login" {
+		t.Errorf("item[3] katana endpoint mismatch: %+v", items[3])
+	}
+
+	ffufJSON := `{"results":[{"url":"https://api.example.com/admin","status":200,"length":1024}]}`
+	ffufItems := parseScanRecords(ffufJSON)
+	if len(ffufItems) != 1 || ffufItems[0].Type != "endpoint" || ffufItems[0].URL != "https://api.example.com/admin" {
+		t.Errorf("ffuf parse mismatch: %+v", ffufItems)
 	}
 }

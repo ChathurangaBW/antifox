@@ -131,13 +131,15 @@ func (g *Guard) applyIntercept(ctx context.Context, ev hook.Event) hook.Result {
 	return hook.Result{}
 }
 
-var reBlocked = regexp.MustCompile(`(?i)\b(403|forbidden|waf|blocked|rate.?limit|429|captcha|denied)\b`)
+var reBlocked = regexp.MustCompile(`(?i)(\bhttp[/0-9.]*\s+(?:403|429)\b|\bstatus[:\s=]+(?:403|429)\b|\b(?:forbidden|waf|rate.?limit|captcha|access\s+denied|request\s+blocked)\b)`)
 
 // postToolUse is the Observer failure-attribution hook (G5): it classifies tool
 // results into blocked / error / ok so the planner can change strategy instead
 // of giving up at a WAF.
 func (g *Guard) postToolUse(_ context.Context, ev hook.Event) hook.Result {
-	if ev.ToolName != "Bash" {
+	switch ev.ToolName {
+	case "Bash", "shell_open", "shell_send":
+	default:
 		return hook.Result{}
 	}
 	class := "ok"

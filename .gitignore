@@ -42,6 +42,8 @@ Thumbs.db
 .env
 
 # build artifacts / local
+/dist/
+/*.zip
 /web/node_modules
 /web/out
 /web/.next

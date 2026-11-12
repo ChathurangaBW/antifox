@@ -88,7 +88,7 @@ func renderPlannerTodos(items []actool.Todo) string {
 		}
 		b.WriteString(fmt.Sprintf("  %s %s\n", mark, it.Content))
 	}
-	b.WriteString("Progress in this direction: only [pre-steps completed] / They depend on it. fact (a) the subsequent intent of the [already existing] party; TodoWrite Update of List fact Satisfactory step mark completed). Don't repeat the pie already on the list. pending/in_progress Steps.")
+	b.WriteString("Serial-chain rule: dispatch a subsequent intent ONLY after its prerequisite step is completed and the required fact already exists; use TodoWrite to update this list and mark steps satisfied by facts as completed. Do not re-dispatch pending or in_progress steps already on this list.]")
 	return b.String()
 }
 
@@ -103,7 +103,7 @@ func renderDoneIntents(ids []int64) string {
 	for i, id := range ids {
 		parts[i] = fmt.Sprintf("#%d", id)
 	}
-	return "\n\n[This triggers the newly completed intent of this round]:" + strings.Join(parts, ", ")
+	return "\n\n[Newly completed intents triggering this round]: " + strings.Join(parts, ", ")
 }
 
 // renderGraphOverview folds the pre-computed graph_overview snapshot into the
@@ -171,7 +171,7 @@ Prefer creating nothing over creating duplicates or filler. Be concise, restrain
 
 func plannerSystem(goal, workDir string) string {
 	body := renderSystem("planner", plannerDefaultTmpl, PlannerVars{Goal: goal, Now: time.Now().Format("2006-01-02 15:04:05 MST")})
-	return body + artifactSpec(workDir)
+	return withEnglish(body + artifactSpec(workDir))
 }
 
 // Plan runs one planning round. emit, if non-nil, receives the planner's execution
@@ -205,7 +205,7 @@ func (p *Planner) Plan(ctx context.Context, taskID int64, as *db.AssetStore, ts 
 	// planner End words as direct injection system,Let it be only a final target determination, not a new intent.
 	tc := taskClockFrom(ctx)
 	if tc.Final {
-		situational += "\n\n[End of mission (special instructions for this round, covering the general planning process above)" + resolveTaskTimeoutWrapup("planner")
+		situational += "\n\n[Task deadline reached (special instructions for this final round, overriding the general planning process above)]:\n" + resolveTaskTimeoutWrapup("planner")
 	}
 	system, boundary := deferredSystem(plannerSystem(goal, p.workDir)+situational, def)
 	// the planner has no wall-clock budget of its own; the deadline comes from the context. With MaxDuration it uses the remaining time, so the planning loop keeps running

@@ -626,6 +626,16 @@ func (s *Server) pgResetTool(w http.ResponseWriter, r *http.Request) {
 		writeJSON(w, 200, map[string]any{"ok": true})
 		return
 	}
+	if kt := s.toolEnsureKaliTool(); kt != nil && kt.Name() == key {
+		kaliAgents, _ := json.Marshal([]string{"worker", "pentest", "auto"})
+		schema, _ := json.Marshal(kt.InputSchema())
+		if err := pg.UpsertToolForce(kt.Name(), kt.Description(), schema, kaliAgents); err != nil {
+			writeErr(w, 500, err.Error())
+			return
+		}
+		writeJSON(w, 200, map[string]any{"ok": true})
+		return
+	}
 	writeErr(w, 404, "Non-internal tools or non-existent: "+key)
 }
 

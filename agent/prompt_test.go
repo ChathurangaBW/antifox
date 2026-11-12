@@ -65,3 +65,30 @@ func TestRenderSystemOverrideAndFallback(t *testing.T) {
 		t.Fatalf("worker without proxy must NOT inject trafficTool: %q", noProxy)
 	}
 }
+
+// TestEnglishOutputDirective locks the fix for workers answering in Chinese:
+// every composed system prompt carries the code-owned output-language rule, and
+// a DB prompt body (legacy Chinese, or a user edit) cannot drop it.
+func TestEnglishOutputDirective(t *testing.T) {
+	t.Cleanup(func() { PromptOverride = nil })
+
+	built := map[string]string{
+		"planner":        plannerSystem("g", "/data"),
+		"worker":         workerSystem("", "/data"),
+		"worker-proxy":   workerSystem("127.0.0.1:8080", "/data"),
+		"mainagent":      mainAgentSystem("g", "/data"),
+		"chat":           chatSystem("custom", "/data"),
+		"goals-rendered": withEnglish(renderSystem("goals", goalsDefaultTmpl, GoalsVars{})),
+	}
+	for name, got := range built {
+		if !strings.Contains(got, "Write every reasoning summary, finding, fact, and final answer in English") {
+			t.Fatalf("%s: missing English output directive", name)
+		}
+	}
+
+	// A legacy Chinese body in the DB must still yield an English-language rule.
+	PromptOverride = func(k string) (string, bool) { return "\u6211\u662f\u4e2d\u6587\u63d0\u793a", true }
+	if got := workerSystem("", "/data"); !strings.Contains(got, "Write every reasoning summary") {
+		t.Fatalf("DB body dropped the English directive: %q", got)
+	}
+}

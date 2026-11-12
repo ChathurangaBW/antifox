@@ -204,6 +204,67 @@ func seedPrompts(pg *db.DB) {
 			log.Printf("[prompts] seed %s Failed: %v", key, err)
 		}
 	}
+	reseedEnglishPrompts(pg)
+}
+
+// settingPromptEnglishV1 guards the one-time English prompt repair below.
+const settingPromptEnglishV1 = "prompt_english_reseed_v1"
+
+// reseedEnglishPrompts repairs installations upgraded from the Chinese build.
+// Seeding is first-insert only, so a DB created before the English conversion
+// keeps its old Chinese prompt as the current version forever: PromptOverride
+// reads that row and the code default never wins again. That is why workers
+// kept answering in Chinese after the translation. Replace such a prompt with
+// the English code default as a NEW version - history is preserved and the UI
+// can revert - once, guarded by a settings flag so a deliberate non-English
+// customization added later is not touched on every restart.
+func reseedEnglishPrompts(pg *db.DB) {
+	if v, _, _ := pg.GetSetting(settingPromptEnglishV1); v == "true" {
+		return
+	}
+	repaired, failed := 0, 0
+	for key, tmpl := range agent.BuiltinPromptSeeds() {
+		if containsCJK(tmpl) {
+			continue // the built-in default itself is not English; nothing to repair
+		}
+		a, err := pg.GetAgentByKey(key)
+		if err != nil || a == nil {
+			continue
+		}
+		cur, err := pg.CurrentPrompt(a.ID)
+		if err != nil || cur == "" || !containsCJK(cur) {
+			continue
+		}
+		if _, err := pg.ResetPromptToDefault(a.ID, tmpl); err != nil {
+			log.Printf("[prompts] %s: English reseed failed: %v", key, err)
+			failed++
+			continue
+		}
+		repaired++
+		log.Printf("[prompts] %s: replaced a non-English prompt with the English default", key)
+	}
+	if failed == 0 {
+		_ = pg.SetSetting(settingPromptEnglishV1, "true")
+	}
+	if repaired > 0 {
+		log.Printf("[prompts] English reseed: %d prompt(s) updated", repaired)
+	}
+}
+
+// containsCJK reports whether s contains Han characters or CJK punctuation -
+// the signal that a stored prompt predates the English conversion.
+func containsCJK(s string) bool {
+	for _, r := range s {
+		switch {
+		case r >= 0x4E00 && r <= 0x9FFF, // Han
+			r >= 0x3400 && r <= 0x4DBF, // Han extension A
+			r >= 0xF900 && r <= 0xFAFF, // Han compatibility
+			r >= 0x3000 && r <= 0x303F, // CJK punctuation
+			r >= 0xFF00 && r <= 0xFFEF: // full-width forms
+			return true
+		}
+	}
+	return false
 }
 
 // wireTools seeds the built-in tool catalog (idempotent, first-insert only so page
@@ -236,7 +297,7 @@ func wireTools(pg *db.DB, domainReg map[string]actool.CoreTool) {
 	// bashInteractiveShellNote is appended to Bash's description ONLY for agents whose
 	// interactive_shell is on, so Bash points at shell_open for interactive programs
 	// without ever referencing a tool that isn't injected (§14.1/§14.2).
-	const bashInteractiveShellNote = "\n\nProgram [interactive input] requiredmsfconsole / ssh Interactive Login / mysql, psql, python Wait. REPL / Password or yes/no Hint / nc Bounce shell)Don't use it. Bash(It didn't. stdin, It's stuck. shell_open Interactive session (over) shell_close). One-time, non-interactive commands remain in use Bash. "
+	const bashInteractiveShellNote = "\n\nFor programs that require interactive input (e.g., msfconsole, interactive ssh login, mysql/psql/python REPLs, password or yes/no prompts, or netcat reverse shells), do NOT use Bash (it has no stdin and will hang). Use shell_open to start an interactive session (and shell_close when finished). Continue using Bash for one-shot, non-interactive commands."
 	agent.ToolResolve = func(_ context.Context, agentKey string, tools []actool.CoreTool) []actool.CoreTool {
 		rows, err := pg.ListTools()
 		if err != nil {
@@ -290,19 +351,23 @@ func wireTools(pg *db.DB, domainReg map[string]actool.CoreTool) {
 		}
 		// shell hints: user-defined kind="shell" tools are not callable — they are
 		// environment declarations that tell the model which command-line tools are
-		// installed. Collect the ones bound to this agent and append to Bash's description.
-		var shellHints []string
-		for _, row := range rows {
-			if row.Kind == "shell" && row.Enabled && contains(row.Agents, agentKey) {
-				shellHints = append(shellHints, "- "+row.Key+": "+row.Description)
+		// registered (and whether each binary is currently installed or can be installed
+		// on demand via ensure_kali_tool / antifox-tool). Collect the ones bound to this
+		// agent and append to Bash's description when Bash decoration is enabled.
+		if !actool.InteractiveShellDisabled() {
+			var shellHints []string
+			for _, row := range rows {
+				if row.Kind == "shell" && row.Enabled && contains(row.Agents, agentKey) {
+					shellHints = append(shellHints, formatShellHint(row))
+				}
 			}
-		}
-		if len(shellHints) > 0 {
-			note := "\n\nThe following tools are installed here bash In the environment, directly through Bash Call:\n" + strings.Join(shellHints, "\n")
-			for i, t := range out {
-				if t.Name() == "Bash" {
-					out[i] = agent.DecorateTool(t, t.Description()+note, t.InputSchema())
-					break
+			if len(shellHints) > 0 {
+				note := "\n\nCLI tools registered in this Bash environment (call directly via Bash; if a tool is marked [not installed], call ensure_kali_tool or run `antifox-tool install <name>` to install the latest release on demand):\n" + strings.Join(shellHints, "\n")
+				for i, t := range out {
+					if t.Name() == "Bash" {
+						out[i] = agent.DecorateTool(t, t.Description()+note, t.InputSchema())
+						break
+					}
 				}
 			}
 		}

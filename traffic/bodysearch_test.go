@@ -205,6 +205,21 @@ func TestResolveSteps(t *testing.T) {
 	if ids2[0] != "" {
 		t.Errorf("out-of-window endpoint should resolve empty, got %q", ids2[0])
 	}
+
+	// Host + status disambiguation: skip an earlier 401 on the same path and another host's 200.
+	if _, err := tr.db.Exec(`INSERT INTO exchanges(id,ts,host,method,url_template,url,status,content_type,req_len,resp_len,path)
+		VALUES('other_host',105,'other.local','POST','/login','http://other.local/login',200,'application/json',0,0,'other_host'),
+		      ('fail_401',106,'target.local','POST','/login','http://target.local/login',401,'application/json',0,0,'fail_401'),
+		      ('ok_200',108,'target.local','POST','/login','http://target.local/login',200,'application/json',0,0,'ok_200')`); err != nil {
+		t.Fatal(err)
+	}
+	ids3 := tr.ResolveSteps(100, 200, []StepRef{{
+		Request:  "POST /login HTTP/1.1\nHost: target.local:8080\n\n",
+		Response: "HTTP/1.1 200 OK\n\n",
+	}})
+	if ids3[0] != "ok_200" {
+		t.Errorf("host+status disambiguation: want ok_200, got %q", ids3[0])
+	}
 }
 
 func TestBackfillBodies(t *testing.T) {

@@ -629,12 +629,27 @@ func (t *ToolSet) addFinding() actool.CoreTool {
 			payload := map[string]any{"vulnclass": a.VulnClass, "severity": a.Severity, "summary": a.Summary,
 				"evidence": map[string]any{"by": t.worker, "poc": a.Evidence}}
 			repro := a.Reproduction
+			totalSteps, linkedSteps := 0, 0
 			if len(repro) > 2 { // "{}" is 2 bytes; only carry a real recipe
 				// Resolve steps → real traffic exchange ids at record time (host callback),
 				// so the stored finding's steps carry jump-to-traffic links up front.
 				if t.resolveTraffic != nil && t.taskID > 0 {
 					if r := t.resolveTraffic(t.taskID, repro); len(r) > 2 {
 						repro = r
+					}
+				}
+				var rp struct {
+					Steps []struct {
+						Request    string `json:"request"`
+						ExchangeID string `json:"exchange_id"`
+					} `json:"steps"`
+				}
+				if json.Unmarshal(repro, &rp) == nil {
+					totalSteps = len(rp.Steps)
+					for _, st := range rp.Steps {
+						if st.ExchangeID != "" {
+							linkedSteps++
+						}
 					}
 				}
 				payload["reproduction"] = repro
@@ -664,6 +679,9 @@ func (t *ToolSet) addFinding() actool.CoreTool {
 				return actool.Errorf("report_finding Task context required (exploration store Not initialized)"), nil
 			}
 			t.writes.Findings++
+			if totalSteps > 0 {
+				return actool.Text(fmt.Sprintf("finding recorded: %d (linked %d/%d reproduction steps to recorded traffic)", id, linkedSteps, totalSteps)), nil
+			}
 			return actool.Text(fmt.Sprintf("finding recorded: %d", id)), nil
 		})
 }

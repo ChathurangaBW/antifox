@@ -35,7 +35,7 @@ import (
 // Repo is the release source. Hardcoded, never a config value: a configurable update
 // source on a pentest platform is a remote-code-execution channel for anyone who can
 // edit config — a door we keep shut.
-const Repo = "AntiFox-AI/antifox"
+const Repo = "ChathurangaBW/antifox"
 
 // ExitRestart is the "please relaunch me" exit code (EX_TEMPFAIL). The supervisor sees
 // it and restarts immediately without counting it as a crash. 0 = clean user stop;

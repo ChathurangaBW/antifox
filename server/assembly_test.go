@@ -6,9 +6,9 @@ import (
 	"path/filepath"
 	"testing"
 
-	actool "antifox/engine/tool"
 	"antifox/agent"
 	"antifox/db"
+	actool "antifox/engine/tool"
 )
 
 // hasSkillTool reports whether the packed tool set contains the Skill meta-tool.
@@ -89,5 +89,26 @@ func TestAssembleVisibleSkill(t *testing.T) {
 	defer c2()
 	if !hasSkillTool(combined) {
 		t.Fatalf("AugmentTools should surface the Skill meta-tool")
+	}
+}
+
+// TestContainsCJK verifies the detector used by the one-time English prompt
+// repair: Han characters and CJK punctuation count, English with typographic
+// dashes/arrows does not.
+func TestContainsCJK(t *testing.T) {
+	cases := []struct {
+		in   string
+		want bool
+	}{
+		{"You are an executor in an authorized penetration-testing system.", false},
+		{"\u6211\u662f\u4e2d\u6587\u63d0\u793a", true},                // Han
+		{"\uff08\u6743\u9650\uff09", true},                            // full-width parens + Han
+		{"reconnaissance \u2192 exploitation \u2014 closeout", false}, // arrow + em dash
+		{"", false},
+	}
+	for _, c := range cases {
+		if got := containsCJK(c.in); got != c.want {
+			t.Fatalf("containsCJK(%q) = %v, want %v", c.in, got, c.want)
+		}
 	}
 }

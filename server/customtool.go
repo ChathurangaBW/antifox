@@ -554,5 +554,5 @@ func clipOutput(s string, tc *actool.ToolContext) string {
 	if len(s) <= max {
 		return s
 	}
-	return s[:max] + fmt.Sprintf("\n... [Cut it out. %d Bytes] ...", len(s))
+	return strings.ToValidUTF8(s[:max], "") + fmt.Sprintf("\n... [Cut it out. %d Bytes] ...", len(s))
 }

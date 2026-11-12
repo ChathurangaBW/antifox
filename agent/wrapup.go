@@ -87,13 +87,33 @@ func resolveWrapupTurns(agentKey string) int {
 	return WrapupTurnsDefault(agentKey)
 }
 
+// settlementLanguageRule is appended to the settlement (wrap-up) instruction for
+// agents whose phase ends with a displayed summary sentence. That sentence is
+// the model's terminal text verbatim (harness finish -> KindResult.Text -> the
+// run result row), so its language is a pure generation choice. The settlement
+// turn is one summarization prompt over a context that may be dominated by
+// non-English engagement data; without an explicit rule the model mirrors that
+// data even when every reasoning step and tool call in the run was English.
+// Applied at construction so a DB-edited wrap-up prompt cannot drop it.
+const settlementLanguageRule = "\n\nWrite the summary sentence in English, even when the intents, facts, or tool output being summarized are in another language."
+
+// settlementPrompt applies the language rule to a resolved settlement prompt.
+// The planner closes a round without a summary message, so the rule would only
+// contradict it there.
+func settlementPrompt(agentKey, prompt string) string {
+	if agentKey == "planner" {
+		return prompt
+	}
+	return prompt + settlementLanguageRule
+}
+
 // wrapupSettlement builds the settlement config for an agent's run. Prompt and the
 // turn budget are admin-editable per agent; disabled tools are code-owned policy so
 // a user can't edit away the "stop probing" guardrail. Resolved fresh each run
 // (reads DB live), so edits apply on the next run without a restart.
 func wrapupSettlement(agentKey string, disabledTools []string) *harness.Settlement {
 	return &harness.Settlement{
-		Prompt:        resolveWrapup(agentKey),
+		Prompt:        settlementPrompt(agentKey, resolveWrapup(agentKey)),
 		DisabledTools: disabledTools,
 		MaxTurns:      resolveWrapupTurns(agentKey),
 	}
@@ -154,7 +174,7 @@ func resolveTaskTimeoutTurns(agentKey string) int {
 //
 // Here the harness prompt is built by reason; the actual reason is used when closing, so there is no build mismatch.
 func wrapupSettlementForTask(agentKey string, disabledTools []string, clamped bool) *harness.Settlement {
-	perRun := resolveWrapup(agentKey)
+	perRun := settlementPrompt(agentKey, resolveWrapup(agentKey))
 	st := &harness.Settlement{
 		Prompt:        perRun, // Body (the reason is clamped to two occurrences per reason)
 		DisabledTools: disabledTools,
@@ -163,8 +183,8 @@ func wrapupSettlementForTask(agentKey string, disabledTools []string, clamped bo
 	if clamped {
 		if tt := resolveTaskTimeoutWrapup(agentKey); tt != "" {
 			st.PromptByReason = map[harness.TerminalReason]string{
-				harness.ReasonTimeout:  tt,     // Mission to Point
-				harness.ReasonMaxTurns: perRun, // We're running out of steps, we're running out of time.
+				harness.ReasonTimeout:  settlementPrompt(agentKey, tt), // Mission to Point
+				harness.ReasonMaxTurns: perRun,                         // We're running out of steps, we're running out of time.
 			}
 			st.MaxTurns = resolveTaskTimeoutTurns(agentKey)
 		}

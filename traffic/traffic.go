@@ -1044,7 +1044,8 @@ func (t *Traffic) ResolveSteps(sinceUnix, untilUnix int64, steps []StepRef) []st
 		if method == "" || path == "" {
 			continue
 		}
-		if id, ts, ok := t.resolveStepInWindow(sinceUnix, untilUnix, cursor, method, path, query, bodyToken, st.Response); ok {
+		reqHost := parseStepHost(st.Request)
+		if id, ts, ok := t.resolveStepInWindow(sinceUnix, untilUnix, cursor, reqHost, method, path, query, bodyToken, st.Response); ok {
 			out[i] = id
 			cursor = ts
 		}
@@ -1054,7 +1055,7 @@ func (t *Traffic) ResolveSteps(sinceUnix, untilUnix int64, steps []StepRef) []st
 
 // resolveStepInWindow finds the earliest exchange matching one step, at-or-after
 // cursor, inside the task's time window. Returns (id, ts, ok).
-func (t *Traffic) resolveStepInWindow(sinceUnix, untilUnix, cursor int64, method, path, query, bodyToken, respText string) (string, int64, bool) {
+func (t *Traffic) resolveStepInWindow(sinceUnix, untilUnix, cursor int64, reqHost, method, path, query, bodyToken, respText string) (string, int64, bool) {
 	where := `method=? AND url LIKE ? ESCAPE '\' AND ts BETWEEN ? AND ? AND ts >= ?`
 	args := []any{strings.ToUpper(method), likeContains(path), sinceUnix, untilUnix, cursor}
 	// tryNarrow applies a discriminator only if it still leaves ≥1 candidate, so a
@@ -1064,6 +1065,12 @@ func (t *Traffic) resolveStepInWindow(sinceUnix, untilUnix, cursor int64, method
 		if len(t.queryIDs(w, a)) >= 1 {
 			where, args = w, a
 		}
+	}
+	if reqHost != "" {
+		tryNarrow("lower(host)=?", strings.ToLower(reqHost))
+	}
+	if wantStatus := expectedStatus(respText); wantStatus > 0 {
+		tryNarrow("status=?", wantStatus)
 	}
 	if t.ftsOK && bodyToken != "" {
 		tryNarrow("id IN (SELECT id FROM bodies WHERE bodies MATCH ?)", fts5Quote(bodyToken))
@@ -1085,6 +1092,25 @@ func (t *Traffic) resolveStepInWindow(sinceUnix, untilUnix, cursor int64, method
 		return "", 0, false
 	}
 	return id, ts, true
+}
+
+// parseStepHost extracts the target hostname (without port) from a step's request
+// text — either from an HTTP Host header or from an embedded URL.
+func parseStepHost(text string) string {
+	for _, ln := range strings.Split(text, "\n") {
+		if strings.TrimSpace(ln) == "" {
+			break // stop at end of HTTP headers
+		}
+		if k, v, ok := strings.Cut(ln, ":"); ok && strings.EqualFold(strings.TrimSpace(k), "Host") {
+			return hostOnly(strings.TrimSpace(v))
+		}
+	}
+	if u := reURLInText.FindString(text); u != "" {
+		if parsed, err := url.Parse(u); err == nil && parsed.Hostname() != "" {
+			return parsed.Hostname()
+		}
+	}
+	return ""
 }
 
 // Reproduction-step request parsing: a step's "request" is either a verbatim HTTP
@@ -1239,14 +1265,14 @@ func (t *Traffic) Tools() []actool.CoreTool {
 
 	search := actool.Build(actool.Spec{
 		Name:        "traffic_search",
-		Description: "Query log proxy captured target traffic (must specify) host,You can press again. URL Substring Filter. Only return very light index(id/method/url/status/resp_len),Does not contain any response. Default returns only 3 Article, maximum per page 10 bars;results for multiple times page Turn page (page=0 Up); depending on the request/Reply to Original traffic_get(id). Look back at the resources that have been visited, use them first, and avoid duplication. curl The same. URL. ",
+		Description: "Search target HTTP traffic captured by the recording proxy (host is required; optional URL substring filter). Returns a lightweight index only (id/method/url/status/resp_len) without response bodies. Returns 3 entries per page by default (max 10); paginate with page (0-based, newest first). Fetch the full raw request and response with traffic_get(id). Always search recorded traffic first to avoid repeating curl requests to the same URL.",
 		Schema: map[string]any{
 			"type": "object",
 			"properties": map[string]any{
-				"host":     map[string]any{"type": "string", "description": "Filter by host (mandatory, e.g.) '192.168.1.100:8082')"},
-				"contains": map[string]any{"type": "string", "description": "URL Substring Filter (optional, if 'api' / 'login')"},
-				"limit":    map[string]any{"type": "integer", "description": "Number per page, default 3,Max 10"},
-				"page":     map[string]any{"type": "integer", "description": "Page number from 0 Start, Default 0(Press ts Rewind page)"},
+				"host":     map[string]any{"type": "string", "description": "Filter by host (required, e.g. '192.168.1.100:8082')"},
+				"contains": map[string]any{"type": "string", "description": "Optional URL substring filter (e.g. 'api' or 'login')"},
+				"limit":    map[string]any{"type": "integer", "description": "Entries per page (default 3, max 10)"},
+				"page":     map[string]any{"type": "integer", "description": "0-based page number (default 0, ordered by timestamp descending)"},
 			},
 			"required": []any{"host"},
 		},
@@ -1260,7 +1286,7 @@ func (t *Traffic) Tools() []actool.CoreTool {
 			}
 			_ = json.Unmarshal(in, &a)
 			if strings.TrimSpace(a.Host) == "" {
-				return actool.Errorf("host For mandatory parameters: Please specify the host to search for (e.g. '192.168.1.100:8082'),Avoid full-scope scanning."), nil
+				return actool.Errorf("host is required: specify the target host to search (e.g. '192.168.1.100:8082') to avoid full-store scans."), nil
 			}
 			rows, err := t.query(a.Host, a.Contains, a.Page, a.Limit)
 			if err != nil {
@@ -1288,10 +1314,10 @@ func (t *Traffic) Tools() []actool.CoreTool {
 
 	get := actool.Build(actool.Spec{
 		Name:        "traffic_get",
-		Description: "Press id Take a request for traffic./Response in original (interrupted by the General Assembly). Cooperation traffic_search Use it, avoid it. curl. ",
+		Description: "Fetch the raw HTTP request and response for a recorded traffic exchange by ID (truncated if overly long). Use together with traffic_search to inspect captured packets without repeating curl requests.",
 		Schema: map[string]any{
 			"type":       "object",
-			"properties": map[string]any{"id": map[string]any{"type": "string", "description": "traffic_search Returned id"}},
+			"properties": map[string]any{"id": map[string]any{"type": "string", "description": "Exchange ID returned by traffic_search"}},
 			"required":   []any{"id"},
 		},
 		ReadOnly:    ro,
@@ -1318,5 +1344,5 @@ func clip(s string, max int) string {
 	if len(s) <= max {
 		return s
 	}
-	return s[:max] + fmt.Sprintf("\n... [Cut it out. %d bytes;complete in flow file tree] ...", len(s))
+	return strings.ToValidUTF8(s[:max], "") + fmt.Sprintf("\n... [Cut it out. %d bytes;complete in flow file tree] ...", len(s))
 }

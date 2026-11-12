@@ -136,6 +136,7 @@ func New(ctx context.Context, m *Manager, skillDir string, dataDir string) *Serv
 		profAgents: map[int64]*profBundle{}, profChatAgents: map[int64]*agent.ChatAgent{}, reportJobs: map[string]*reportJob{},
 		enrichJobs: map[int64]*enrichJob{}, provCache: map[int64]llm.Provider{}}
 	s.loginLimiter = newLoginLimiter()
+	ensureKaliBinDir(dataDir)
 	s.llmHealth = newLLMHealthRegistry(m.pg) // process-wide LLM circuit breaker (restores cooling windows)
 	// Multiple Users RBAC:Initial migration of old single user passwords as built-in admin + Seeding roles/Permissions (things, etc.).
 	s.bootstrapRBAC()
@@ -724,6 +725,8 @@ func (s *Server) Handler() http.Handler {
 	mux.HandleFunc("PUT /api/agents/{key}/visibility", s.pgSetAgentVisibility)
 	// Internal Tool Directory (Description)/Parameter Defaults reable, press agent Tie;key and handler On the code floor)
 	mux.HandleFunc("GET /api/tools", s.pgListTools)
+	mux.HandleFunc("GET /api/tools/kali", s.pgListKaliTools)
+	mux.HandleFunc("POST /api/tools/kali/install", s.pgInstallKaliTool)
 	mux.HandleFunc("PUT /api/tools/{key}", s.pgUpdateTool)
 	mux.HandleFunc("POST /api/tools/custom", s.pgCreateCustomTool)
 	mux.HandleFunc("POST /api/tools/custom/test", s.pgTestCustomTool)

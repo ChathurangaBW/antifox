@@ -154,10 +154,15 @@ func (s *Server) findingDetail(w http.ResponseWriter, r *http.Request) {
 						refs[i] = traffic.StepRef{Request: st.Request, Response: st.Response}
 					}
 					ids := tr.ResolveSteps(since.Unix(), time.Now().Unix(), refs)
-					for i, id := range ids {
-						if id != "" {
-							rp.Steps[i].ExchangeID = id
+					var linked []string
+					for i, eid := range ids {
+						if eid != "" {
+							rp.Steps[i].ExchangeID = eid
+							linked = append(linked, eid)
 						}
+					}
+					if len(linked) > 0 {
+						_ = s.m.pg.LinkFindingTraffic(id, linked, "auto")
 					}
 				}
 			}

@@ -12,6 +12,7 @@ import (
 	"antifox/agent"
 	"antifox/engine/permission"
 	actool "antifox/engine/tool"
+	"antifox/traffic"
 )
 
 // jsonResult marshals v to a JSON tool result.
@@ -39,6 +40,7 @@ func jsonResult(v any) (actool.Result, error) {
 func (s *Server) hostTools() ([]actool.CoreTool, map[string][]string) {
 	tools := append(s.m.HostTools(), s.orchestrationTools()...)
 	tools = append(tools, s.platformTools()...) // Platform Operating Tool(Construction skill/Tools/MCP,Here. Auto Use)
+	tools = append(tools, s.toolEnsureKaliTool())
 	custom, err := s.customTools()
 	if err != nil {
 		log.Printf("[custom-tool] Loading failed: %v", err)
@@ -388,6 +390,15 @@ func (s *Server) seedOrchestrationTools() {
 		schema, _ := json.Marshal(t.InputSchema())
 		_ = s.m.PG().SeedTool(t.Name(), t.Description(), schema, autoAgents)
 	}
+	kaliAgents, _ := json.Marshal([]string{"worker", "pentest", "auto"})
+	if kt := s.toolEnsureKaliTool(); kt != nil {
+		schema, _ := json.Marshal(kt.InputSchema())
+		_ = s.m.PG().SeedTool(kt.Name(), kt.Description(), schema, kaliAgents)
+		_ = s.m.PG().AddAgentToToolBinding("worker", []string{kt.Name()})
+		_ = s.m.PG().AddAgentToToolBinding("pentest", []string{kt.Name()})
+		_ = s.m.PG().AddAgentToToolBinding("auto", []string{kt.Name()})
+	}
+	s.seedKaliToolCatalog()
 	s.refreshBuiltinToolSchemas()
 	s.refreshReportFindingSchema() // Add reproduction Parameters for the structured recurrence process → Push to old library,Otherwise... agent I can't see it.
 	s.seedAutoDefaultBindings()
@@ -416,30 +427,29 @@ func (s *Server) seedOrchestrationTools() {
 // reaches an old DB otherwise. Preserves each tool's agent binding + enabled flag.
 // Bump the flag whenever these tools' schemas/descriptions change in code.
 func (s *Server) refreshBuiltinToolSchemas() {
-	const flag = "tool_schema_refresh_v4_goal_met_desc"
+	const flag = "tool_schema_refresh_v5_english_and_scan_ingest"
 	if v, _, _ := s.m.pg.GetSetting(flag); v == "true" {
 		return
 	}
 	tools := append(s.orchestrationTools(), s.platformTools()...)
+	if kt := s.toolEnsureKaliTool(); kt != nil {
+		tools = append(tools, kt)
+	}
+	tools = append(tools, traffic.SeedToolMetas()...)
 	for _, t := range tools {
 		schema, _ := json.Marshal(t.InputSchema())
 		if err := s.m.pg.RefreshToolDefaults(t.Name(), t.Description(), schema); err != nil {
 			log.Printf("[tools] refresh %s schema failed: %v", t.Name(), err)
 		}
 	}
-	// At the same time the planner's goal_met description is refreshed to the code default: the old library seed carries the description "End the current planning round",
-	// which would mislead the planner into treating goal_met as an "end the empty round" action and wrongly marking the whole task complete right after it starts.
 	for _, sd := range agent.BuiltinToolSeeds() {
-		if sd.Key != "goal_met" {
-			continue
-		}
 		schema, _ := json.Marshal(sd.Schema)
 		if err := s.m.pg.RefreshToolDefaults(sd.Key, sd.Desc, schema); err != nil {
 			log.Printf("[tools] refresh %s desc failed: %v", sd.Key, err)
 		}
 	}
 	_ = s.m.pg.SetSetting(flag, "true")
-	log.Printf("[tools] Refreshed orchestration/platform Tools schema To Code Default(One-time)")
+	log.Printf("[tools] Refreshed built-in tool schemas and descriptions to code defaults (one-time)")
 }
 
 // seedAutoReportFindingBinding adds "auto" to report_finding's binding ONCE so

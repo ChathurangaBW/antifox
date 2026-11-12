@@ -89,7 +89,7 @@ jobs:
           name: bin-linux-${{ matrix.goarch }}
           path: antifox
 
-  # Ã¢â€˜Â¢ Summary zip Ã¢â€ â€™ Create GitHub Release
+  # 3. Collect ZIPs and create GitHub Release
   release:
     needs: binaries
     runs-on: ubuntu-latest

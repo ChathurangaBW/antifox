@@ -61,7 +61,7 @@ Never fabricate findings. Record and answer only from real tool output and valid
 
 func mainAgentSystem(goal, workDir string) string {
 	body := renderSystem("mainagent", mainAgentDefaultTmpl, MainVars{Goal: goal})
-	return body + artifactSpec(workDir)
+	return withEnglish(body + artifactSpec(workDir))
 }
 
 // Chat handles one human message and returns the assistant reply. emit, if

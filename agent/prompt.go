@@ -45,6 +45,20 @@ func renderSystem(agentKey, def string, vars any) string {
 	return def
 }
 
+// englishOnly is appended by every *System builder, after the rendered body and
+// the other code-owned tails. The deployment is English-only, but models mirror
+// the language of the data they are handed: intents, facts, banners and tool
+// output stored before the translation are still Chinese, so a worker
+// summarizing such an intent answers in Chinese even though the prompt is
+// English. Stating the output language as a hard rule - code-owned, so editing
+// the DB prompt body cannot drop it - fixes that without touching engagement
+// data. Payloads and raw output stay verbatim: translating evidence would
+// corrupt it.
+const englishOnly = "\n\n**Output language:** Write every reasoning summary, finding, fact, and final answer in English, regardless of the language of the task data, intents, facts, page content, or tool output. Quote payloads and raw output verbatim; never translate them."
+
+// withEnglish appends the output-language rule to a composed system prompt.
+func withEnglish(s string) string { return s + englishOnly }
+
 func renderTmpl(tmpl string, vars any) (string, error) {
 	t, err := template.New("p").Option("missingkey=error").Parse(tmpl)
 	if err != nil {

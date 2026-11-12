@@ -78,7 +78,7 @@ func DecomposeGoals(ctx context.Context, c Config, goalText, desc string, emit f
 	// Description rides in the user message (same channel as the goal), NOT via the
 	// {{.EngagementDescription}} template var — else a prompt that references the var
 	// would inject the description twice. System prompt stays pure static instructions.
-	sys := renderSystem("goals", goalsDefaultTmpl, GoalsVars{})
+	sys := withEnglish(renderSystem("goals", goalsDefaultTmpl, GoalsVars{}))
 	userMsg := "Task goal:\n" + goalText
 	if d := strings.TrimSpace(desc); d != "" {
 		userMsg += "\n\nTask description (background that may include target scope, flag count, or rules of engagement; use it only as context and do not invent anything it does not state):\n" + d
