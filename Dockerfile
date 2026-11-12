@@ -3,7 +3,7 @@
 # Runtime image (do not compile in the image): install common tools and copy in the **precompiled Linux single binary**.
 # CI's binaries job cross-compiles the binary (pure Go; no QEMU) into
 # dist/<TARGETARCH>/antifox in the build context. During multi-architecture builds, arm64 only emulates the apt layer.
-# therefore only emulates the apt layer instead of the Next.js/Go builds.
+# It no longer emulates Next.js/Go compilation, making builds much faster.
 #
 # Before building the image locally, prepare the binary:
 #   cd web && npm run build:static && cd ..
