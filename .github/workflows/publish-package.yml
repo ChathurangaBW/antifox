@@ -53,6 +53,12 @@ jobs:
           context: .
           push: true
           build-args: TARGETARCH=amd64
+          # The source label is what links the GHCR package to this repository.
+          labels: |
+            org.opencontainers.image.source=https://github.com/ChathurangaBW/antifox
+            org.opencontainers.image.description=AI autonomous penetration-testing platform
+            org.opencontainers.image.licenses=AGPL-3.0
+            org.opencontainers.image.version=v${{ inputs.version }}
           tags: |
             ghcr.io/chathurangabw/antifox:v${{ inputs.version }}
             ghcr.io/chathurangabw/antifox:latest
