@@ -36,17 +36,17 @@ The database schema is created or migrated automatically at startup; changes to 
 
 - After changing the frontend, rerun the build steps above (static export -> embed -> rebuild the binary).
 - After changing i18n, run `scripts/check-i18n-keys.mjs` to reconcile the three locale key sets.
-- The information is concise and clearly describes the motive for change.
+- Keep commit messages concise and clearly describe the motivation for the change.
 
 ### Contribution Process
 
-1. Fork This warehouse, based on `main` Build branches.
-2. Submit changes and maintain translation pass (`go build ./...`).
-3. Start Pull Request,Description of motive and scope of impact.
+1. Fork this repository and create a branch from `main`.
+2. Submit changes and keep the project buildable (`go build ./...`).
+3. Open a Pull Request and describe the motivation and scope of impact.
 
-### Agreements
+### License
 
-Use of this project **AGPL-3.0**. The submission of the contribution means that you agree that your contribution is authorized by the same agreement.
+This project uses **AGPL-3.0**. By submitting a contribution, you agree to license it under the same terms.
 
 ---
 
