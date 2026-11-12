@@ -43,7 +43,7 @@ child_process.exec("ping " + user_input)
 **Test command separator:**
 ```
 ; #Command Separator (Linux/Windows)
-& #BackstageXecution(Linux/Windows)
+& # Background execution (Linux/Windows)
 | # Pipe (Linux/Windows)
 && # Logical AND (Linux/Windows)
 || # Logical OR (Linux/Windows)

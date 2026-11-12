@@ -143,7 +143,7 @@ fetch('https://target.com/api/action', {
 
 **Using CSRF PoC generator:**
 1. Interception of target requests
-2. Right â†’ Engagement tools â†’ Generate CSRF PoC
+2. Right → Engagement tools → Generate CSRF PoC
 3. Test generatedPoC
 
 ### OWASP ZAP

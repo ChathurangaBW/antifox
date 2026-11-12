@@ -130,7 +130,7 @@ http://100.100.100.200/latest/meta-data/ram/security-credentials/
 
 ### Intranet attack.
 
-**Access management backstage:**
+**Access management admin panel:**
 ```
 http://127.0.0.1:8080/admin
 http://192.168.1.100/phpmyadmin
