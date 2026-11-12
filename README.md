@@ -35,7 +35,7 @@ v2.0 is about one thing — **turning "can find it" into "can deliver it."** The
 
 **① Reproduction captured in place.** As the agent exploits, each step's request, response, expected outcome, and verification conclusion are recorded as structured data — not reconstructed after the fact — eliminating the old "incomplete or fabricated reproduction" problem.
 
-**② Findings laid out as a kill chain.** A finding is no longer "one command plus a verdict," but a full chain from entry point and preconditions through each exploitation step, each in plain language paired with a real request — so an engineer opening the finding immediately grasps where it came from and how it was chained.
+**② Findings laid out as an exploit chain.** A finding is no longer "one command plus a verdict," but a full chain from entry point and preconditions through each exploitation step, each in plain language paired with a real request — so an engineer opening the finding immediately grasps where it came from and how it was exploited.
 
 <div align="center">
 <img src="screenshots/finding-steps.png" alt="Kill chain, step by step" width="860" />
