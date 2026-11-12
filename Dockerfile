@@ -17,7 +17,8 @@ ARG TARGETARCH
 RUN apt-get update && apt-get install -y --no-install-recommends \
       ca-certificates ripgrep curl wget vim git jq unzip tar perl ruby \
       dnsutils iputils-ping netcat-openbsd whois nmap \
-      whatweb wafw00f sqlmap gobuster ffuf nikto sslscan hydra \
+      whatweb wafw00f sqlmap gobuster ffuf sslscan hydra \
+      libnet-ssleay-perl libxml-writer-perl libio-socket-ssl-perl libjson-perl \
     && curl -fsSL https://deb.nodesource.com/setup_20.x | bash - \
     && apt-get install -y --no-install-recommends nodejs \
     && rm -rf /var/lib/apt/lists/*

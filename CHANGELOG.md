@@ -2,6 +2,11 @@
 
 This project's version update summary. The format follows [Keep a Changelog](https://keepachangelog.com/), and versions follow [SemVer](https://semver.org/).
 
+## v2.1.1
+
+- **Docker Build Fix (`non-free` Debian Bookworm package removal)**: Removed Debian `non-free` `nikto` from the container `apt-get install` list and preinstalled `libnet-ssleay-perl`, `libxml-writer-perl`, `libio-socket-ssl-perl`, and `libjson-perl` from Debian `main` so container builds succeed reliably on `python:3.12-slim-bookworm`.
+- **Up-to-Date Upstream Nikto Self-Installer**: Switched `nikto`'s primary `InstallMethod` in `KaliToolCatalog` from `apt` (2.1.5) to `git_script` (`sullo/nikto` 2.6+), retaining `apt` as fallback, so `ensure_kali_tool` and `antifox-tool install nikto` deploy current upstream Nikto checks cleanly.
+
 ## v2.1.0
 
 - **Dynamic Kali & ProjectDiscovery Tool Catalog**: Seeded 21 curated security CLI tools (`subfinder`, `dnsx`, `naabu`, `httpx`, `nmap`, `whatweb`, `wafw00f`, `katana`, `ffuf`, `gobuster`, `feroxbuster`, `arjun`, `nuclei`, `nikto`, `dalfox`, `testssl`, `sslscan`, `sqlmap`, `interactsh_client`, `jwt_tool`, `hydra`) into the PostgreSQL `tools` catalog (`kind="shell"`), with live `[installed]` / `[not installed]` status hints in `Bash` and pre-installed reconnaissance/verification packages in the Docker image.

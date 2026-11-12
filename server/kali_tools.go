@@ -196,11 +196,11 @@ func KaliToolCatalog() []KaliToolSpec {
 			Binary:         "nikto",
 			Category:       "vuln_scan",
 			Description:    "Web server scanner for dangerous files, outdated server software, and misconfigurations. Usage: `nikto -h https://example.com -Tuning 123457890ab -maxtime 180s`.",
-			InstallMethod:  "apt",
-			AptPkg:         "nikto",
+			InstallMethod:  "git_script",
 			GitHubRepo:     "sullo/nikto",
 			GitEntryScript: "program/nikto.pl",
 			GitInterpreter: "perl",
+			AptPkg:         "nikto",
 			VersionArgs:    []string{"-Version"},
 		},
 		{
