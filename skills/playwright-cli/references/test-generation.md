@@ -228,7 +228,8 @@ Map out:
 - Persistence: reload, local/session storage, URL fragments.
 - Navigation: which controls change the URL, back/forward behaviour.
 
-**Important**: Do not just open the app url with playwright-cli, always go through the test to capture any custom setup done there.**Important**: Stop the background test when done exploring.
+**Important**: Do not just open the app url with playwright-cli, always go through the test to capture any custom setup done there.
+**Important**: Stop the background test when done exploring.
 
 ### 1.4 Write the spec file
 
@@ -245,11 +246,13 @@ Save under `specs/<feature>.plan.md`. Use this structure:
 
 ### 1. <Group Name>
 
-**Seed:** `tests/seed.spec.ts`; create scenarios as `tests/<group>/<kebab-case-scenario-name>.spec.ts`
+**Seed:** `tests/seed.spec.ts`
 
 #### 1.1. <kebab-case-scenario-name>
 
-**File:** **Steps:**
+**File:** `tests/<group>/<kebab-case-scenario-name>.spec.ts`
+
+**Steps:**
   1. <Concrete user step>
     - expect: <observable outcome>
     - expect: <another observable outcome>
@@ -407,7 +410,7 @@ Open the spec referenced by the `// spec:` header in the test file and locate th
 
 - **Fix was purely technical** (locator drift, better assertion shape) and the spec's user-level behaviour still matches the app → leave the spec alone.
 - **Fix changed user-visible steps, inputs, order, or expected outcomes** that the spec describes → update the spec to match reality. Keep the scenario id and file path stable; only the step / expect lines change.
-- **Unclear whether the app change is intentional** **or a regression** **stop and ask the user**. Provide:
+- **Unclear whether the app change is intentional** (spec is stale) **or a regression** (test was right, app is wrong) → **stop and ask the user**. Provide:
   - the scenario id (e.g. `2.3`),
   - the spec lines that no longer match,
   - the observed app behaviour (quote a snapshot excerpt or a concrete outcome).

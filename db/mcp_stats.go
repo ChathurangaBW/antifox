@@ -19,11 +19,11 @@ func (d *DB) RecordMCPInvocation(serverName, toolName, agentKey string) {
 
 // MCPStat is the aggregated per-server invocation summary.
 type MCPStat struct {
-	ServerName string           `json:"server_name"`
-	Calls      int64            `json:"calls"`
-	LastAt     *time.Time       `json:"last_at,omitempty"`
-	ByTool     map[string]int64 `json:"by_tool"`  // tool_name → calls
-	ByAgent    map[string]int64 `json:"by_agent"` // agent_key → calls
+	ServerName string            `json:"server_name"`
+	Calls      int64             `json:"calls"`
+	LastAt     *time.Time        `json:"last_at,omitempty"`
+	ByTool     map[string]int64  `json:"by_tool"`  // tool_name → calls
+	ByAgent    map[string]int64  `json:"by_agent"` // agent_key → calls
 }
 
 // MCPStats returns per-server aggregated stats, newest-activity first.
