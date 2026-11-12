@@ -18,7 +18,7 @@ This skill **does only API/ parameter surface reconnaissance**and is not a leak 
 | Scope | Allowed | Prohibited |
 |---|---|---|
 | **Objective** | Embrace path, method, parameter, route, UI trigger point | SQLi/XSS/ ultra vires/explosive/fuzz leaks, repackaged attacks, destructive operations |
-| **Seeding authority** **Client**Login | Request or guess account passwords from users; trying to submit a true login form |
+| **Authentication** | Use hooks plus stubs/mocks to bypass the **client-side** login gate | Request or guess user credentials, or submit a real login form |
 | **When running** | Unsupported Hook interface to get SPA into the backshell | Process to continue by relying on a real back-end session |
 
 ### No supporting dynamic analysis (Phase 3 default)
@@ -81,14 +81,14 @@ All meets to claim recon complete:
 
 `scripts/` is a reference template only; **do not** run the original unchanged as the final result.
 
-**Rule**: read it first → adapt it to the target → write it to `OUTDIR` (for example `recon/`) → record changes in `CHANGES.md`; if it does not fit, rewrite it using the methodology and borrow only its structure.
+**Rule**: read it first â†’ adapt it to the target â†’ write it to `OUTDIR` (for example `recon/`) â†’ record changes in `CHANGES.md`; if it does not fit, rewrite it using the methodology and borrow only its structure.
 
 | Restricted. | When? | Reference Script OUTDIR copy | Frequent Changes |
 |---|---|---|---|
-| **A (static)** **first**run harvest/spider before |  `harvest_static.py` / `spider_mpa.py`  | **Most sites default regex to run**; only endpoints, webpack/Vite `publicPath`, MPA exclude/cookie when manifest/ dialects do not match |
+| **A (static)** | After Phase 0, before the **first** harvest/spider run | `harvest_static.py` / `spider_mpa.py` | **Most sites can use the default regex**; change endpoint regexes, webpack/Vite `publicPath`, or MPA exclude/cookie settings only when the manifest or dialect does not match |
 | **B (runtime)** | After Phase 2, before depth/coverage | `runtime_harvest.js` / `preload.js` + `config.json` | Cookie/localStorage keys, neutralize-success values, stubs, login regex, API prefixes, and hash/history |
 
-**SPA mandatory order** (not interchangeable; phase order takes precedence over “explore before scripts”):
+**SPA mandatory order** (not interchangeable; phase order takes precedence over â€œexplore before scriptsâ€):
 
 | Steps | Must | Prohibited |
 |---|---|---|
@@ -120,9 +120,9 @@ All meets to claim recon complete:
 ```
 Phase 0 Classification + OUTDIR
 == sync, corrected by elderman == @elder_man
-  → Phase 1b Parameter Reverse
-  → Phase 2 Three doors of authority. → config.json
-  → Restricted. B → Phase 3 When running + Array of parameters
+  â†’ Phase 1b Parameter Reverse
+  â†’ Phase 2 Three doors of authority. â†’ config.json
+  â†’ Restricted. B â†’ Phase 3 When running + Array of parameters
 Please 4 Mission Tree (If necessary.)
 Phase 5: merge the results + insert_assets: batch-insert every discovered service and endpoint asset; never leave out an asset that was already found.
 ```
@@ -140,12 +140,12 @@ Phase 5: merge the results + insert_assets: batch-insert every discovered servic
 
 ---
 
-## Phase 0 — Classification
+## Phase 0 â€” Classification
 
 HTML,**Create `OUTDIR`**(do not change `scripts/` in skill):
 
-- **SPA**: Empty shell + `<div id=app>` + chank Phase 1– 5
-- **MPA**: SSR + `<form>`, no endpoint bundle — **Gate A:**
+- **SPA**: Empty shell + `<div id=app>` + chank Phase 1â€“ 5
+- **MPA**: SSR + `<form>`, no endpoint bundle â€” **Gate A:**
 
 ```bash
 python3 recon/spider_mpa.py <BASE_URL> <OUTDIR> [--cookie "session=..."] [--max 300] [--depth 5] [--exclude "logout|delete|destroy"]
@@ -155,9 +155,9 @@ Outputs `forms.txt`, `links.txt`, `api_inline.txt`. SPA if forms 0 Phase 1.
 
 ---
 
-## Phase 1 — Static
+## Phase 1 â€” Static
 
-Compliance with [scripts and door locks] (# scripts and door locks) · [tools and output constraints] (# tools and output constraints).
+Compliance with [scripts and door locks] (# scripts and door locks) Â· [tools and output constraints] (# tools and output constraints).
 
 ```bash
 python3 recon/harvest_static.py <BASE_URL> <OUTDIR>
@@ -173,26 +173,26 @@ ls OUTDIR/js | wc -l
 - cunk count vs manifest: 404 must be changed for retry, not manually curl cunk-by-man
 - `api_static.txt` too little relaxed in OUTDIR endpoint rerun (see reference)
 
-### Phase 1b — Parameter Reverse Engineering
+### Phase 1b â€” Parameter Reverse Engineering
 
 Path from Phase 1; cross-references must be recon separately. grep rules see [tools and output constraints] (# tools and output constraints).
 
 **Completion criterion**: Important interfaces can answer - field name, transmission location, type extrapolation, mandatory filling, sample value, confidence.
 
-#### 1b.0 — Transport Form
+#### 1b.0 â€” Transport Form
 
 | Form | Where the Parameter Is | For Static Analysis, Look First At |
 |---|---|---|
 |  REST JSON  |  body + query  | path By the anchor. `(params\|data\|body)\s*:\s*\{`  |
-|  GraphQL  |  `variables`  | gql Template、`$page: Int` |
-| Tradition form |  urlencoded  |  `<form>`、`FormData`  |
+|  GraphQL  |  `variables`  | gql Templateã€`$page: Int` |
+| Tradition form |  urlencoded  |  `<form>`ã€`FormData`  |
 | File Upload |  multipart  |  `FormData.append`  |
 | Path Parameters |  `/user/:id`  | Route Table + `useParams` / `$route.params` |
 | Encryption/signature | Packed in `sign`/`data` | Hook encryption function entry (reference D) |
 
 Output: Each interface is marked at `transport: query|json|form|graphql|encrypted`; record wrapper fields such as `data`, `variables`, and `bizData`.
 
-#### 1b.1 — Anchor-Based Window Expansion
+#### 1b.1 â€” Anchor-Based Window Expansion
 
 Find a group object for the extended window, anchored in a known path:
 
@@ -214,16 +214,16 @@ Type residual: `yup`/`zod`/rules, `Form.Item name=`, embedded Swagger.
 
 ~ `param_candidates.json`:`{ path, fields[], source: "static-callsite", confidence }` ~
 
-#### 1b.2 — Binding Layer
+#### 1b.2 â€” Binding Layer
 
 ```
-Form field → onFinish/handleSubmit → transform → API payload
+Form field â†’ onFinish/handleSubmit â†’ transform â†’ API payload
 ```
 
 | Bind Source | How? |
 |---|---|
 | Form submit | With submit and transform and API. |
-| Table search |  `getFieldsValue()` → `params`  |
+| Table search |  `getFieldsValue()` â†’ `params`  |
 | Routes |  `:id` / `?tab=`  |
 | Interceptor. | Global `tenantId`, page break, sign |
 | Enumerate select | `options` API equator |
@@ -235,32 +235,32 @@ DevTools calls stick from `fetch`/`XHR.send` to the group package function.
 | Question. | What Must Be Answered |
 |---|---|
 | **Reassembly** | Where's Payload? |
-| **Verify** |  required、pattern、enum  |
+| **Verify** |  requiredã€patternã€enum  |
 | **Transfer** | path / query / body / multipart / Head |
 
 Interceptor door (Phase 2) reads global injection fields (Authorization, `X-Tenant-Id`, sign).
 
-#### 1b.4 — Link to Phase 3
+#### 1b.4 â€” Link to Phase 3
 
 Candidate fields are from static/string layers;**Phase 3 argument matrix + diff + Phase 5 error reverses.
 
 ---
 
-## Phase 2 — The Three Authentication Gates
+## Phase 2 â€” The Three Authentication Gates
 
 In `OUTDIR/js/` grep (with `head`), write `config.json` (reference):
 
 | The door. | Problem | Keywords |
 |---|---|---|
-| ****Rendering Gate** | How do you judge that login? |  `isLogin`、`getToken`、Cookie/localStorage  |
-| **Interceptor Gate** | What trigger jump `/login`? |  `response_code`、`errno`、axios interceptor  |
-| **Content Gate** | Where does the menu/access come from? |  `menu`、`permission`、`role`、`acl`、`routes`  |
+| ****Rendering Gate** | How do you judge that login? |  `isLogin`ã€`getToken`ã€Cookie/localStorage  |
+| **Interceptor Gate** | What trigger jump `/login`? |  `response_code`ã€`errno`ã€axios interceptor  |
+| **Content Gate** | Where does the menu/access come from? |  `menu`ã€`permission`ã€`role`ã€`acl`ã€`routes`  |
 
 The name of the localStorage key is not allowed to be used as evidence - it must be confirmed from the chunk/ request chain.
 
 **Export = Restricted B**: Conclusion reached at `config.json` and changed at `OUTDIR/runtime_harvest.js`/`preload.js`.
 
-### Phase 2b — API observation (optional)
+### Phase 2b â€” API observation (optional)
 
 Confirm session names with OUTDIR in `preload.js`, Authorization, nested API URL:
 
@@ -276,7 +276,7 @@ Export once per round: `__API_RECON_LOG__`, `__API_RECON_DETAIL__`, `__API_RECON
 
 ---
 
-## Phase 3 — When running
+## Phase 3 â€” When running
 
 B; comply with [border and prohibition] (#border and prohibition of agent - read-and-read - breach-and-cross-border) - unsupported mock strategy.
 
@@ -300,10 +300,10 @@ cd recon && npm install
 node runtime_harvest.js config.json
 ```
 
-### 3b — coverage dynamic enumerator (compulsory)
+### 3b â€” coverage dynamic enumerator (compulsory)
 
-1. Main Navigator/ Sidebar - Every click, etc. 1–3s
-2. Tab — `role=tab`、`.ant-tabs-tab`
+1. Main Navigator/ Sidebar - Every click, etc. 1â€“3s
+2. Tab â€” `role=tab`ã€`.ant-tabs-tab`
 3. Table - First Line View/edit/Detail
 4. Toolbars - Export, Filter, New (**Avoid irreversible deletion**)
 5. Each module -- merge API/ route
@@ -314,10 +314,10 @@ node runtime_harvest.js config.json
 | Operation | Normal excess parameters |
 |---|---|
 | List First Screen | Page Break + Default Filter |
-| Point Search |  keyword、filter  |
+| Point Search |  keywordã€filter  |
 | Advanced Filter | Moreoptional |
 | New/edit | Fullity |
-| Batch/Export/Sort |  `ids[]`、`exportType`、`sortField`  |
+| Batch/Export/Sort |  `ids[]`ã€`exportType`ã€`sortField`  |
 
 **Stub under outboud body/headers remains true**- subject to request. Recorded at `scan_raw.json`, `param_samples.json`, `api_detail.json`.
 
@@ -327,7 +327,7 @@ node runtime_harvest.js config.json
 
 ---
 
-## Phase 4 — Permission Tree Restoration
+## Phase 4 â€” Permission Tree Restoration
 
 **Trigger**: Modular page blanks / only bootstrap (e.g. locale) content door not over.
 
@@ -358,7 +358,7 @@ Update `config.json` and **Runner Phase 3**. Large SPA can `waitUntil`, `routeTi
 
 ---
 
-## Phase 5 — Consolidation and reporting
+## Phase 5 â€” Consolidation and reporting
 
 ### Output Table
 
@@ -368,20 +368,20 @@ Update `config.json` and **Runner Phase 3**. Large SPA can `waitUntil`, `routeTi
 |  `param_candidates.json`  |  1b  | Static Parameter Field Candidates |
 |  `config.json`  |  2  | Three doors + runtime configuration |
 |  `runtime_api.json`  |  3a  | depth detailed recording (including WS/SSE) |
-|  `param_samples.json`、`scan_raw.json`、`api_detail.json`  |  3b  | Multiple samples, click logs, detail |
+|  `param_samples.json`ã€`scan_raw.json`ã€`api_detail.json`  |  3b  | Multiple samples, click logs, detail |
 | `route_map.json` et al. |  4  | permission tree middle file (if executed) |
 |  `params_merged.json`  |  5  | Merge Reference & + Confidence |
 | `api_merged.txt` | 5 | `METHOD /path [params] [static\|runtime\|both]` |
 |  `site_map.json`  |  5  | Routes, zzozz, paraams, function points, limitations |
 |  **insert_assets**  |  5  | Write all services, end-point assets into the asset pool |
 
-### 5b — Parameter Merging
+### 5b â€” Parameter Merging
 
 From `param_samples.json` diff,**there is no generic consolidated script**. The confidence rule is found in reference J7 (high/medium/low/to trigger).
 
-### 5c — Reverse Inference From Errors
+### 5c â€” Reverse Inference From Errors
 
-### 5b - Incomplete requests within the authorized scope (400 responses such as `field 'x' is required`, enumeration errors, and so on) belong to parameter reconnaissance, not to vulnerability testing.
+Within the authorized scope, incomplete requests that return 400 responses (for example `field 'x' is required` or enumeration errors) are parameter reconnaissance, not vulnerability testing. Account for `data` wrappers, `variables`, and pre-encryption `bizData`.
 
 The report should indicate: runtimeMode, API number at static/operational times, parametric confidence, unoverrided modules, summary of `CHANGES.md` relative reference scripts.
 

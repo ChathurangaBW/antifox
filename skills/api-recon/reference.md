@@ -1,4 +1,4 @@
-# api-recon — Reference manual
+# api-recon â€” Reference manual
 
 Grep formula, `config.json` template and decomposition. All greps are performed for `js/` directories. Bundle can start with `js-beautify` or `sed 's/}/}\n/g'`, usually with the following window.
 
@@ -10,7 +10,7 @@ All documents in `scripts/` are **reference template**, which must be adjusted t
 |---|---|
 | `harvest_static.py` | Endpoint parsing (webpack/Vite manifest logic, publicPath, micro-frontends) |
 | `runtime_harvest.js` | Neutralize field name and success, stub matching rules with body structure, rootes source, WS recording, `waitUntil`/`routeTimeout`/ `proxy` |
-| `preload.js` | `loginPathRe`、L1 stubs、`neutralize.fields`、`apiPattern`、Whether or not to enable L3、`recordDetail`、`observe.*`、`neutralizeVueRouter` |
+| `preload.js` | `loginPathRe`ã€L1 stubsã€`neutralize.fields`ã€`apiPattern`ã€Whether or not to enable L3ã€`recordDetail`ã€`observe.*`ã€`neutralizeVueRouter` |
 | `spider_mpa.py` | `--exclude` Disruptive Links, cookies, depth/max, Sphere Filter |
 | `extract_route_map.py` | `routeMap`/ `routeLink` Regulation, KEY Naming Mode |
 | `build_perm_tree.py` | `userRouteAuth` parsing, the `ROOTS`/`PREFIX_PARENT` hierarchy, and the stub field names |
@@ -22,7 +22,7 @@ The adjusted document is proposed in the list of tasks (e.g. `recon/`), with spe
 
 ## A. Reverse three doors.
 
-### A1. Rendering doors — "How do you judge that login? "
+### A1. Rendering doors â€” "How do you judge that login? "
 
 ```bash
 grep -rhoaE '.{0,40}(isLogin|isAuthenticated|loggedIn|hasLogin|requireAuth)\b.{0,80}' js | head
@@ -42,7 +42,7 @@ Find links `isLogin = f(getUser())` `getUser = decode(storage.read(KEY))`, deter
 | JWT | An unsigned (`alg:none`) JWT, or a JWT signed with the bundle's internal key |
 | Encryption (SM2/AES/RSA) | Find hard encoded keys; rendering doors only needs to decode blob when forge; otherwise, static header |
 
-→ Write `cookies` / `localStorage`。
+â†’ Write `cookies` / `localStorage`ã€‚
 
 ### A2. Interceptor door -- "What trigger jump/login?"
 
@@ -59,7 +59,7 @@ Determines:**field names**,**success**(usually `0` or `200`),**successful value 
 curl -sk -X POST -H 'Cookie: <fakekey>=junk' https://target/api/<protected> -d '{}' -H 'Content-Type: application/json'
 ```
 
-→ Write `neutralize.fields` + `neutralize.success`。
+â†’ Write `neutralize.fields` + `neutralize.success`ã€‚
 
 ### A3. Content door - "Where do menus/accesss come from?"
 
@@ -237,9 +237,9 @@ Viewer built in preload (coverage) and runtime_harvest (depth):
 
 | Hook Capacity | Value of discovery for API | Overwrite |
 |---|---|---|
-| Hook fetch / XHR.open | Application of requests URL/ method | ✅ `recordDetail` + `__API_RECON_LOG__` |
-| Hook XHR.setRequestHeader | Find the Authorization header name | ✅ `observe.xhrHeaders` |
-| Hook localStorage/cookie Read | Confirm the Session Key Name | ⚠️ Optional `observe.storageReads/cookieReads` |
+| Hook fetch / XHR.open | Application of requests URL/ method | âœ… `recordDetail` + `__API_RECON_LOG__` |
+| Hook XHR.setRequestHeader | Find the Authorization header name | âœ… `observe.xhrHeaders` |
+| Hook localStorage/cookie Read | Confirm the Session Key Name | âš ï¸ Optional `observe.storageReads/cookieReads` |
 | Vee Access Routes | Completion frontendRoutes | 1zz (carried route) |
 | Vue Road Breaker by Guard Center / Login | Modular trigger, API. | `neutralizeVueRouter` + Original jump in transit and |
 | React Retrieval Routes | Remedial route | Static + click; no specialized Hook |
@@ -277,7 +277,7 @@ grep -rhoaE '/api/[a-zA-Z0-9_./-]+' js | sort -u
 | Mock, a lot of them are still login. | Hook `location.href` second = document-start + preload |
 | List is empty | L3 empty array is normal; continuation point Tab/ settings/details |
 | Mistake Redux action as a route | Filter internal path with get/set/change/clear/toggle/upload |
-| Vue Still Jumping Login | preload not document-start — re-injection; or `neutralizeVueRouter: false` when manual guards are cleared |
+| Vue Still Jumping Login | preload not document-start â€” re-injection; or `neutralizeVueRouter: false` when manual guards are cleared |
 | The response was URL but did not enter log | Open `extractUrlsFromResponse`; or extract manually from `__API_RECON_DETAIL__` |
 | Unknown Authorization  header name | Open `observe.xhrHeaders` or DevTools to view request headers |
 | Runtime Very Slow / Timeout | Change `waitUntil: domcontentloaded`; drop `routeTimeout`; do not use `networkidle2` |
@@ -303,7 +303,7 @@ Runtime is stuck at the shell when the session is gradually verified by the serv
 5. **Read and adjust**`runtime_harvest.js`/ `preload.js` and then execute
 6. `runtimeMode=depth`:`npm install`
 7. `runtimeMode=coverage/both`: documentation-start injected preload browser MCP dynamic emulation +**parameter trigger matrix**
-**I section permission tree restoration**
+8. If a module does not render, restore the **Section I permission tree**, patch stubs, and rerun.
 9. Multi-Specific Diff + Error Invert `params_merged.json`
 10. Merge ~ `site_map.json` + `api_merged.txt`, honest mark overlay, vulnerabilities and script change points
 
@@ -346,7 +346,7 @@ Script logic:
 1. Parsing `userRouteAuth={MONITOR:{url:...},...}` (with webpack alias `He=o.DASHBOARD`)
 2. Resolve the real path with `route_map.json`
 3. Extrapolation by code prefix (`MONITOR_ALERT` `MONITOR`)
-4. Output `permissions_tree.json`、`permissions_all_stub.json`、`role_permissions_stub.json`
+4. Output `permissions_tree.json`ã€`permissions_all_stub.json`ã€`role_permissions_stub.json`
 5. Automatically write `stubs` with extension `routes` when `--config`
 
 **Adjusted to target**(at the top of the script):
@@ -357,7 +357,7 @@ Script logic:
 ### I4. Verify stub consistency
 
 ```bash
-# permissions Quantities should ≈ userRouteAuth Number of entries
+# permissions Quantities should â‰ˆ userRouteAuth Number of entries
 wc -l recon/perm_codes_all.txt
 # routes Should be overwritten route_map All link
 python3 -c "import json; m=json.load(open('recon/route_map.json')); r=set(json.load(open('recon/config.json'))['routes']); print('missing', [v['link'] for v in m.values() if v['link'] not in r])"
@@ -374,7 +374,7 @@ node recon/runtime_harvest.js recon/config.json
 |---|---|
 | Same route, three to five bootstraps. | Different route triggers |
 | `/api/locale/language` only | Show `/api/web/...` module endpoint |
-| `routes.txt` bits of route | `routes` 80–110+ from route_map |
+| `routes.txt` bits of route | `routes` 80â€“110+ from route_map |
 
 ### I6. When it still fails
 
@@ -442,7 +442,7 @@ Runtime Supplement: DevTools Network Request **Launcher**(call start) from `fetc
 grep -rhoaE 'encrypt|decrypt|sign|CryptoJS|sm2|sm3|sm4|RSA|AES' js | head
 ```
 
-**Do not guess fields**— Hook Encryption function **Enter**, pre-encrypt payload; concluding `config.json`/ `param_candidates.json`.
+**Do not guess fields**â€” Hook Encryption function **Enter**, pre-encrypt payload; concluding `config.json`/ `param_candidates.json`.
 
 ### J6. Parameters trigger matrix (Phase 3 will do)
 
@@ -451,11 +451,11 @@ Record each module by operation, diff request body/query:
 | Operation | Attention |
 |---|---|
 | List First Screen | Page Break Defaults |
-| Search | keyword、filters |
+| Search | keywordã€filters |
 | Advanced Filter | optional Fields |
 | New/edit | Fullity |
-| Bulk/Export | `ids[]`、`exportType` |
-| Sorting and pagination | `sortField`、`order` |
+| Bulk/Export | `ids[]`ã€`exportType` |
+| Sorting and pagination | `sortField`ã€`order` |
 
 Outputs `param_samples.json`:`[{ "path", "method", "action": "search", "body", "query", "headers" }]`
 

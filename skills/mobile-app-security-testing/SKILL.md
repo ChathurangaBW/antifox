@@ -311,7 +311,7 @@ objection -g com.example.app explore
 ### 3. Certificate Validation Bypass
 
 **Question:**
--
+- Does not validate the SSL certificate
 - Accept Self-Signature Certificates
 - Certificate pinning is not implemented
 

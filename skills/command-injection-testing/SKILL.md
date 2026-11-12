@@ -44,9 +44,9 @@ child_process.exec("ping " + user_input)
 ```
 ; #Command Separator (Linux/Windows)
 & #BackstageXecution(Linux/Windows)
-# Pipe (Linux/Windows)
-& # Logic versus (Linux/Windows)
-#Logical or (Linux/Windows)
+| # Pipe (Linux/Windows)
+&& # Logical AND (Linux/Windows)
+|| # Logical OR (Linux/Windows)
 `#CommandReplace (Linux)
 $() #Command Replac (Linux)
 ```
