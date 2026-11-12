@@ -318,13 +318,13 @@ func (s *Server) toolListTaskFindings() actool.CoreTool {
 }
 
 func (s *Server) toolAddHint() actool.CoreTool {
-	return wrTool("add_task_hint", "Injecting strategic tips for assigned tasks(Mission planner The next generation will read). \n"+
-		"★Priority batch: multiple hints in hints Submit arrays once (return) ids array, with hints Equivalent, Failed id=0);One article omitted hints Straight to the top. text. ",
+	return wrTool("add_task_hint", "Inject a strategic hint into an assigned task; the task planner reads it the next time it generates intents.\n"+
+		"★ Prefer batching: put several hints into the hints array and submit them in one call. The ids array is returned in the same order and length as hints (failed entries have id=0); for a single hint, omit hints and pass the top-level text.",
 		objSchema(map[string]any{
-			"task_id":   strParam("Tasks id"),
-			"hints":     map[string]any{"type": "array", "description": "[Use this as a priority) prompt arrays, each element field to the top layer (text/asset_ids). ", "items": map[string]any{"type": "object"}},
-			"text":      strParam("[Single] Note"),
-			"asset_ids": map[string]any{"type": "array", "items": map[string]any{"type": "integer"}, "description": "Embered assets id(It's optional.0/1/Multiple; assets within the mandate id)"},
+			"task_id":   strParam("Task ID"),
+			"hints":     map[string]any{"type": "array", "description": "Preferred: an array of hints; each element uses the same fields as the top-level fields (text/asset_ids).", "items": map[string]any{"type": "object"}},
+			"text":      strParam("[Single] The hint text."),
+			"asset_ids": map[string]any{"type": "array", "items": map[string]any{"type": "integer"}, "description": "Anchored asset IDs (optional, 0/1/multiple; must belong to the task)."},
 		}, "task_id"),
 		func(ctx context.Context, in json.RawMessage) (actool.Result, error) {
 			return s.delegateToTask(ctx, in, (*agent.ToolSet).AddHintTool)

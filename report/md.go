@@ -38,22 +38,22 @@ func BuildMarkdown(ctx context.Context, pg *db.DB, in *GenInput) (string, map[st
 		med += s.Med
 		low += s.Low
 	}
-	b.WriteString("> **" + L("Gap statistics", "Gap Statistics", "Findings") + "**:" +
+	b.WriteString("> **" + L("Vulnerability Summary", "Vulnerability Summary", "Findings") + "**:" +
 		fmt.Sprintf("%s %d · %s %d · %s %d · %s %d(%s %d)\n",
-			L("Serious", "Serious", "Critical"), crit, L("High risk", "High risk", "High"), high,
-			L("It's dangerous.", "It's dangerous.", "Medium"), med, L("Low risk.", "Low risk.", "Low"), low,
+			L("Critical", "Critical", "Critical"), crit, L("High", "High", "High"), high,
+			L("Medium", "Medium", "Medium"), med, L("Low", "Low", "Low"), low,
 			L("Total", "Total", "total"), crit+high+med+low))
 	b.WriteString("\n---\n\n")
 
-	s1 := L("Hole Description", "Hole Description", "Description")
-	s3 := L("The module to which you belong", "Organisation", "Module")
-	s4 := L("Test Process", "Test Process", "Testing Process")
-	s5 := L("Risk analysis", "Risk analysis", "Risk Analysis")
-	s6 := L("Recommendations for rehabilitation", "Refurbishment Recommendations", "Remediation")
-	s7 := L("Rehabilitation", "Repair", "Remediation Status")
-	tTarget := L("Impact target", "Impact Target", "Target")
-	tRisk := L("Risk level", "Risk Level", "Severity")
-	tDate := L("Time of discovery", "Time of discovery", "Found")
+	s1 := L("Vulnerability Description", "Vulnerability Description", "Description")
+	s3 := L("Affected Module", "Affected Module", "Module")
+	s4 := L("Testing Process", "Testing Process", "Testing Process")
+	s5 := L("Risk Analysis", "Risk Analysis", "Risk Analysis")
+	s6 := L("Remediation Recommendations", "Remediation Recommendations", "Remediation")
+	s7 := L("Remediation Status", "Remediation Status", "Remediation Status")
+	tTarget := L("Affected Target", "Affected Target", "Target")
+	tRisk := L("Risk Level", "Risk Level", "Severity")
+	tDate := L("Discovery Date", "Discovery Date", "Found")
 
 	sysIdx := 0
 	for _, sysd := range doc.SystemsDetail {
@@ -123,7 +123,7 @@ func BuildMarkdown(ctx context.Context, pg *db.DB, in *GenInput) (string, map[st
 		}
 	}
 	b.WriteString("*" + fmt.Sprintf(
-		L("The present report is submitted by %s on %s Present.", "By %s on %s Present.", "Report prepared by %s on %s."),
+		L("This report was prepared by %s on %s.", "This report was prepared by %s on %s.", "Report prepared by %s on %s."),
 		doc.Meta.CompanyName, doc.Meta.Date) + "*\n")
 	return b.String(), assets
 }

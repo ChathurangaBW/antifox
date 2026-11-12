@@ -243,7 +243,7 @@ func jsonResult(v any) (actool.Result, error) {
 
 func (t *ToolSet) graphOverview() actool.CoreTool {
 	return readTool("graph_overview",
-		"(Explore chain maps)Exploration posture distillation summary: assets count, sites without interfaces,frontier, Discovery,hints(Human./Lord agent Strategic tips, which must be included when generating intent). Plan it first.",
+		"(Exploration chain map) A distilled snapshot of the exploration state: asset counts, sites without endpoints, frontier, findings, and hints (strategic notes from the human or main agent that must be considered when generating intents). Call it before planning.",
 		obj(map[string]any{}),
 		func(context.Context, json.RawMessage) (actool.Result, error) {
 			return jsonResult(t.graphOverviewData())
@@ -485,7 +485,7 @@ func (t *ToolSet) addOneIntent(it intentItem) (int64, error) {
 
 func (t *ToolSet) addIntent() actool.CoreTool {
 	return writeTool("add_intent", "Create an exploration direction in the frontier and link it into the exploration chain. An intent is an open exploration direction, not a fixed type — describe in one free-form summary what to explore, verify, or exploit.\n"+
-		"★Priority batch: multiple new directions from one round In. intents The array is submitted once (by article). Back ids array, with intents Equivalent (failure) id=0,For more details, please. errors). One article omitted intents Straight to the top. summary. ",
+		"★ Prefer batching: put several new directions from one round into the intents array and submit them in one call (fewer round-trips than one call per direction). The ids array is returned in the same order and length as intents (failed entries have id=0; see errors for details). For a single direction, omit intents and pass the top-level summary.",
 		obj(map[string]any{
 			"intents":    map[string]any{"type": "array", "description": "Preferred: an array of new exploration directions, processed in order. Each element uses the same fields as the top-level fields below (summary/asset_ids/parent_ids/priority). The returned IDs match this array in length and order.", "items": map[string]any{"type": "object"}},
 			"summary":    str("[Single] One sentence describing the exploration direction: what to do and why. Be clear and explicit; it does not depend on asset IDs."),
@@ -717,12 +717,12 @@ func (t *ToolSet) recordOneFact(it factItem, defaultIntent int64) (int64, error)
 
 func (t *ToolSet) recordFact() actool.CoreTool {
 	return writeTool("record_fact", `Write an exploration fact or conclusion to the exploration graph and link it to the producing intent (intent_id). Use it for positive results such as fingerprints and enumeration, as well as negative conclusions such as "port closed", "parameter not injectable", or "no login portal found".`+"\n"+
-		"⚠️The multiple observations of an exploration must be [consolidated into a fact], not split into multiple pieces, but combined into one fact, so as to express them as far as possible:summary=A summary of this conclusion,detail=Relevant details (can include several specific items). Example: Fingerprint intent→A fact. {summary:'Yeah. X Site technical stacks and response features', detail:'nginx 1.25 / Vue3 / 200 / title=.. / body_len=..'},Instead of a status code, a fingerprint, a title. An intention usually yields only one fact, and too shredded would allow the mapping to expand indefinitely.\n"+
-		"★facts The array is used to write multiple [different] conclusions at a time (each can be omitted) intent_id,Default Top Layer intent_id). Back ids array, with facts Equivalence.\n"+
-		"⚠️Just write your conclusions in the tool output. Don't mind.evidence and confidence To prevent inaccurate conclusion of contamination:\n"+
-		"  · evidence=Key evidence supporting this conclusion+The most proven two lines of output are:**It has to be simple.**——Details already exist. detail,No more sticky segments here.\n"+
-		"  · confidence=observed(It's in the output.| inferred(Infer from the phenomenon.\n"+
-		"  · **Negative conclusion**(No injection./Port Close/I didn't find the entrance. evidence And as it should be. confidence——It'll make planners abandon that direction, and the wrong denial will cost a lot; it's only once or evidence is weak. inferred, Don't be an iron case.",
+		"⚠️ Consolidate the observations from one exploration into a single fact instead of splitting them into several: when they can be expressed as one fact, do so. summary = a one-sentence conclusion; detail = the supporting specifics (may contain several items). Example: a fingerprint intent produces one fact {summary:..Identified the tech stack and response characteristics of site X.., detail:..nginx 1.25 / Vue3 / 200 / title=.. / body_len=....}, not one fact each for the status code, fingerprint, and title. One intent usually produces one fact; over-splitting makes the graph grow without bound.\n"+
+		"★ Use the facts array to write several distinct conclusions in one call (each may omit intent_id and inherit the top-level one). The ids array is returned in the same order and length as facts.\n"+
+		"⚠️ Only write conclusions you actually saw in tool output; do not fill gaps from imagination. evidence and confidence keep inaccurate conclusions from polluting the graph:\n"+
+		"  · evidence = the one line of key evidence supporting the conclusion (the command plus the one or two output lines that prove it). Keep it terse: details belong in detail, so do not paste large output here.\n"+
+		"  · confidence = observed (seen directly in the output) or inferred (deduced from the symptom).\n"+
+		"  · **Negative conclusions** (not injectable, port closed, no entry point found, etc.) especially need evidence and an honest confidence: they make the planner abandon the direction, and a wrong negative is costly. If you probed only once or the evidence is weak, mark it inferred rather than certain.",
 		obj(map[string]any{
 			"facts":      map[string]any{"type": "array", "description": "Use this when there are multiple distinct conclusions: an array of facts, where each element uses the same fields as the top-level fields below (summary/detail/evidence/confidence/intent_id/asset_ids). Omit intent_id to inherit the top-level intent_id. The returned IDs match this array in length and order.", "items": map[string]any{"type": "object"}},
 			"summary":    str("One-sentence summary of the finding (put the details in detail)"),
@@ -794,8 +794,8 @@ func (t *ToolSet) addOneHint(it hintItem) (int64, error) {
 }
 
 func (t *ToolSet) addHint() actool.CoreTool {
-	return writeTool("add_hint", "Humans./Lord agent The strategic hint is attached to the exploration map, which the planner will read at the next time the intent is generated.\n"+
-		"★Priority batch: multiple hints in hints The array is submitted once (by article). Back ids array, with hints Equivalent (failure) id=0,For more details, please. errors). One article omitted hints Straight to the top. text. ",
+	return writeTool("add_hint", "Attach a strategic hint from the human or main agent to the exploration graph; the planner reads it the next time it generates intents.\n"+
+		"★ Prefer batching: put several hints into the hints array and submit them in one call (fewer round-trips than one call per hint). The ids array is returned in the same order and length as hints (failed entries have id=0; see errors for details). For a single hint, omit hints and pass the top-level text.",
 		obj(map[string]any{
 			"hints":     map[string]any{"type": "array", "description": "Preferred: an array of new hints, processed in order. Each element uses the same fields as the top-level fields below (text/asset_ids). The returned IDs match this array in length and order.", "items": map[string]any{"type": "object"}},
 			"text":      str("[Single] One hint, e.g. 'Focus on digging into the authentication interface'"),
