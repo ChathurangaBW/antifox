@@ -212,12 +212,12 @@ func parseLog(line string) LogLine {
 
 func levelOf(msg string) string {
 	low := strings.ToLower(msg)
-	for _, k := range []string{"fatal", "panic", "error", "err:", "Failed", "Drop", "Reject", "✕", "Unattainable."} {
+	for _, k := range []string{"fatal", "panic", "error", "err:", "failed", "drop", "reject", "refused", "✕", "unreachable", "unattainable"} {
 		if strings.Contains(low, k) {
 			return "error"
 		}
 	}
-	for _, k := range []string{"warn", "disabled", "Disable", "skip", "stopped", "⚠", "Try again"} {
+	for _, k := range []string{"warn", "disabled", "disable", "skip", "stopped", "⚠", "retry", "try again"} {
 		if strings.Contains(low, k) {
 			return "warn"
 		}

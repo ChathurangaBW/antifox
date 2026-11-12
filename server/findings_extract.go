@@ -108,14 +108,11 @@ func (s *Server) extractFindings(w http.ResponseWriter, r *http.Request) {
 
 func normalizeSeverity(s string) string {
 	switch strings.ToLower(strings.TrimSpace(s)) {
-	case "critical", "Serious", "high", "High risk", "High":
-		if strings.Contains(strings.ToLower(s), "crit") || strings.Contains(s, "Serious") {
-			return "high" // AntiFox severity set is high|medium|low
-		}
-		return "high"
-	case "medium", "It's dangerous.", "Medium", "med":
+	case "critical", "serious", "severe", "high", "high risk", "高危", "高", "严重", "嚴重":
+		return "high" // AntiFox severity set is high|medium|low
+	case "medium", "medium risk", "moderate", "med", "中危", "中", "it's dangerous.":
 		return "medium"
-	case "low", "Low risk.", "Low", "info", "Information":
+	case "low", "low risk", "low risk.", "低危", "低", "info", "information", "informational", "信息", "資訊":
 		return "low"
 	}
 	return "medium"

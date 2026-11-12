@@ -316,12 +316,17 @@ func groupByTarget(loc string, fs []FindingInput, narr []Enrichment) []targetGro
 
 // ---- severity ----
 
+// sevCanonical maps severity words to the canonical set. Keys are lower-case
+// because canonSeverity lower-cases its input; the Chinese aliases are kept so
+// severity values stored before the English conversion still normalize.
 var sevCanonical = map[string]string{
-	"critical": "critical", "Serious": "critical", "crit": "critical",
-	"high": "high", "High risk": "high", "High": "high",
-	"medium": "medium", "It's dangerous.": "medium", "Medium": "medium", "med": "medium",
-	"low": "low", "Low risk.": "low", "Low": "low",
-	"info": "info", "Information": "info", "informational": "info",
+	"critical": "critical", "serious": "critical", "severe": "critical", "crit": "critical",
+	"严重": "critical", "嚴重": "critical",
+	"high": "high", "high risk": "high", "高危": "high", "高": "high",
+	"medium": "medium", "medium risk": "medium", "moderate": "medium", "med": "medium",
+	"中危": "medium", "中": "medium", "it's dangerous.": "medium",
+	"low": "low", "low risk": "low", "low risk.": "low", "低危": "low", "低": "low",
+	"info": "info", "information": "info", "informational": "info", "信息": "info", "資訊": "info",
 }
 var sevRankFull = map[string]int{"critical": 0, "high": 1, "medium": 2, "low": 3, "info": 4, "": 5}
 
@@ -456,17 +461,19 @@ func truncateRune(s string, n int) string {
 }
 func normalizeName(s string) string {
 	s = strings.TrimSpace(s)
-	s = strings.ReplaceAll(s, " ", "")
-	s = strings.ReplaceAll(s, "(", "(")
-	s = strings.ReplaceAll(s, ")", ")")
+	s = strings.ReplaceAll(s, "\u3000", "") // full-width space
+	s = strings.ReplaceAll(s, "（", "(")
+	s = strings.ReplaceAll(s, "）", ")")
 	return s
 }
 func cleanTitle(s string) string {
 	s = strings.TrimSpace(s)
 	prefixes := []string{
-		"CRITICAL:", "CRITICAL:", "HIGH:", "HIGH:", "MEDIUM:", "MEDIUM:", "LOW:", "LOW:", "INFO:", "INFO:",
-		"[Serious]", "[High risk]", "[It's dangerous.]", "[Low risk.]", "[Information]", "[Serious", "[High risk", "[I'm in danger.", "[It's too bad.",
-		"Serious:", "High risk:", "Moderate:", "Low risk:",
+		"CRITICAL:", "CRITICAL：", "HIGH:", "HIGH：", "MEDIUM:", "MEDIUM：", "LOW:", "LOW：", "INFO:", "INFO：",
+		"[严重]", "[高危]", "[中危]", "[低危]", "[信息]", "【严重】", "【高危】", "【中危】", "【低危】", "【信息】",
+		"严重：", "高危：", "中危：", "低危：", "信息：",
+		"[Serious]", "[High risk]", "[Medium]", "[Low risk]", "[Information]",
+		"Serious:", "High risk:", "Medium:", "Low risk:", "Information:",
 	}
 	for {
 		trimmed := s
