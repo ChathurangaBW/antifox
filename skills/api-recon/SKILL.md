@@ -217,7 +217,7 @@ Type residual: `yup`/`zod`/rules, `Form.Item name=`, embedded Swagger.
 #### 1b.2 â€” Binding Layer
 
 ```
-Form field â†’ onFinish/handleSubmit â†’ transform â†’ API payload
+Form field → onFinish/handleSubmit → transform → API payload
 ```
 
 | Bind Source | How? |

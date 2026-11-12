@@ -254,7 +254,7 @@ python commix.py -u "http://target.com/ping?ip=127.0.0.1" --os-shell
 2. **Input Validation**
    ```python
    import re
-
+   
    def validate_ip(ip):
        pattern = r'^(\d{1,3}\.){3}\d{1,3}$'
        if not re.match(pattern, ip):
@@ -268,10 +268,10 @@ python commix.py -u "http://target.com/ping?ip=127.0.0.1" --os-shell
 3. **Parametric Commands**
    ```python
    import subprocess
-
+   
    # Dangerous.
    subprocess.call(['ping', '-c', '1', user_input])
-
+   
    # Security - Use list of parameters
    subprocess.call(['ping', '-c', '1', validated_ip])
    ```
@@ -280,7 +280,7 @@ python commix.py -u "http://target.com/ping?ip=127.0.0.1" --os-shell
    ```python
    ALLOWED_COMMANDS = ['ping', 'nslookup']
    ALLOWED_OPTIONS = {'ping': ['-c', '-n']}
-
+   
    if command not in ALLOWED_COMMANDS:
        raise ValueError("Command not allowed")
    ```

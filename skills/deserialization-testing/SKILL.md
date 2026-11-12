@@ -278,9 +278,9 @@ java -jar ysoserial.jar CommonsCollections1 "command" | base64
 2. **Input Validation**
    ```java
    // White List authentication class name
-   private static final Set<String> ALLOWED_CLASSES =
+   private static final Set<String> ALLOWED_CLASSES = 
        Set.of("com.example.SafeClass");
-
+   
    private Object readObject(ObjectInputStream ois) {
        // Verify the permission
        // ...
@@ -291,7 +291,7 @@ java -jar ysoserial.jar CommonsCollections1 "command" | base64
    ```java
    // JacksonConfigure
    objectMapper.enableDefaultTyping();
-   objectMapper.setVisibility(PropertyAccessor.FIELD,
+   objectMapper.setVisibility(PropertyAccessor.FIELD, 
        JsonAutoDetect.Visibility.ANY);
    ```
 

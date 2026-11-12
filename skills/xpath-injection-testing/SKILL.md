@@ -248,9 +248,9 @@ print(results)
 
 1. **Input Validation**
    ```java
-   private static final String[] XPATH_ESCAPE_CHARS =
+   private static final String[] XPATH_ESCAPE_CHARS = 
        {"'", "\"", "[", "]", "(", ")", "=", ">", "<", " "};
-
+   
    public static String escapeXPath(String input) {
        if (input == null) {
          return null;
@@ -288,9 +288,9 @@ print(results)
 4. **Use prepared statements**
    ```java
    // Predefined Query Template
-   private static final String LOGIN_QUERY =
+   private static final String LOGIN_QUERY = 
        "//user[username=$1 and password=$2]";
-
+   
    // Bind with Parameter
    ```
 

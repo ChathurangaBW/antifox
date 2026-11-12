@@ -96,7 +96,7 @@ import threading
 import requests
 
 def purchase():
-    requests.post('https://target.com/api/purchase',
+    requests.post('https://target.com/api/purchase', 
                   json={'product_id': 123, 'quantity': 1})
 
 # Send it simultaneously.10A request.
@@ -319,15 +319,15 @@ test_price_manipulation()
    def process_purchase(product_id, quantity, price):
        # Get real prices from the database
        real_price = db.get_product_price(product_id)
-
+       
        # Authentication price
        if price != real_price:
            raise ValueError("Price mismatch")
-
+       
        # Number of authentications
        if quantity <= 0:
            raise ValueError("Invalid quantity")
-
+       
        # Processing of purchases
        process_order(product_id, quantity, real_price)
    ```
@@ -339,13 +339,13 @@ test_price_manipulation()
        PAID = "paid"
        SHIPPED = "shipped"
        COMPLETED = "completed"
-
+       
        TRANSITIONS = {
            PENDING: [PAID],
            PAID: [SHIPPED],
            SHIPPED: [COMPLETED]
        }
-
+       
        def can_transition(self, from_state, to_state):
            return to_state in self.TRANSITIONS.get(from_state, [])
    ```
@@ -353,16 +353,16 @@ test_price_manipulation()
 3. **Concurrency Control**
    ```python
    import threading
-
+   
    lock = threading.Lock()
-
+   
    def process_order(order_id):
        with lock:
            # Check order status
            order = db.get_order(order_id)
            if order.status != 'pending':
                raise ValueError("Order already processed")
-
+           
            # Processing of orders
            process(order)
    ```
@@ -373,11 +373,11 @@ test_price_manipulation()
        # Authentication Quantities Limit
        if order.quantity > MAX_QUANTITY:
            raise ValueError("Quantity exceeds limit")
-
+       
        # Validate price ranges
        if order.price <= 0:
            raise ValueError("Invalid price")
-
+       
        # Validate inventory
        if order.quantity > get_stock(order.product_id):
            raise ValueError("Insufficient stock")

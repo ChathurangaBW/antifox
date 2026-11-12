@@ -220,7 +220,7 @@ def test_idor(base_url, user_id_range):
     for user_id in user_id_range:
         url = f"{base_url}/user?id={user_id}"
         response = requests.get(url)
-
+        
         if response.status_code == 200:
             data = response.json()
             print(f"User {user_id}: {data.get('email', 'N/A')}")
@@ -255,7 +255,7 @@ test_idor("https://target.com", range(1, 100))
        # Verify the permission
        if user_id != current_user_id:
            raise PermissionDenied("Cannot access other user's data")
-
+       
        # Return the data
        return db.get_user(user_id)
    ```
@@ -268,7 +268,7 @@ test_idor("https://target.com", range(1, 100))
        'def456': 101,
        'ghi789': 102
    }
-
+   
    def get_user(mapped_id):
        real_id = user_mapping.get(mapped_id)
        if not real_id:
@@ -290,11 +290,11 @@ test_idor("https://target.com", range(1, 100))
    ```python
    def update_user_data(user_id, data, current_user):
        user = db.get_user(user_id)
-
+       
        # Verify the ownership
        if user.id != current_user.id and current_user.role != 'admin':
            raise PermissionDenied()
-
+       
        # Update the data
        db.update_user(user_id, data)
    ```
@@ -302,7 +302,7 @@ test_idor("https://target.com", range(1, 100))
 5. **Use unpredictable identifiers**
    ```python
    import uuid
-
+   
    # UsingUUIDSubstitution OrderID
    resource_id = str(uuid.uuid4())
    ```

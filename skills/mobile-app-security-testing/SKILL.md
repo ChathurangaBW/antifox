@@ -209,9 +209,9 @@ NSUserDefaults *defaults = [NSUserDefaults standardUserDefaults];
 **Certificate authentication bypass:**
 ```objective-c
 // Verify the permission
-- (void)connection:(NSURLConnection *)connection
+- (void)connection:(NSURLConnection *)connection 
 didReceiveAuthenticationChallenge:(NSURLAuthenticationChallenge *)challenge {
-    [challenge.sender useCredential:[NSURLCredential credentialForTrust:challenge.protectionSpace.serverTrust]
+    [challenge.sender useCredential:[NSURLCredential credentialForTrust:challenge.protectionSpace.serverTrust] 
           forAuthenticationChallenge:challenge];
 }
 ```

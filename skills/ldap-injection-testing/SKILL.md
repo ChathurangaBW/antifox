@@ -248,9 +248,9 @@ print(conn.entries)
 
 1. **Input Validation**
    ```java
-   private static final String[] LDAP_ESCAPE_CHARS =
+   private static final String[] LDAP_ESCAPE_CHARS = 
        {"\\", "*", "(", ")", "\0", "/"};
-
+   
    public static String escapeLDAP(String input) {
        if (input == null) {
          return null;

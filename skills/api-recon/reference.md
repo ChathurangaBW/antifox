@@ -224,7 +224,7 @@ Export of recording results:
 JSON.stringify({
   apis: [...window.__API_RECON_LOG__],
   detail: window.__API_RECON_DETAIL__,
-  routes: [...(window.__API_RECON_ROUTES__ || [])], // `__API_RECON_ROUTES__`
+  routes: [...(window.__API_RECON_ROUTES__ || [])],
   observe: window.__API_RECON_OBSERVE__,
 }, null, 2)
 ```
@@ -339,7 +339,7 @@ grep -rhoaE '([A-Z_][A-Z0-9_]*):\{name:"[^"]*",link:"/[^"]+"\}' js | head -20
 ### I3. Build permission tree + stub
 
 ```bash
-python3 scripts/build_perm_tree.py recon/js recon/ --config recon/config.json  # `--config` uses `config.json`
+python3 scripts/build_perm_tree.py recon/js recon/ --config recon/config.json
 ```
 
 Script logic:

@@ -129,7 +129,7 @@ fetch('https://target.com/api/action', {
     // FromCookieReadingToken
     document.cookie.split(';').forEach(c => {
       if(c.trim().startsWith('csrf_token=')) {
-        document.querySelector('input[name="csrf_token"]').value =
+        document.querySelector('input[name="csrf_token"]').value = 
           c.split('=')[1];
       }
     });

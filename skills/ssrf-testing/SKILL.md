@@ -245,7 +245,7 @@ http://burpcollaborator.net
 3. **IPIP address filtering**
    ```python
    import ipaddress
-
+   
    def is_internal_ip(ip):
        return ipaddress.ip_address(ip).is_private or \
               ipaddress.ip_address(ip).is_loopback

@@ -197,7 +197,7 @@ shell.PhP
 **Special character:**
 ```
 shell.php.
-shell.php
+shell.php 
 shell.php%20
 ```
 

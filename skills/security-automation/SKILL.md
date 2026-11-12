@@ -187,11 +187,11 @@ class BurpExtender(IBurpExtender, IScannerCheck):
         self._helpers = callbacks.getHelpers()
         callbacks.setExtensionName("Security Automation")
         callbacks.registerScannerCheck(self)
-
+    
     def doPassiveScan(self, baseRequestResponse):
         # Passive Scan Logic
         return None
-
+    
     def doActiveScan(self, baseRequestResponse, insertionPoint):
         # Active Scan Logic
         return None
@@ -291,7 +291,7 @@ def send_report(vulnerabilities):
         msg['Subject'] = 'Possibilities scan report'
         msg['From'] = 'security@example.com'
         msg['To'] = 'admin@example.com'
-
+        
         server = smtplib.SMTP('smtp.example.com')
         server.send_message(msg)
         server.quit()
@@ -314,7 +314,7 @@ def check_s3_buckets():
     """CheckS3Storage bucket security configuration"""
     s3 = boto3.client('s3')
     buckets = s3.list_buckets()
-
+    
     issues = []
     for bucket in buckets['Buckets']:
         # Inspection of public access
@@ -328,7 +328,7 @@ def check_s3_buckets():
                     })
         except:
             pass
-
+        
         # Check Encryption
         try:
             encryption = s3.get_bucket_encryption(Bucket=bucket['Name'])
@@ -337,7 +337,7 @@ def check_s3_buckets():
                 'bucket': bucket['Name'],
                 'issue': 'Encryption not enabled'
             })
-
+    
     return issues
 
 if __name__ == '__main__':
