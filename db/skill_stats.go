@@ -20,9 +20,9 @@ func (d *DB) RecordSkillInvocation(skillName, agentKey string) {
 
 // SkillStat is the aggregated per-skill invocation summary.
 type SkillStat struct {
-	SkillName string         `json:"skill_name"`
-	Calls     int64          `json:"calls"`
-	LastAt    *time.Time     `json:"last_at,omitempty"`
+	SkillName string           `json:"skill_name"`
+	Calls     int64            `json:"calls"`
+	LastAt    *time.Time       `json:"last_at,omitempty"`
 	ByAgent   map[string]int64 `json:"by_agent"` // agent_key → calls
 }
 

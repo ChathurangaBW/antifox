@@ -5,9 +5,9 @@ import (
 	"encoding/json"
 	"testing"
 
-	actool "antifox/engine/tool"
 	"antifox/agent"
 	"antifox/db"
+	actool "antifox/engine/tool"
 )
 
 func names(tools []actool.CoreTool) map[string]actool.CoreTool {

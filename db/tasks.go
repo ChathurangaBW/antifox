@@ -8,32 +8,32 @@ import (
 // Task is a row in the task registry (1:1 with an exploration).
 type Task struct {
 	ID            int64      `json:"id"`
-	Name          string     `json:"name"` // 简短任务名/目标；空=回退 #id·描述
+	Name          string     `json:"name"` // Short Task Name/targets; empty=Back #id·Description
 	Description   string     `json:"description"`
 	Goal          string     `json:"goal"`
 	ExplorationID int64      `json:"exploration_id"`
 	Status        string     `json:"status"`
 	Paused        bool       `json:"paused"`
 	LLMProfileID  *int64     `json:"llm_profile_id,omitempty"`
-	ParentRef     string     `json:"parent_ref,omitempty"` // 父任务 id(编排 spawn 记录;空=顶层)
+	ParentRef     string     `json:"parent_ref,omitempty"` // Father Job id(Organization spawn Records;Empty=Top Level)
 	CreatedAt     time.Time  `json:"created_at"`
-	CompletedAt   *time.Time `json:"completed_at,omitempty"` // 进入终态(done/failed/timeout)的时刻;非终态为 nil
-	// 任务级超时(见 docs/任务级超时与收尾设计.md)。
-	TimeoutSeconds int        `json:"timeout_seconds"`        // 0=不限时
-	FirstRunAt     *time.Time `json:"first_run_at,omitempty"` // 首次真正开始运行的时刻(非 created_at);nil=尚未运行
-	DeadlineAt     *time.Time `json:"deadline_at,omitempty"`  // = first_run_at + timeout_seconds;nil=不限或未运行
-	// Egress 出口代理选择：''=跟随全局 | 'direct'=强制直连 | 'proxy'=走全局代理。任务运行时据此设 MITM 上游。
+	CompletedAt   *time.Time `json:"completed_at,omitempty"` // To the end.(done/failed/timeout)♪ The moment ♪;Non-final is nil
+	// Task level timeout(See docs/Task-level overtime and end-of-service design.md).
+	TimeoutSeconds int        `json:"timeout_seconds"`        // 0=Timeless
+	FirstRunAt     *time.Time `json:"first_run_at,omitempty"` // The moment when the first real start starts(Not created_at);nil=Not run yet
+	DeadlineAt     *time.Time `json:"deadline_at,omitempty"`  // = first_run_at + timeout_seconds;nil=Unlimited or not running
+	// Egress Export agent selection:''=Follow Global | 'direct'=Force Direct Company | 'proxy'=Go global agent. Tasks set when running MITM Upstream.
 	Egress string `json:"egress,omitempty"`
 }
 
 // IsTerminal reports whether a task status is a terminal (finished) state.
-// 单一真源，替换散落各处的 done/failed 硬编码判定。
+// Single real source. Replace scattered everywhere. done/failed Hard-coding determination.
 func IsTerminal(status string) bool {
 	return status == "done" || status == "failed" || status == "timeout"
 }
 
 // CreateTask creates an exploration + task in one transaction and returns the task.
-// timeoutSeconds is the task-level wall-clock budget (0 = 不限时); deadline_at is
+// timeoutSeconds is the task-level wall-clock budget (0 = Timeless); deadline_at is
 // stamped later at first real run (see engine), not here.
 func (d *DB) CreateTask(name, description, goal, egress string, llmProfileID *int64, timeoutSeconds int) (*Task, error) {
 	tx, err := d.Begin()
@@ -51,7 +51,7 @@ func (d *DB) CreateTask(name, description, goal, egress string, llmProfileID *in
 	// is global and shared, not isolated per task). Being a fact (not a special 'begin' kind) lets every
 	// intent uniformly connect to a fact node, including the first ones.
 	originPayload, _ := json.Marshal(map[string]any{
-		"summary":     "任务起点：" + description + "；目标：" + goal,
+		"summary":     "Mission starting point:" + description + ";Objectives:" + goal,
 		"description": description,
 		"goal":        goal,
 	})
@@ -82,7 +82,7 @@ func scanTask(sc interface{ Scan(...any) error }) (*Task, error) {
 	return &t, nil
 }
 
-// SetParentRef records a task's parent task id (编排 agent spawn_task 关联).
+// SetParentRef records a task's parent task id (Organization agent spawn_task Association).
 func (d *DB) SetParentRef(id int64, parentRef string) error {
 	_, err := d.Exec(`UPDATE tasks SET parent_ref=NULLIF($2,'') WHERE id=$1`, id, parentRef)
 	return err
@@ -157,14 +157,14 @@ UPDATE tasks
 // StampFirstRun records a task's first-real-run moment and computes its absolute
 // deadline (= now + timeoutSeconds). Idempotent: only stamps when first_run_at is
 // still NULL, so restarts / re-entries keep the original clock. timeoutSeconds<=0
-// leaves deadline_at NULL (不限时). Returns the resulting deadline (nil = 不限/未变).
+// leaves deadline_at NULL (Timeless). Returns the resulting deadline (nil = Unlimited/Unchanged).
 func (d *DB) StampFirstRun(id int64, timeoutSeconds int) (*time.Time, error) {
 	var deadline *time.Time
 	err := d.QueryRow(`
 UPDATE tasks
    SET first_run_at = COALESCE(first_run_at, now()),
        deadline_at  = CASE
-           WHEN first_run_at IS NOT NULL THEN deadline_at            -- 已盖过章：不动
+           WHEN first_run_at IS NOT NULL THEN deadline_at            -- Sealed: Not moved
            WHEN $2 > 0 THEN now() + make_interval(secs => $2)
            ELSE NULL END
  WHERE id = $1
@@ -173,7 +173,7 @@ UPDATE tasks
 }
 
 // ReactivateTask brings a stopped/finished task back to a runnable state for a
-// "继续运行"(re-run): clears the terminal finish time AND resets the run clock
+// "Continue running"(re-run): clears the terminal finish time AND resets the run clock
 // (first_run_at/deadline_at) so a timeout task doesn't immediately re-timeout.
 // The exploration graph (findings/facts/assets) is untouched — the run continues.
 func (d *DB) ReactivateTask(id int64) error {
@@ -183,7 +183,7 @@ func (d *DB) ReactivateTask(id int64) error {
 	return err
 }
 
-// UpdateTask edits a task's user-editable fields (免删重建). name/description/goal
+// UpdateTask edits a task's user-editable fields (Delete Reconstruction). name/description/goal
 // take effect on the next planning round (goal is read live by the planner); a
 // changed goal does NOT auto re-decompose — it steers subsequent planning.
 func (d *DB) UpdateTask(id int64, name, description, goal, egress string, timeoutSeconds int, llmProfileID *int64) error {

@@ -262,7 +262,7 @@ export default function AssetsPage() {
     api.tasks().then((r) => setTasks(r.tasks)).catch(() => {});
   }, []);
 
-  // Companies reload scoped to the selected task (企业 tab respects the task filter:
+  // Companies reload scoped to the selected task (Enterprise tab respects the task filter:
   // only companies owning assets in the task are shown; "all" ⇒ global).
   React.useEffect(() => {
     api.companies(taskFilter === "all" ? 0 : Number(taskFilter)).then(setCompanies).catch(() => {});
@@ -492,7 +492,7 @@ export default function AssetsPage() {
           </TabsList>
         </div>
 
-        {/* 企业 */}
+        {/* Enterprise */}
         <TabsContent value="company" className="mt-0 flex min-h-0 flex-1 flex-col">
           <Card className="flex min-h-0 flex-1 flex-col overflow-hidden py-0">
             <div className="min-h-0 flex-1 overflow-auto">
@@ -555,7 +555,7 @@ export default function AssetsPage() {
           </Card>
         </TabsContent>
 
-        {/* 根域名 */}
+        {/* Root Domain Name */}
         <TabsContent value="root_domain" className="mt-0 flex min-h-0 flex-1 flex-col gap-2">
           {searchBox}
           <AssetCard
@@ -641,7 +641,7 @@ export default function AssetsPage() {
           </AssetCard>
         </TabsContent>
 
-        {/* 子域名 */}
+        {/* Subdo Name */}
         <TabsContent value="subdomain" className="mt-0 flex min-h-0 flex-1 flex-col gap-2">
           {searchBox}
           <AssetCard
@@ -680,7 +680,7 @@ export default function AssetsPage() {
           </AssetCard>
         </TabsContent>
 
-        {/* 服务 */}
+        {/* Services */}
         <TabsContent value="service" className="mt-0 flex min-h-0 flex-1 flex-col gap-2">
           {searchBox}
           <AssetCard
@@ -769,7 +769,7 @@ export default function AssetsPage() {
           </AssetCard>
         </TabsContent>
 
-        {/* 接口 */}
+        {/* Interface */}
         <TabsContent value="endpoint" className="mt-0 flex min-h-0 flex-1 flex-col gap-2">
           {searchBox}
           <AssetCard
@@ -1110,7 +1110,7 @@ function CompanyAvatar({ name, logo }: { name: string; logo?: string }) {
   );
 }
 
-// 新增企业弹窗
+// New Enterprise Boiling Window
 function CompanyDialog({ onSaved }: { onSaved: () => void }) {
   const { t } = useTranslation();
   const [open, setOpen] = React.useState(false);
@@ -1196,7 +1196,7 @@ function CompanyDialog({ onSaved }: { onSaved: () => void }) {
   );
 }
 
-// 编辑（覆盖）资产范围弹窗
+// Edit (overrided) asset range bullet windows
 function EditScopeDialog({ company, onSaved }: { company: Company; onSaved: () => void }) {
   const { t } = useTranslation();
   const [open, setOpen] = React.useState(false);
@@ -1264,7 +1264,7 @@ function EditScopeDialog({ company, onSaved }: { company: Company; onSaved: () =
   );
 }
 
-// 追加资产范围弹窗
+// Additional asset range bullet windows
 function AppendScopeDialog({ company, onSaved }: { company: Company; onSaved: () => void }) {
   const { t } = useTranslation();
   const [open, setOpen] = React.useState(false);

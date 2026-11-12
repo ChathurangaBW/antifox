@@ -1,69 +1,69 @@
 ---
 name: container-security-testing
-description: 容器安全测试的专业技能和方法论
+description: Professional skills and methodology for container safety testing
 version: 1.0.0
 ---
 
-# 容器安全测试
+# Container safety test
 
-## 概述
+## Overview
 
-容器安全测试是确保容器化应用安全性的重要环节。本技能提供容器安全测试的方法、工具和最佳实践，涵盖Docker、Kubernetes等容器技术。
+This skill provides methods, tools and best practices for the safety testing of containers and covers packaging techniques such as Docker, Kubernetes.
 
-## 测试范围
+## Test Scope
 
-### 1. 镜像安全
+### 1. Image Security
 
-**检查项目：**
-- 基础镜像漏洞
-- 依赖包漏洞
-- 镜像配置
-- 敏感信息
+**Inspection items:**
+- Basic mirror leaks
+- Reliance on bag holes
+- Mirror Configuration
+- Sensitive information
 
-### 2. 运行时安全
+### 2. Runtime Security
 
-**检查项目：**
-- 容器权限
-- 资源限制
-- 网络隔离
-- 文件系统
+**Inspection items:**
+- Packaging Permissions
+- Resource constraints
+- Network Isolation
+- File System
 
-### 3. 编排安全
+### 3. Orchestration Security
 
-**检查项目：**
-- Kubernetes配置
-- 服务账户
+**Inspection items:**
+- KubernetesConfiguration
+- Service accounts
 - RBAC
-- 网络策略
+- Network Policy
 
-## Docker安全测试
+## DockerSecurity Testing
 
-### 镜像扫描
+### Mirror Scan
 
-**使用Trivy：**
+**Using Trivy:**
 ```bash
-# 扫描镜像
+# Scan the image
 trivy image nginx:latest
 
-# 扫描本地镜像
+# Scan Local Mirrors
 trivy image --input nginx.tar
 
-# 只显示高危漏洞
+# Show only high-risk holes
 trivy image --severity HIGH,CRITICAL nginx:latest
 ```
 
-**使用Clair：**
+**Using Claire:**
 ```bash
-# 启动Clair
+# StartClair
 docker run -d --name clair clair:latest
 
-# 扫描镜像
+# Scan the image
 clair-scanner --ip 192.168.1.100 nginx:latest
 ```
 
-**使用Docker Bench：**
+**Using Docker Bench:**
 ```bash
-# 运行Docker安全基准测试
+# RunDockerSecurity benchmarking test
 docker run --rm --net host --pid host --userns host --cap-add audit_control \
   -e DOCKER_CONTENT_TRUST=$DOCKER_CONTENT_TRUST \
   -v /etc:/etc:ro \
@@ -76,34 +76,34 @@ docker run --rm --net host --pid host --userns host --cap-add audit_control \
   docker/docker-bench-security
 ```
 
-### 容器配置检查
+### Container Configuration Check
 
-**检查Dockerfile：**
+**Inspection Dockerfile:**
 ```dockerfile
-# 安全问题示例
-FROM ubuntu:latest  # 使用latest标签
-RUN apt-get update && apt-get install -y curl  # 未指定版本
-COPY . /app  # 可能包含敏感文件
-ENV PASSWORD=secret  # 硬编码密码
-USER root  # 使用root用户
+# Examples of security issues
+FROM ubuntu:latest  # UsinglatestLabel
+RUN apt-get update && apt-get install -y curl  # No Version Specified
+COPY . /app  # Could contain sensitive files
+ENV PASSWORD=secret  # Hard Encoding Password
+USER root  # UsingrootUser
 ```
 
-**安全最佳实践：**
+**Safety best practices:**
 ```dockerfile
-# 使用特定版本
+# Use specific version
 FROM ubuntu:20.04
 
-# 指定包版本
+# Specified package version
 RUN apt-get update && apt-get install -y curl=7.68.0-1ubuntu2.7
 
-# 使用非root用户
+# Use Non-UserootUser
 RUN useradd -m appuser
 USER appuser
 
-# 最小化镜像
+# Minimize Mirrors
 FROM alpine:3.15
 
-# 多阶段构建
+# Multi-stage construction
 FROM golang:1.18 AS builder
 WORKDIR /app
 COPY . .
@@ -113,56 +113,56 @@ FROM alpine:3.15
 COPY --from=builder /app/app /app
 ```
 
-### 运行时检查
+### Check when running
 
-**检查容器权限：**
+**Permission to inspect containers:**
 ```bash
-# 检查特权容器
+# Check privileged containers
 docker ps --filter "label=privileged=true"
 
-# 检查挂载的主机目录
+# Check the mount host directory
 docker inspect container_name | grep -A 10 Mounts
 
-# 检查容器网络
+# Check the container network
 docker network inspect network_name
 ```
 
-**检查资源限制：**
+**Inspection resource constraints:**
 ```bash
-# 检查内存限制
+# Check memory limits
 docker stats container_name
 
-# 检查CPU限制
+# CheckCPULimits
 docker inspect container_name | grep -i cpu
 ```
 
-## Kubernetes安全测试
+## KubernetesSecurity Testing
 
-### 配置检查
+### Configure Check
 
-**使用kube-bench：**
+**Using kube-bench:**
 ```bash
-# 运行kube-bench
+# Runkube-bench
 kube-bench run
 
-# 检查特定基准
+# Check specific benchmarks
 kube-bench run --targets master,node,etcd
 ```
 
-**使用kube-hunter：**
+**Using kube-hunter:**
 ```bash
-# 运行kube-hunter
+# Runkube-hunter
 kube-hunter --remote target-ip
 
-# 主动模式
+# Active Mode
 kube-hunter --active
 ```
 
-### Pod安全
+### PodSecurity
 
-**检查Pod安全策略：**
+**Inspection of Pod security strategy:**
 ```yaml
-# 不安全的Pod配置
+# It's not safe.PodConfigure
 apiVersion: v1
 kind: Pod
 spec:
@@ -170,11 +170,11 @@ spec:
   - name: app
     image: nginx
     securityContext:
-      privileged: true  # 特权模式
-      runAsUser: 0  # root用户
+      privileged: true  # Precise Mode
+      runAsUser: 0  # rootUser
 ```
 
-**安全配置：**
+**Security configuration:**
 ```yaml
 apiVersion: v1
 kind: Pod
@@ -196,40 +196,40 @@ spec:
         - NET_BIND_SERVICE
 ```
 
-### RBAC检查
+### RBACCheck
 
-**检查角色权限：**
+**Checking role privileges:**
 ```bash
-# 列出所有角色
+# List all roles
 kubectl get roles --all-namespaces
 
-# 检查角色绑定
+# Check role binding
 kubectl get rolebindings --all-namespaces
 
-# 检查集群角色
+# Examination of cluster roles
 kubectl get clusterroles
 
-# 检查用户权限
+# Check User Permissions
 kubectl auth can-i --list --as=system:serviceaccount:default:sa-name
 ```
 
-**常见问题：**
-- 过度权限
-- 未使用的角色
-- 未使用的服务账户
+**Common problems:**
+- Excessive Permissions
+- Unused roles
+- Unused service accounts
 
-### 网络策略
+### Network Policy
 
-**检查网络策略：**
+**Inspection of web strategy:**
 ```bash
-# 列出所有网络策略
+# List all network strategies
 kubectl get networkpolicies --all-namespaces
 
-# 检查网络策略配置
+# Check network policy configuration
 kubectl describe networkpolicy policy-name -n namespace
 ```
 
-**网络策略示例：**
+**Examples of web strategy:**
 ```yaml
 apiVersion: networking.k8s.io/v1
 kind: NetworkPolicy
@@ -242,136 +242,136 @@ spec:
   - Egress
 ```
 
-## 工具使用
+## Using the Tools
 
 ### Falco
 
-**运行时安全监控：**
+**Operating security monitoring:**
 ```bash
-# 安装Falco
+# InstallFalco
 helm repo add falcosecurity https://falcosecurity.github.io/charts
 helm install falco falcosecurity/falco
 
-# 检查规则
+# Inspection rules
 falco -r /etc/falco/rules.d/
 ```
 
 ### Aqua Security
 
 ```bash
-# 扫描镜像
+# Scan the image
 aqua image scan nginx:latest
 
-# 扫描Kubernetes集群
+# ScanKubernetesCluster
 aqua k8s scan
 ```
 
 ### Snyk
 
 ```bash
-# 扫描Dockerfile
+# ScanDockerfile
 snyk test --docker nginx:latest
 
-# 扫描Kubernetes配置
+# ScanKubernetesConfigure
 snyk iac test k8s/
 ```
 
-## 测试清单
+## Test Checklist
 
-### 镜像安全
-- [ ] 扫描基础镜像漏洞
-- [ ] 扫描依赖包漏洞
-- [ ] 检查Dockerfile配置
-- [ ] 检查敏感信息泄露
+### Image Security
+- [ ] Scan for base mirror leaks
+- [ ] Scanning is dependent on the bag bug.
+- [ ] Check Dockerfile configuration
+- [ ] Check sensitive information leaks.
 
-### 运行时安全
-- [ ] 检查容器权限
-- [ ] 检查资源限制
-- [ ] 检查网络隔离
-- [ ] 检查文件系统挂载
+### Runtime Security
+- [ ] Check container privileges
+- [ ] Checking resource constraints
+- [ ] Check network isolation.
+- [ ] Check file system mount
 
-### 编排安全
-- [ ] 检查Kubernetes配置
-- [ ] 检查RBAC配置
-- [ ] 检查网络策略
-- [ ] 检查Pod安全策略
+### Orchestration Security
+- [ ] Check Kubernetes configuration
+- [ ] Check RBAC Configuration
+- [ ] Check network policy
+- [ ] Check Pod security strategy
 
-## 常见安全问题
+## Common Security Issues
 
-### 1. 镜像漏洞
+### 1. Mirror breach.
 
-**问题：**
-- 基础镜像包含漏洞
-- 依赖包包含漏洞
-- 未及时更新
+**Question:**
+- Basic mirrors contain holes
+- Reliance packs contain holes
+- Not updated in time
 
-**修复：**
-- 定期扫描镜像
-- 及时更新基础镜像
-- 使用最小化镜像
+**Repairs:**
+- Scan mirrors on a regular basis
+- Update base mirrors in a timely manner
+- Use minimum mirror
 
-### 2. 过度权限
+### 2. Excessive Permissions
 
-**问题：**
-- 容器以root运行
-- 特权模式
-- 挂载敏感目录
+**Question:**
+- Packagings run in root
+- Precise Mode
+- Mount Sensitive Directory
 
-**修复：**
-- 使用非root用户
-- 禁用特权模式
-- 限制文件系统访问
+**Repairs:**
+- Use non-root users
+- Disable privileged mode
+- Restricted document system access
 
-### 3. 配置错误
+### 3. Security Misconfiguration
 
-**问题：**
-- 默认配置不安全
-- 网络策略缺失
-- RBAC配置错误
+**Question:**
+- Default configuration is not safe
+- Network strategy missing
+- RBACSecurity Misconfiguration
 
-**修复：**
-- 遵循安全最佳实践
-- 实施网络策略
-- 正确配置RBAC
+**Repairs:**
+- Follow security best practices
+- Implementation of the web strategy
+- Correct ConfigurationRBAC
 
-### 4. 敏感信息泄露
+### 4. Sensible information leaks
 
-**问题：**
-- 镜像包含密钥
-- 环境变量暴露
-- 配置文件泄露
+**Question:**
+- Mirror contains keys
+- Exposure to environmental variables
+- Config file leak
 
-**修复：**
-- 使用密钥管理
-- 避免硬编码
-- 使用Secret对象
+**Repairs:**
+- Use key management
+- Avoid hard encoding
+- Use Secret objects
 
-## 最佳实践
+## Best Practices
 
-### 1. 镜像安全
+### 1. Image Security
 
-- 使用官方基础镜像
-- 定期更新镜像
-- 扫描镜像漏洞
-- 最小化镜像大小
+- Use official base mirrors
+- Regularly update mirrors
+- Scan for mirror leaks
+- Minimize mirror size
 
-### 2. 运行时安全
+### 2. Runtime Security
 
-- 使用非root用户
-- 限制容器权限
-- 实施资源限制
-- 启用安全上下文
+- Use non-root users
+- Restricted container rights
+- Implementation of resource constraints
+- Enable safe context
 
-### 3. 编排安全
+### 3. Orchestration Security
 
-- 配置网络策略
-- 实施RBAC
-- 使用Pod安全策略
-- 启用审计日志
+- Configure Network Policy
+- ImplementationRBAC
+- Use Pod security policy
+- Enable audit log
 
-## 注意事项
+## Important Notes
 
-- 仅在授权环境中进行测试
-- 避免对生产环境造成影响
-- 注意不同容器平台的差异
-- 定期进行安全扫描
+- Test only in an authorized environment
+- Avoiding effects on the production environment
+- Take note of the differences in the platforms of the different containers.
+- Security scans conducted on a regular basis

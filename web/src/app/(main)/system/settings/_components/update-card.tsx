@@ -151,10 +151,10 @@ export function UpdateCard() {
         <CardDescription>{t("update.subtitle")}</CardDescription>
       </CardHeader>
       <CardContent className="flex flex-col gap-4">
-        {/* 版本行 */}
+        {/* Version Line */}
         <div className="flex flex-wrap items-center gap-x-3 gap-y-1.5 text-sm">
           <span className="text-muted-foreground">{t("update.current")}</span>
-          <Badge variant="secondary" className="font-mono">{info?.current ?? "…"}</Badge>
+          <Badge variant="secondary" className="font-mono">{info?.current ?? "..."}</Badge>
           {info?.has_update && info.latest && (
             <>
               <span className="text-muted-foreground">→</span>
@@ -171,7 +171,7 @@ export function UpdateCard() {
           )}
         </div>
 
-        {/* 上次升级结果 / 回滚提示 */}
+        {/* Last upgrade result / Roll Back */}
         {info?.boot_notice && (
           <div className="flex items-start gap-2 rounded-md border border-amber-500/30 bg-amber-500/10 px-3 py-2 text-xs text-amber-700 dark:text-amber-400">
             <AlertTriangleIcon className="mt-0.5 size-3.5 shrink-0" />
@@ -179,15 +179,15 @@ export function UpdateCard() {
           </div>
         )}
 
-        {/* 检查错误（GitHub 不可达/限流） */}
+        {/* Check error(s)GitHub Unattainable./It's restricted. */}
         {info?.error && (
           <p className="text-xs text-destructive">{t("update.checkFailed", { msg: info.error })}</p>
         )}
 
-        {/* 开发构建：禁用一键更新 */}
+        {/* Develop Build: Disable one key update */}
         {devBuild && <p className="text-xs text-muted-foreground">{info?.reason || t("update.devBuild")}</p>}
 
-        {/* Docker：提示拉镜像 */}
+        {/* Docker:Point to mirror */}
         {isDocker && info?.has_update && (
           <div className="rounded-md border bg-muted/40 px-3 py-2 text-xs">
             {t("update.dockerHint")}
@@ -195,7 +195,7 @@ export function UpdateCard() {
           </div>
         )}
 
-        {/* 有新版本：changelog + 大小 */}
+        {/* There are new versions:changelog + Size */}
         {info?.has_update && info.notes && (
           <details className="rounded-md border px-3 py-2 text-xs">
             <summary className="cursor-pointer font-medium">
@@ -208,7 +208,7 @@ export function UpdateCard() {
           </details>
         )}
 
-        {/* 进度条 */}
+        {/* Progress Bar */}
         {(busy || restarting) && (
           <div className="space-y-1.5">
             <div className="flex items-center justify-between text-xs text-muted-foreground">
@@ -227,7 +227,7 @@ export function UpdateCard() {
           </div>
         )}
 
-        {/* 操作按钮 */}
+        {/* Operation button */}
         <div className="flex flex-wrap items-center gap-2">
           <Button variant="outline" size="sm" onClick={() => check(true)} disabled={checking || busy || restarting}>
             {checking ? <Loader2Icon className="animate-spin" /> : <RefreshCwIcon />}

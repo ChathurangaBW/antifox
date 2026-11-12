@@ -9,9 +9,9 @@ import (
 	"strings"
 	"time"
 
+	"antifox/agent"
 	"antifox/engine/permission"
 	actool "antifox/engine/tool"
-	"antifox/agent"
 )
 
 // jsonResult marshals v to a JSON tool result.
@@ -23,11 +23,11 @@ func jsonResult(v any) (actool.Result, error) {
 	return actool.Text(string(b)), nil
 }
 
-// 本文件实现 P2「跨任务编排工具集」(docs/跑分编排 §2 P2)。这些是 host 工具——需要
-// 访问 Manager(任意任务的 Store)、Engine(暂停)、以及建任务流程,所以住在 server 层。
-// 读类工具把「现有 per-task 工具」重定向到目标任务的 store 上跑(建一个临时 ToolSet
-// 并 Call 其对应工具),从而复用完全相同的逻辑;控制类(spawn/pause)直接调 Manager/Engine。
-// 它们像流量工具一样 seed 进 tools 表、按 agent 绑定(只绑给编排 agent 才可见)。
+// This document achieves P2"Multitask Organization Toolset(docs/Run Division §2 P2). These are... host Tools——Yes.
+// Visits Manager(Arbitrary assignments Store), Engine(Pause), And build task processes,That's why I live here. server Layer.
+// Read-type tool to "Existing" per-task The tool is redirected to the target mission. store Run!(Build a temporary ToolSet
+// and Call Response tool),And then it's exactly the same logic.;Control Class(spawn/pause)Direct Manager/Engine.
+// They're like flow tools. seed In. tools Table, by agent Tie(Only to organize agent Only when I see you.).
 
 // hostTools is the runtime host-tool provider fed to ToolAugment: traffic tools
 // (gated by capture) + cross-task orchestration tools + user-defined custom tools.
@@ -38,10 +38,10 @@ func jsonResult(v any) (actool.Result, error) {
 //nolint:unused // used as the hostTools provider in wireAgentAugment
 func (s *Server) hostTools() ([]actool.CoreTool, map[string][]string) {
 	tools := append(s.m.HostTools(), s.orchestrationTools()...)
-	tools = append(tools, s.platformTools()...) // 平台操作工具(建改 skill/工具/MCP，给 Auto 用)
+	tools = append(tools, s.platformTools()...) // Platform Operating Tool(Construction skill/Tools/MCP,Here. Auto Use)
 	custom, err := s.customTools()
 	if err != nil {
-		log.Printf("[custom-tool] 加载失败: %v", err)
+		log.Printf("[custom-tool] Loading failed: %v", err)
 		return tools, nil
 	}
 	tools = append(tools, custom...)
@@ -146,11 +146,11 @@ func (s *Server) delegateToTask(ctx context.Context, in json.RawMessage, pick fu
 	}
 	_ = json.Unmarshal(in, &head)
 	if strings.TrimSpace(head.TaskID) == "" {
-		return actool.Errorf("task_id 为必填"), nil
+		return actool.Errorf("task_id You have to fill it."), nil
 	}
 	t, ok := s.m.Task(head.TaskID)
 	if !ok {
-		return actool.Errorf("task 不存在: " + head.TaskID), nil
+		return actool.Errorf("task does not exist: " + head.TaskID), nil
 	}
 	var m map[string]json.RawMessage
 	_ = json.Unmarshal(in, &m)
@@ -168,7 +168,7 @@ func (s *Server) delegateToTask(ctx context.Context, in json.RawMessage, pick fu
 
 func (s *Server) toolListTasks() actool.CoreTool {
 	return roTool("list_tasks",
-		"列出所有任务(id/描述/目标/状态/运行时长/父任务/LLM 配置)，编排 agent 用它掌握全局、看哪些任务卡太久、各自用哪个 LLM。运行时长：运行中=创建→现在，终态=创建→最后活动(秒)。llm_profile：任务 planner/worker 用的配置名，(激活配置)=跟随全局激活。",
+		"List all tasks(id/Description/Objective/Status/Run-time/Father Job/LLM Configure),Organization agent Use it to master the whole picture, see which missions are stuck too long, which ones are used. LLM. Run-time: running=Create→Now, final.=Create→Final activities(sec). llm_profile:Tasks planner/worker The configuration name,(Activate Configuration)=Follow global activation.",
 		objSchema(map[string]any{}),
 		func(context.Context, json.RawMessage) (actool.Result, error) {
 			lastAct, _ := s.m.PG().LastActivityAll()
@@ -197,11 +197,11 @@ func (s *Server) toolListTasks() actool.CoreTool {
 					row["parent_ref"] = t.ParentRef
 				}
 				if t.LLMProfileID == nil {
-					row["llm_profile"] = "(激活配置)"
+					row["llm_profile"] = "(Activate Configuration)"
 				} else if n, ok := profName[*t.LLMProfileID]; ok {
 					row["llm_profile"] = n
 				} else {
-					row["llm_profile"] = fmt.Sprintf("#%d(已删除)", *t.LLMProfileID)
+					row["llm_profile"] = fmt.Sprintf("#%d(Deleted)", *t.LLMProfileID)
 				}
 				out = append(out, row)
 			}
@@ -213,7 +213,7 @@ func (s *Server) toolListTasks() actool.CoreTool {
 // orchestration agent can pick one for spawn_task's llm_profile. Never leaks keys.
 func (s *Server) toolListLLMProfiles() actool.CoreTool {
 	return roTool("list_llm_profiles",
-		"列出可用的 LLM 配置(profile)：id、名称、模型、格式、是否为当前激活配置。用 id 给 spawn_task 的 llm_profile_id 参数指定子任务专属 LLM（如侦察用便宜模型、利用用强模型）。不含 API Key。",
+		"List the available LLM profiles: id, name, model, format, and whether the profile is currently active. Use the id to set the llm_profile_id parameter of spawn_task and give a subtask its own LLM (for example, the use of cheap models and the use of strong models for reconnaissance). does not contain API Key. ",
 		objSchema(map[string]any{}),
 		func(context.Context, json.RawMessage) (actool.Result, error) {
 			profs, err := s.m.pg.ListProfiles()
@@ -232,13 +232,13 @@ func (s *Server) toolListLLMProfiles() actool.CoreTool {
 
 func (s *Server) toolSpawnTask() actool.CoreTool {
 	return wrTool("spawn_task",
-		"新建一个子任务并启动探索引擎，返回 task_id。用于把一件事(如一道题/一个目标)派成独立任务。parent_ref 可选：填当前编排关联的父任务 id 做父子关联。",
+		"Create a new submission and start the search engine. Go back. task_id. For one thing.(Like a question./A goal.)To be independent.parent_ref Optional: Fill in the parent task of the current organization id Make parent-child connections.",
 		objSchema(map[string]any{
-			"description":     strParam("任务描述(简短标题)"),
-			"goal":            strParam("任务目标(要达成什么)"),
-			"parent_ref":      strParam("可选：父任务 id(做父子关联)"),
-			"llm_profile_id":  map[string]any{"type": "integer", "description": "可选：指定本子任务 planner/worker 用的 LLM 配置 id(见 list_llm_profiles)；留空则继承父任务、再回退全局激活配置"},
-			"timeout_seconds": map[string]any{"type": "integer", "description": "可选：任务级超时(秒)。到点后触发优雅收尾并进入 timeout 终态；留空或 0 = 不限时"},
+			"description":     strParam("Synchronising folder(Short title)"),
+			"goal":            strParam("Mission objective(What do you want to achieve?)"),
+			"parent_ref":      strParam("Optional: Parent Job id(As a parent and a son.)"),
+			"llm_profile_id":  map[string]any{"type": "integer", "description": "Optional: Specify a book task planner/worker I used it. LLM Configure id(See list_llm_profiles);Leave space to inherit the parent's task and return to the global configuration"},
+			"timeout_seconds": map[string]any{"type": "integer", "description": "Optional: Task-level overtime(sec). After point trigger graceful ending and entry timeout final; empty or 0 = Timeless"},
 		}, "description", "goal"),
 		func(_ context.Context, in json.RawMessage) (actool.Result, error) {
 			var a struct {
@@ -248,10 +248,10 @@ func (s *Server) toolSpawnTask() actool.CoreTool {
 			}
 			_ = json.Unmarshal(in, &a)
 			if strings.TrimSpace(a.Description) == "" {
-				a.Description = "未命名任务"
+				a.Description = "Unnamed Task"
 			}
 			if strings.TrimSpace(a.Goal) == "" {
-				return actool.Errorf("goal 为必填"), nil
+				return actool.Errorf("goal You have to fill it."), nil
 			}
 			if a.TimeoutSeconds < 0 {
 				a.TimeoutSeconds = 0
@@ -260,7 +260,7 @@ func (s *Server) toolSpawnTask() actool.CoreTool {
 			var pin *int64
 			if id := parseProfileID(a.LLMProfileID); id > 0 {
 				if _, ok := s.loadProfileConfig(id); !ok {
-					return actool.Errorf(fmt.Sprintf("LLM 配置 #%d 不存在或未设置 API Key", id)), nil
+					return actool.Errorf(fmt.Sprintf("LLM Configure #%d Not available or not set API Key", id)), nil
 				}
 				pin = &id
 			} else if a.ParentRef != "" {
@@ -278,23 +278,23 @@ func (s *Server) toolSpawnTask() actool.CoreTool {
 					_ = s.m.PG().SetParentRef(id, a.ParentRef)
 				}
 			}
-			s.seed(t, a.Description+" "+a.Goal) // seed 初始资产，喂给事件驱动 loop
-			s.createGoals(s.ctx, t, nil)        // 目标分解(LLM;规则兜底)
-			s.engine.Run(s.ctx, t)              // 启动该任务的探索引擎
+			s.seed(t, a.Description+" "+a.Goal) // seed Initial assets, feeding event driven loop
+			s.createGoals(s.ctx, t, nil)        // Target breakdown(LLM;Bottom of the rule.)
+			s.engine.Run(s.ctx, t)              // Start the mission's search engine.
 			return actool.Text(fmt.Sprintf("task created: %s", t.ID)), nil
 		})
 }
 
 func (s *Server) toolPauseTask() actool.CoreTool {
-	return wrTool("pause_task", "暂停指定任务(停止其 planner/worker 循环)。",
-		objSchema(map[string]any{"task_id": strParam("要暂停的任务 id")}, "task_id"),
+	return wrTool("pause_task", "Pause Assignment(Stop it. planner/worker Loop). ",
+		objSchema(map[string]any{"task_id": strParam("Tasks to suspend id")}, "task_id"),
 		func(_ context.Context, in json.RawMessage) (actool.Result, error) {
 			var a struct {
 				TaskID string `json:"task_id"`
 			}
 			_ = json.Unmarshal(in, &a)
 			if _, ok := s.m.Task(a.TaskID); !ok {
-				return actool.Errorf("task 不存在: " + a.TaskID), nil
+				return actool.Errorf("task does not exist: " + a.TaskID), nil
 			}
 			s.engine.Pause(a.TaskID)
 			return actool.Text("task paused: " + a.TaskID), nil
@@ -302,29 +302,29 @@ func (s *Server) toolPauseTask() actool.CoreTool {
 }
 
 func (s *Server) toolGetTaskGraph() actool.CoreTool {
-	return roTool("get_task_graph", "读指定任务的探索图总览(同 graph_overview：资产计数/frontier/发现/覆盖等)，用 task_id 指定任务。",
-		objSchema(map[string]any{"task_id": strParam("任务 id")}, "task_id"),
+	return roTool("get_task_graph", "Read an overview of the search for specified tasks(Same graph_overview:Assets count/frontier/Found/Overwrite etc.),Use task_id Specifies the task.",
+		objSchema(map[string]any{"task_id": strParam("Tasks id")}, "task_id"),
 		func(ctx context.Context, in json.RawMessage) (actool.Result, error) {
 			return s.delegateToTask(ctx, in, (*agent.ToolSet).GraphOverviewTool)
 		})
 }
 
 func (s *Server) toolListTaskFindings() actool.CoreTool {
-	return roTool("list_task_findings", "读指定任务的确认漏洞(含 flag/PoC；每条带 id/task_id/intent_id/vulnclass/severity/摘要/状态)，用 task_id 指定任务。",
-		objSchema(map[string]any{"task_id": strParam("任务 id")}, "task_id"),
+	return roTool("list_task_findings", "Can not open message Hole(Ham flag/PoC;Every belt. id/task_id/intent_id/vulnclass/severity/Summary/Status),Use task_id Specifies the task.",
+		objSchema(map[string]any{"task_id": strParam("Tasks id")}, "task_id"),
 		func(ctx context.Context, in json.RawMessage) (actool.Result, error) {
 			return s.delegateToTask(ctx, in, (*agent.ToolSet).ListFindingsTool)
 		})
 }
 
 func (s *Server) toolAddHint() actool.CoreTool {
-	return wrTool("add_task_hint", "给指定任务注入战略提示(该任务的 planner 下轮生成意图时会读到)。\n"+
-		"★优先批量：多条提示放进 hints 数组一次提交（返回 ids 数组，与 hints 等长同序，失败项 id=0）；单条则省略 hints 直接给顶层 text。",
+	return wrTool("add_task_hint", "Injecting strategic tips for assigned tasks(Mission planner The next generation will read). \n"+
+		"★Priority batch: multiple hints in hints Submit arrays once (return) ids array, with hints Equivalent, Failed id=0);One article omitted hints Straight to the top. text. ",
 		objSchema(map[string]any{
-			"task_id":   strParam("任务 id"),
-			"hints":     map[string]any{"type": "array", "description": "【优先用这个】提示数组，每个元素字段同顶层（text/asset_ids）。", "items": map[string]any{"type": "object"}},
-			"text":      strParam("[单条] 提示内容"),
-			"asset_ids": map[string]any{"type": "array", "items": map[string]any{"type": "integer"}, "description": "锚定的资产 id（可选，0/1/多个；该任务内的资产 id）"},
+			"task_id":   strParam("Tasks id"),
+			"hints":     map[string]any{"type": "array", "description": "[Use this as a priority) prompt arrays, each element field to the top layer (text/asset_ids). ", "items": map[string]any{"type": "object"}},
+			"text":      strParam("[Single] Note"),
+			"asset_ids": map[string]any{"type": "array", "items": map[string]any{"type": "integer"}, "description": "Embered assets id(It's optional.0/1/Multiple; assets within the mandate id)"},
 		}, "task_id"),
 		func(ctx context.Context, in json.RawMessage) (actool.Result, error) {
 			return s.delegateToTask(ctx, in, (*agent.ToolSet).AddHintTool)
@@ -333,11 +333,11 @@ func (s *Server) toolAddHint() actool.CoreTool {
 
 func (s *Server) toolGetWorkerTrace() actool.CoreTool {
 	return roTool("get_task_worker_trace",
-		"看指定任务里某个 work(意图)的执行过程：get_task_worker_trace(task_id, intent_id) 看步骤摘要；再带 step_ids=[...] 取那几步完整内容(一次≤5)。",
+		"Look at one of the specified tasks. work(Intention)Implementation process:get_task_worker_trace(task_id, intent_id) Read the summary of the steps; take another step_ids=[...] Take those steps.(Once.≤5). ",
 		objSchema(map[string]any{
-			"task_id":   strParam("任务 id"),
-			"intent_id": map[string]any{"type": "integer", "description": "意图 id(该任务里的 work)"},
-			"step_ids":  map[string]any{"type": "array", "items": map[string]any{"type": "integer"}, "description": "可选：要取完整内容的步骤 id(≤5)"},
+			"task_id":   strParam("Tasks id"),
+			"intent_id": map[string]any{"type": "integer", "description": "Intention id(From the mission. work)"},
+			"step_ids":  map[string]any{"type": "array", "items": map[string]any{"type": "integer"}, "description": "Optional: Steps to retrieve full content id(≤5)"},
 		}, "task_id", "intent_id"),
 		func(ctx context.Context, in json.RawMessage) (actool.Result, error) {
 			return s.delegateToTask(ctx, in, (*agent.ToolSet).GetWorkerTraceTool)
@@ -345,16 +345,16 @@ func (s *Server) toolGetWorkerTrace() actool.CoreTool {
 }
 
 func (s *Server) toolListWorkerTraces() actool.CoreTool {
-	return roTool("list_task_worker_traces", "列出指定任务里跑过哪些 work(意图) + 各自步数，用于发现哪些 work 值得翻看(再用 get_task_worker_trace)。",
-		objSchema(map[string]any{"task_id": strParam("任务 id")}, "task_id"),
+	return roTool("list_task_worker_traces", "Set out what's running on a given mission. work(Intention) + Step by step, to find out what work It's worth looking at.(Again. get_task_worker_trace). ",
+		objSchema(map[string]any{"task_id": strParam("Tasks id")}, "task_id"),
 		func(ctx context.Context, in json.RawMessage) (actool.Result, error) {
 			return s.delegateToTask(ctx, in, (*agent.ToolSet).ListWorkerTracesTool)
 		})
 }
 
 func (s *Server) toolSearchWorkerTraces() actool.CoreTool {
-	return roTool("search_task_worker_traces", "在指定任务里按关键字搜索所有 work 的执行过程(返回命中步骤摘要 + intent_id)。",
-		objSchema(map[string]any{"task_id": strParam("任务 id"), "q": strParam("搜索关键字")}, "task_id", "q"),
+	return roTool("search_task_worker_traces", "Search all by keyword in the given task work Implementation process(Return hit step summary + intent_id). ",
+		objSchema(map[string]any{"task_id": strParam("Tasks id"), "q": strParam("Search keywords")}, "task_id", "q"),
 		func(ctx context.Context, in json.RawMessage) (actool.Result, error) {
 			return s.delegateToTask(ctx, in, (*agent.ToolSet).SearchWorkerTracesTool)
 		})
@@ -377,8 +377,8 @@ func (s *Server) deriveTaskStatus(t *Task) string {
 // are bindable per-agent (default: bound to nobody — opt-in for orchestration
 // agents). First-insert only, like the traffic seeds.
 func (s *Server) seedOrchestrationTools() {
-	// task-op + platform tools default-bind to the built-in Auto agent (它天生用来
-	// 操作平台)。SeedTool 首插入生效;老库已 seed 的行由 seedAutoDefaultBindings 补绑。
+	// task-op + platform tools default-bind to the built-in Auto agent (It's natural.
+	// Operating Platform). SeedTool is insert-only (first write wins); the cooperative seeds are handled by seedAutoDefaultBindings.
 	autoAgents, _ := json.Marshal([]string{"auto"})
 	for _, t := range s.orchestrationTools() {
 		schema, _ := json.Marshal(t.InputSchema())
@@ -389,30 +389,30 @@ func (s *Server) seedOrchestrationTools() {
 		_ = s.m.PG().SeedTool(t.Name(), t.Description(), schema, autoAgents)
 	}
 	s.refreshBuiltinToolSchemas()
-	s.refreshReportFindingSchema() // 新增 reproduction 结构化复现过程参数 → 推到旧库,否则 agent 看不到
+	s.refreshReportFindingSchema() // Add reproduction Parameters for the structured recurrence process → Push to old library,Otherwise... agent I can't see it.
 	s.seedAutoDefaultBindings()
 	s.seedPlannerDefaultBindings()
 	s.seedAutoReportFindingBinding()
 	s.seedMainagentReportFindingBinding()
-	s.reseedAgentPrompt("mainagent", "prompt_exposure_findings_mainagent_v1", "记录暴露/信息泄露类发现 + 梳理时把已证实暴露落库")
-	s.reseedAgentPrompt("worker", "prompt_exposure_findings_worker_v1", "暴露/信息泄露类也记为发现")
-	s.reseedAgentPrompt("pentest", "prompt_exposure_findings_pentest_v1", "暴露/信息泄露类也记为发现")
-	// 参考 AntiFox 0.3.4–0.3.6 的自主性提示词改进（适配我们无 coverage 子系统的口径）：
-	s.reseedAgentPrompt("planner", "prompt_zerointent_acceptance_v1", "0意图判据重写（两类正当理由）+ 量化验收核对（未达标禁止提前收官）")
-	s.reseedAgentPrompt("worker", "prompt_negfact_threshold_v1", "否定结论证据门槛：穷尽手段前一律标 inferred，别用轻率 observed 焊死方向")
-	// 就地记录复现过程：确认漏洞时在 report_finding 填结构化 reproduction（入口/前置/有序真实步骤/来源）。
-	s.reseedAgentPrompt("worker", "prompt_reproduction_recipe_v1", "report_finding 填结构化复现过程(就地记录,请求逐字真实)")
-	s.reseedAgentPrompt("pentest", "prompt_reproduction_recipe_pentest_v1", "report_finding 填结构化复现过程")
-	s.reseedAgentPrompt("mainagent", "prompt_reproduction_recipe_mainagent_v1", "report_finding 填结构化复现过程")
-	s.bumpWorkerRunSecondsTo1200() // worker 单轮墙钟 600→1200s（仅未被自定义的默认值；参考 AntiFox 0.3.3）
-	// 注：pentest 的默认工具绑定无需迁移——BuiltinToolSeeds 在全新初始化时就把
-	// list_assets/insert_assets/report_finding/list_findings/list_companies 连同
-	// pentest 一起 seed 好了（项目尚无旧库，不做迁移）。
+	s.reseedAgentPrompt("mainagent", "prompt_exposure_findings_mainagent_v1", "Record exposure/Information leak class discovery + When combing, expose the confirmed.")
+	s.reseedAgentPrompt("worker", "prompt_exposure_findings_worker_v1", "Exposure/Information leaks are also recorded as discovery.")
+	s.reseedAgentPrompt("pentest", "prompt_exposure_findings_pentest_v1", "Exposure/Information leaks are also recorded as discovery.")
+	// References AntiFox 0.3.4–0.3.6 Improved self-advocacy coverage Subsystem caliber:
+	s.reseedAgentPrompt("planner", "prompt_zerointent_acceptance_v1", "0Attempted rewrite (two types of justification)+ Quantification check-ups (uncompliant prohibition of early receipt)")
+	s.reseedAgentPrompt("worker", "prompt_negfact_threshold_v1", "Evidentiary threshold for negative conclusions: standard before exhaustion inferred,Don't be reckless. observed Welding direction.")
+	// Local recording of the recurrence process: report_finding Fill Structure reproduction(Entry/Prefix/Order of real steps/Source.
+	s.reseedAgentPrompt("worker", "prompt_reproduction_recipe_v1", "report_finding Fill structured recurrence process(Record locally,Request to be true word by word)")
+	s.reseedAgentPrompt("pentest", "prompt_reproduction_recipe_pentest_v1", "report_finding Fill structured recurrence process")
+	s.reseedAgentPrompt("mainagent", "prompt_reproduction_recipe_mainagent_v1", "report_finding Fill structured recurrence process")
+	s.bumpWorkerRunSecondsTo1200() // worker Single Wall Bell 600→1200s(only undefined defaults;references AntiFox 0.3.3)
+	// Notes:pentest Default tool binding does not need to be migrated——BuiltinToolSeeds At the start of the whole new thing.
+	// list_assets/insert_assets/report_finding/list_findings/list_companies with
+	// pentest Together. seed Okay.
 }
 
 // refreshBuiltinToolSchemas propagates code schema/description changes on the
 // orchestration + platform tools into already-seeded rows ONCE per version flag —
-// SeedTool is first-insert-only, so a new param (e.g. spawn_task 的 llm_profile) never
+// SeedTool is first-insert-only, so a new parameter (e.g. spawn_task's llm_profile) never
 // reaches an old DB otherwise. Preserves each tool's agent binding + enabled flag.
 // Bump the flag whenever these tools' schemas/descriptions change in code.
 func (s *Server) refreshBuiltinToolSchemas() {
@@ -427,8 +427,8 @@ func (s *Server) refreshBuiltinToolSchemas() {
 			log.Printf("[tools] refresh %s schema failed: %v", t.Name(), err)
 		}
 	}
-	// 同时把 planner 的 goal_met 描述刷成代码默认：旧库 seed 的描述带“结束本轮规划”的
-	// 误导，会让 planner 把 goal_met 当成“结束空轮”的手段、刚开跑就误判整个任务完成。
+	// At the same time the planner's goal_met description is refreshed to the code default: the old library seed carries the description "End the current planning round",
+	// which would mislead the planner into treating goal_met as an "end the empty round" action and wrongly marking the whole task complete right after it starts.
 	for _, sd := range agent.BuiltinToolSeeds() {
 		if sd.Key != "goal_met" {
 			continue
@@ -439,7 +439,7 @@ func (s *Server) refreshBuiltinToolSchemas() {
 		}
 	}
 	_ = s.m.pg.SetSetting(flag, "true")
-	log.Printf("[tools] 已刷新 orchestration/platform 工具 schema 到代码默认(一次性)")
+	log.Printf("[tools] Refreshed orchestration/platform Tools schema To Code Default(One-time)")
 }
 
 // seedAutoReportFindingBinding adds "auto" to report_finding's binding ONCE so
@@ -450,7 +450,7 @@ func (s *Server) seedAutoReportFindingBinding() {
 		return
 	}
 	if err := s.m.pg.AddAgentToToolBinding("auto", []string{"report_finding"}); err != nil {
-		log.Printf("[auto] report_finding 默认绑定失败: %v", err)
+		log.Printf("[auto] report_finding Default binding failed: %v", err)
 		return
 	}
 	_ = s.m.pg.SetSetting(flag, "true")
@@ -466,17 +466,17 @@ func (s *Server) seedPlannerDefaultBindings() {
 		return
 	}
 	if err := s.m.pg.AddAgentToToolBinding("planner", []string{"report_finding"}); err != nil {
-		log.Printf("[planner] report_finding 默认绑定失败: %v", err)
+		log.Printf("[planner] report_finding Default binding failed: %v", err)
 		return
 	}
 	_ = s.m.pg.SetSetting(flag, "true")
 }
 
-// seedMainagentReportFindingBinding binds report_finding to the 主 Agent
+// seedMainagentReportFindingBinding binds report_finding to the Lord Agent
 // (mainagent) ONCE. Root-cause fix: the main agent synthesizes/confirms vulns in
 // its orchestration conversation but, without this tool, could only READ findings
 // (list_findings) — never record them — so its conclusions never became finding
-// nodes (missing from 发现页 / 探索图 / 报告). Guarded by a flag; won't re-add
+// nodes (missing from Found Page / Explore / Report). Guarded by a flag; won't re-add
 // after a deliberate user unbind.
 func (s *Server) seedMainagentReportFindingBinding() {
 	const flag = "mainagent_report_finding_v1"
@@ -484,11 +484,11 @@ func (s *Server) seedMainagentReportFindingBinding() {
 		return
 	}
 	if err := s.m.pg.AddAgentToToolBinding("mainagent", []string{"report_finding"}); err != nil {
-		log.Printf("[mainagent] report_finding 默认绑定失败: %v", err)
+		log.Printf("[mainagent] report_finding Default binding failed: %v", err)
 		return
 	}
 	_ = s.m.pg.SetSetting(flag, "true")
-	log.Printf("[mainagent] 已默认绑定 report_finding（主 Agent 现可记录漏洞）")
+	log.Printf("[mainagent] Default bound report_finding(Lord Agent )")
 }
 
 // bumpWorkerRunSecondsTo1200 raises the worker single-run wall-clock from the old
@@ -503,10 +503,10 @@ func (s *Server) bumpWorkerRunSecondsTo1200() {
 	}
 	if a, err := s.m.pg.GetAgentByKey("worker"); err == nil && a != nil && a.RunSecs == 600 {
 		if err := s.m.pg.SetAgentRunSeconds("worker", 1200); err != nil {
-			log.Printf("[worker] run_seconds 1200 迁移失败: %v", err)
+			log.Printf("[worker] run_seconds 1200 Migration failed: %v", err)
 			return
 		}
-		log.Printf("[worker] 单轮墙钟默认 600→1200s")
+		log.Printf("[worker] Single Wall Bell Default 600→1200s")
 	}
 	_ = s.m.pg.SetSetting(flag, "true")
 }
@@ -534,12 +534,12 @@ func (s *Server) reseedAgentPrompt(key, flag, note string) {
 		_ = s.m.pg.SetSetting(flag, "true")
 		return
 	}
-	if _, err := s.m.pg.SavePrompt(a.ID, tmpl, "系统更新："+note, "system"); err != nil {
-		log.Printf("[%s] prompt 重播失败: %v", key, err)
+	if _, err := s.m.pg.SavePrompt(a.ID, tmpl, "System update:"+note, "system"); err != nil {
+		log.Printf("[%s] prompt Replay failed: %v", key, err)
 		return
 	}
 	_ = s.m.pg.SetSetting(flag, "true")
-	log.Printf("[%s] 已更新提示词（%s）", key, note)
+	log.Printf("[%s] Updated Psych%s)", key, note)
 }
 
 // refreshReportFindingSchema pushes report_finding's CODE schema to the DB tools table
@@ -547,7 +547,7 @@ func (s *Server) reseedAgentPrompt(key, flag, note string) {
 // first-insert-only — so the newly-added structured `reproduction` param wouldn't reach
 // existing DBs' agents without this. Won't clobber user param-default edits after the flag.
 func (s *Server) refreshReportFindingSchema() {
-	const flag = "tool_schema_refresh_report_finding_repro_v3" // v3: 要求每步写标准 HTTP 报文(非 curl)、响应不用...省略
+	const flag = "tool_schema_refresh_report_finding_repro_v3" // v3: Requires standard writing per step HTTP Information(Not curl), No need to respond....Ignore
 	if v, _, _ := s.m.pg.GetSetting(flag); v == "true" {
 		return
 	}
@@ -562,7 +562,7 @@ func (s *Server) refreshReportFindingSchema() {
 		}
 	}
 	_ = s.m.pg.SetSetting(flag, "true")
-	log.Printf("[tools] 已刷新 report_finding schema（新增 reproduction 结构化复现过程参数）")
+	log.Printf("[tools] Refreshed report_finding schema(Add reproduction Structured recurrence process parameters)")
 }
 
 // seedAutoDefaultBindings adds "auto" to the task-op + platform tools' bindings
@@ -570,7 +570,7 @@ func (s *Server) refreshReportFindingSchema() {
 // before Auto existed still give Auto its default toolset — without re-adding it
 // after a user deliberately unbinds.
 func (s *Server) seedAutoDefaultBindings() {
-	const flag = "auto_default_bindings_v3" // v3: 替换旧资产工具名，加入 insert_assets/add_company_scope
+	const flag = "auto_default_bindings_v3" // v3: Replace old asset toolnames, add insert_assets/add_company_scope
 	if v, _, _ := s.m.pg.GetSetting(flag); v == "true" {
 		return
 	}
@@ -579,10 +579,10 @@ func (s *Server) seedAutoDefaultBindings() {
 		keys = append(keys, t.Name())
 	}
 	keys = append(keys, platformToolKeys...)
-	// 资产工具：Auto 操作平台常要看/登记资产、管理公司范围。
+	// Asset tool:Auto The operating platform is always seen./Register assets, manage the scope of the company.
 	keys = append(keys, "insert_assets", "add_company_scope", "list_assets")
 	if err := s.m.pg.AddAgentToToolBinding("auto", keys); err != nil {
-		log.Printf("[auto] 默认绑定失败: %v", err)
+		log.Printf("[auto] Default binding failed: %v", err)
 		return
 	}
 	_ = s.m.pg.SetSetting(flag, "true")

@@ -18,21 +18,21 @@ import (
 )
 
 // reAntiFoxDataPath / reVarFolders match PLATFORM-INTERNAL scratch paths only — the
-// dataDir family (…/antifox…data/…, e.g. verify/full_poc.py) and macOS temp — so client
-// reports don't leak them. Target-server paths in findings (LFI /etc/passwd 等) are NOT
+// dataDir family (.../antifox...data/..., e.g. verify/full_poc.py) and macOS temp — so client
+// reports don't leak them. Target-server paths in findings (LFI /etc/passwd Wait.) are NOT
 // touched (they're legitimate vuln content, no antifox-data marker / not /var/folders).
 var (
-	reAntiFoxDataPath = regexp.MustCompile(`/[^\s，、；;）")']*antifox[^\s，、；;）")']*data[^\s，、；;）")']*`)
-	reVarFolders     = regexp.MustCompile(`(?:/private)?/var/folders/[^\s，、；;）")']+`)
+	reAntiFoxDataPath = regexp.MustCompile(`/[^\s,, ;;)")']*antifox[^\s,, ;;)")']*data[^\s,, ;;)")']*`)
+	reVarFolders      = regexp.MustCompile(`(?:/private)?/var/folders/[^\s,, ;;)")']+`)
 )
 
 // redactInternalPaths collapses the platform's own absolute scratch paths to a bare
-// filename so a client deliverable never shows "证据脚本：/…/antifox-data/verify/x.py".
+// filename so a client deliverable never shows "Evidentiary script:/.../antifox-data/verify/x.py".
 func redactInternalPaths(s, dataDir string) string {
 	strip := func(m string) string { return filepath.Base(m) }
 	if d := strings.TrimSpace(dataDir); d != "" {
 		if abs, err := filepath.Abs(d); err == nil && abs != "/" {
-			s = regexp.MustCompile(regexp.QuoteMeta(abs)+`/[^\s，、；;）")']+`).ReplaceAllStringFunc(s, strip)
+			s = regexp.MustCompile(regexp.QuoteMeta(abs)+`/[^\s,, ;;)")']+`).ReplaceAllStringFunc(s, strip)
 		}
 	}
 	s = reAntiFoxDataPath.ReplaceAllStringFunc(s, strip)
@@ -50,7 +50,7 @@ func redactLines(in []string, dataDir string) []string {
 
 // FindingInput is one confirmed finding, flattened from a graph node.
 type FindingInput struct {
-	NodeID     int64  // exploration 节点 id：用于加载该漏洞的证据截图(finding_evidence)
+	NodeID     int64 // exploration node id: used to load the evidence screenshots for this finding (finding_evidence)
 	VulnClass  string
 	Severity   string // high|medium|low|critical|info
 	Summary    string
@@ -58,20 +58,20 @@ type FindingInput struct {
 	Target     string
 	Transcript string // real work transcript that produced this finding (tool calls/requests/responses/analysis); grounds enrichment in what actually happened instead of expanding the one-line summary. Empty = enrich from summary/PoC only.
 	// SetupContext holds the target's REAL account-registration / login / OTP / captcha
-	// request packets pulled from recorded traffic, so the 前置条件 can spell out
+	// request packets pulled from recorded traffic, so the Precondition can spell out
 	// "how to register a test account / log in" with verbatim packets — not an AI guess.
 	SetupContext string
-	// Reproduction is the STRUCTURED 复现过程 the agent recorded in-situ at report_finding
+	// Reproduction is the STRUCTURED Recurrence process the agent recorded in-situ at report_finding
 	// time (entry_point / prerequisites / verbatim steps / provenance). When present it
 	// is the authoritative, real reproduction — rendered directly into test_process and
 	// the AI is told to skip reconstructing it (saves tokens + can't fabricate). Empty =
 	// fall back to AI-reconstructed test_process / PoC.
 	Reproduction json.RawMessage
 	CreatedAt    time.Time
-	Enrichment *Enrichment // pre-loaded persisted enrichment; when set the AI call is skipped
+	Enrichment   *Enrichment // pre-loaded persisted enrichment; when set the AI call is skipped
 }
 
-// Reproduction is the structured 复现过程 captured in-situ by the agent (mirrors the
+// Reproduction is the structured Recurrence process captured in-situ by the agent (mirrors the
 // report_finding `reproduction` tool schema). Rendered verbatim into the report's
 // test_process so a human can reproduce from zero.
 type Reproduction struct {
@@ -92,7 +92,7 @@ type ReproStep struct {
 	ExchangeID string `json:"exchange_id,omitempty"`
 }
 
-// PersonInput is one 测试人员 row from report settings.
+// PersonInput is one Tester row from report settings.
 type PersonInput struct {
 	Name    string `json:"name"`
 	Role    string `json:"role"`
@@ -102,11 +102,11 @@ type PersonInput struct {
 // GenInput is everything the report needs. The handler builds it from the task
 // + org-level report settings.
 type GenInput struct {
-	CompanyName   string // 报告出具方
+	CompanyName   string // Author of the report
 	CompanyNameEn string
 	ClientName    string
-	ProjectName   string // 短项目名(封面/标题用)——绝不塞整段目标清单
-	Scope         string // 完整测试范围/目标系统描述(仅喂 AI 叙述做上下文，不上封面)
+	ProjectName   string // Short project name(Cover/Title)——Never plug in the whole list of targets.
+	Scope         string // Full Test Range/Target System Description(Hello? AI No cover.)
 	ReportTitle   string
 	Version       string
 	Locale        string
@@ -125,7 +125,7 @@ func BuildDoc(ctx context.Context, pg *db.DB, in *GenInput) *reportDoc {
 	in.Locale = normLocale(in.Locale)
 	loc := in.Locale
 	if strings.TrimSpace(in.CompanyName) == "" {
-		in.CompanyName = pick(loc, "安全服务团队", "安全服務團隊", "Security Services Team")
+		in.CompanyName = pick(loc, "Security Service Team", "Security Services.", "Security Services Team")
 	}
 	// Editable report-generation skill (skeleton + prompts), read fresh each run
 	// with a per-file fallback to the built-in defaults.
@@ -149,10 +149,10 @@ func BuildDoc(ctx context.Context, pg *db.DB, in *GenInput) *reportDoc {
 		Standards:        sk.Standards,
 	}
 
-	// --- AI: report-level narrative only (背景/服务结果/整改结论；有兜底，永不空白) ---
-	// 每条漏洞的正文(描述/风险/修复)一律复用【持久富化】：报告只收录已确认(=已富化)漏洞，
-	// 故生成时必有富化可用；无富化的漏洞(非正常路径)留空 Enrichment，assembleVuln 回退到
-	// 原始 summary/PoC。
+	// --- AI: report-level narrative only (Background/Service results/Correct conclusions; bottom-up, never blank) ---
+	// The body of every loophole(Description/Risk/Rehabilitation)Re-use All: Report only confirmed(=Exploited)It's a loophole.
+	// So there's always room for enrichment; there's no loophole.(Inappropriate Path)Leave space. Enrichment,assembleVuln Back to
+	// Original summary/PoC.
 	var rl reportLevelOut
 	narr := make([]Enrichment, len(in.Findings))
 	{
@@ -160,7 +160,7 @@ func BuildDoc(ctx context.Context, pg *db.DB, in *GenInput) *reportDoc {
 		wg.Add(1)
 		go func() { defer wg.Done(); rl = aiReportLevel(ctx, pg, in, sk) }()
 		for i := range in.Findings {
-			if e := in.Findings[i].Enrichment; e != nil { // 复用持久富化
+			if e := in.Findings[i].Enrichment; e != nil { // Reuse Persistence
 				narr[i] = *e
 			}
 		}
@@ -206,7 +206,7 @@ func BuildDoc(ctx context.Context, pg *db.DB, in *GenInput) *reportDoc {
 		secIdx++
 		sd := systemDetail{Name: sectionSystemHeader(loc, secIdx, systemDisplayName(loc, g.target), g.target)}
 		for vi, gf := range g.findings {
-			evByStep := loadEvidenceByStep(pg, in.DataDir, gf.f.NodeID, loc) // 证据截图按步骤分组
+			evByStep := loadEvidenceByStep(pg, in.DataDir, gf.f.NodeID, loc) // The evidence's broken down into steps.
 			detail := assembleVuln(loc, gf.f, gf.enr, fmt.Sprintf("3.%d.%d", secIdx, vi+1), in.DataDir, evByStep)
 			sd.Vulns = append(sd.Vulns, detail)
 			remItems = append(remItems, remedyRow{
@@ -243,24 +243,24 @@ func assembleVuln(loc string, f FindingInput, enr Enrichment, secNo, dataDir str
 		d.Description = []string{f.Summary}
 	}
 	d.Module = defaultStr(enr.Module, "—")
-	// test_process priority: (1) 就地记录的结构化复现过程 (verbatim, authoritative — the
+	// test_process priority: (1) Structural reproduction of local records (verbatim, authoritative — the
 	// agent recorded it while testing, so it can't be fabricated); (2) AI-reconstructed
 	// test_process; (3) raw PoC. Captured reproduction wins because it's the real thing.
 	if b := reproToBlocks(f.Reproduction, loc, evByStep); len(b) > 0 {
-		d.TestProcess = b // 结构化复现：证据已按步骤穿插其中
+		d.TestProcess = b // Structured recurrence: evidence inserted in step
 	} else {
 		if len(enr.TestProcess) > 0 {
 			d.TestProcess = enr.TestProcess
 		} else if strings.TrimSpace(f.PoC) != "" {
 			d.TestProcess = proofToBlocks(f.PoC)
 		}
-		for _, k := range sortedIntKeys(evByStep) { // 非结构化复现：证据统一补在末尾
+		for _, k := range sortedIntKeys(evByStep) { // Unstructured recurrence: consolidation of evidence at the end
 			d.TestProcess = append(d.TestProcess, evByStep[k]...)
 		}
 	}
 	d.RiskAnalysis = enr.RiskAnalysis
 	d.Remediation = enr.Remediation
-	// 客户报告脱敏：把 AI 富化/PoC 里引用到的平台内部 scratch 路径收敛为文件名。
+	// Client reporting dissensitisation: AI Vulcanization/PoC Inside the platform quoted scratch Path to file name.
 	d.Description = redactLines(d.Description, dataDir)
 	d.RiskAnalysis = redactLines(d.RiskAnalysis, dataDir)
 	d.Remediation = redactLines(d.Remediation, dataDir)
@@ -317,11 +317,11 @@ func groupByTarget(loc string, fs []FindingInput, narr []Enrichment) []targetGro
 // ---- severity ----
 
 var sevCanonical = map[string]string{
-	"critical": "critical", "严重": "critical", "crit": "critical",
-	"high": "high", "高危": "high", "高": "high",
-	"medium": "medium", "中危": "medium", "中": "medium", "med": "medium",
-	"low": "low", "低危": "low", "低": "low",
-	"info": "info", "信息": "info", "informational": "info",
+	"critical": "critical", "Serious": "critical", "crit": "critical",
+	"high": "high", "High risk": "high", "High": "high",
+	"medium": "medium", "It's dangerous.": "medium", "Medium": "medium", "med": "medium",
+	"low": "low", "Low risk.": "low", "Low": "low",
+	"info": "info", "Information": "info", "informational": "info",
 }
 var sevRankFull = map[string]int{"critical": 0, "high": 1, "medium": 2, "low": 3, "info": 4, "": 5}
 
@@ -420,6 +420,7 @@ func worstSeverityAll(fs []FindingInput) string {
 	}
 	return worst
 }
+
 // ---- text utils ----
 
 func defaultStr(v, d string) string {
@@ -451,21 +452,21 @@ func truncateRune(s string, n int) string {
 	if len(r) <= n {
 		return string(r)
 	}
-	return string(r[:n]) + "…"
+	return string(r[:n]) + "..."
 }
 func normalizeName(s string) string {
 	s = strings.TrimSpace(s)
 	s = strings.ReplaceAll(s, " ", "")
-	s = strings.ReplaceAll(s, "（", "(")
-	s = strings.ReplaceAll(s, "）", ")")
+	s = strings.ReplaceAll(s, "(", "(")
+	s = strings.ReplaceAll(s, ")", ")")
 	return s
 }
 func cleanTitle(s string) string {
 	s = strings.TrimSpace(s)
 	prefixes := []string{
-		"CRITICAL:", "CRITICAL：", "HIGH:", "HIGH：", "MEDIUM:", "MEDIUM：", "LOW:", "LOW：", "INFO:", "INFO：",
-		"[严重]", "[高危]", "[中危]", "[低危]", "[信息]", "【严重】", "【高危】", "【中危】", "【低危】",
-		"严重：", "高危：", "中危：", "低危：",
+		"CRITICAL:", "CRITICAL:", "HIGH:", "HIGH:", "MEDIUM:", "MEDIUM:", "LOW:", "LOW:", "INFO:", "INFO:",
+		"[Serious]", "[High risk]", "[It's dangerous.]", "[Low risk.]", "[Information]", "[Serious", "[High risk", "[I'm in danger.", "[It's too bad.",
+		"Serious:", "High risk:", "Moderate:", "Low risk:",
 	}
 	for {
 		trimmed := s
@@ -484,13 +485,13 @@ func cleanTitle(s string) string {
 	return s
 }
 
-// reproToBlocks renders the agent's structured 复现过程 (captured in-situ) into
-// ordered text/code procBlocks for the report's test_process: 来源 → 入口点 →
-// 前置条件 → 每步(说明 text + 真实请求 code) → 无需 AI 重建. Returns nil when the
+// reproToBlocks renders the agent's structured Recurrence process (captured in-situ) into
+// ordered text/code procBlocks for the report's test_process: Source → Entry point →
+// Precondition → Every step(Annotations text + True Request code) → No need. AI Reconstruction. Returns nil when the
 // reproduction is absent or unparseable (caller falls back to AI/PoC).
-// reproToBlocks 把结构化复现过程展成有序 text/code/image 块。evByStep 是该漏洞的证据截图
-// 按步骤号(1..N；0=概览)分组的 image 块——【穿插】渲染：每一步的说明+请求+响应之后，紧跟该步证据图；
-// 未归属到步骤的证据(概览/越界)在末尾补上。evByStep 为 nil 时退化为纯文字复现(富化生成时用)。
+// reproToBlocks Putting the process of structured recovery in order. text/code/image Blocks.evByStep It's an evidence screenshot of that loophole.
+// Step Number(1..N;0=Overview)Group image Blocks——[Plugin) Rendering: A description of each step+Request+Follow the evidence chart of the step after the response;
+// Evidence of non-attribution(Overview/Crossing the border)Add at the end.evByStep Yes nil Decline to plain text(Use when emulating).
 func reproToBlocks(raw json.RawMessage, loc string, evByStep map[int][]procBlock) []procBlock {
 	if len(raw) < 3 { // ""/"{}" carry nothing
 		return nil
@@ -512,46 +513,46 @@ func reproToBlocks(raw json.RawMessage, loc string, evByStep map[int][]procBlock
 	}
 	used := map[int]bool{}
 	if strings.TrimSpace(r.Provenance) != "" {
-		addText(pick(loc, "【来源】", "【來源】", "Origin: ") + r.Provenance)
+		addText(pick(loc, "Origin: ", "Origin: ", "Origin: ") + r.Provenance)
 	}
 	if strings.TrimSpace(r.EntryPoint) != "" {
-		addText(pick(loc, "【入口点】", "【入口點】", "Entry point: ") + r.EntryPoint)
+		addText(pick(loc, "Entry point: ", "Entry point: ", "Entry point: ") + r.EntryPoint)
 	}
 	if pre := nonEmpty(r.Prerequisites); len(pre) > 0 {
 		var sb strings.Builder
-		sb.WriteString(pick(loc, "【前置条件】", "【前置條件】", "Prerequisites:"))
+		sb.WriteString(pick(loc, "Prerequisites:", "Prerequisites:", "Prerequisites:"))
 		for _, p := range pre {
 			sb.WriteString("\n• " + strings.TrimSpace(p))
 		}
 		addText(sb.String())
 	}
 	if len(r.Steps) > 0 {
-		addText(pick(loc, "【复现步骤】", "【複現步驟】", "Reproduction steps:"))
-		lStep := pick(loc, "步骤", "步驟", "Step")
-		lExp := pick(loc, "预期", "預期", "Expected")
-		lProves := pick(loc, "证明", "證明", "Proves")
+		addText(pick(loc, "Reproduction steps:", "Reproduction steps:", "Reproduction steps:"))
+		lStep := pick(loc, "Step", "Step", "Step")
+		lExp := pick(loc, "Expected", "Expected", "Expected")
+		lProves := pick(loc, "Proves", "Proves", "Proves")
 		for i, st := range r.Steps {
 			var sb strings.Builder
 			sb.WriteString(fmt.Sprintf("%s %d", lStep, i+1))
 			if strings.TrimSpace(st.Expected) != "" {
-				sb.WriteString(" — " + lExp + "：" + strings.TrimSpace(st.Expected))
+				sb.WriteString(" — " + lExp + ": " + strings.TrimSpace(st.Expected))
 			}
 			if strings.TrimSpace(st.Proves) != "" {
-				sb.WriteString("｜" + lProves + "：" + strings.TrimSpace(st.Proves))
+				sb.WriteString(" | " + lProves + ": " + strings.TrimSpace(st.Proves))
 			}
 			addText(sb.String())
 			addCode(st.Request)
 			if strings.TrimSpace(st.Response) != "" {
-				addText(pick(loc, "响应：", "回應：", "Response:"))
+				addText(pick(loc, "Response:", "Response:", "Response:"))
 				addCode(st.Response)
 			}
-			if ev := evByStep[i+1]; len(ev) > 0 { // 穿插：该步证据图紧跟其后
+			if ev := evByStep[i+1]; len(ev) > 0 { // Plug-in: This step follows closely.
 				blocks = append(blocks, ev...)
 				used[i+1] = true
 			}
 		}
 	}
-	for _, k := range sortedIntKeys(evByStep) { // 概览(0) + 越界步骤的证据补在末尾
+	for _, k := range sortedIntKeys(evByStep) { // Overview(0) + Evidence of cross-border steps added at the end
 		if !used[k] {
 			blocks = append(blocks, evByStep[k]...)
 		}
@@ -559,7 +560,7 @@ func reproToBlocks(raw json.RawMessage, loc string, evByStep map[int][]procBlock
 	return blocks
 }
 
-// sortedIntKeys 返回 map 的 int 键升序切片（保证证据块渲染顺序确定）。
+// sortedIntKeys Back map Yes. int Keysupper slice (ensure that the order of rendering of the evidence block is determined).
 func sortedIntKeys(m map[int][]procBlock) []int {
 	if len(m) == 0 {
 		return nil
@@ -572,8 +573,8 @@ func sortedIntKeys(m map[int][]procBlock) []int {
 	return ks
 }
 
-// loadEvidenceByStep 加载某漏洞的证据截图并按步骤号分组成 image 块；图注为空时自动补默认标注
-// （步骤N 证据 / 证据截图，多张追加序号），保证每张图在报告里都有说明文字。
+// loadEvidenceByStep Load an evidentiary trail of a loophole and split it by step. image blocks;charts fill in default labels when empty
+// (StepsN Evidence / An evidence cut-off chart, additional serial numbers) ensures that each is included in the report.
 func loadEvidenceByStep(pg *db.DB, dataDir string, nodeID int64, loc string) map[int][]procBlock {
 	if pg == nil || nodeID <= 0 {
 		return nil
@@ -590,9 +591,9 @@ func loadEvidenceByStep(pg *db.DB, dataDir string, nodeID int64, loc string) map
 		cap := strings.TrimSpace(e.Caption)
 		if cap == "" {
 			if e.StepIndex > 0 {
-				cap = fmt.Sprintf("%s %d %s", pick(loc, "步骤", "步驟", "Step"), e.StepIndex, pick(loc, "证据", "證據", "evidence"))
+				cap = fmt.Sprintf("%s %d %s", pick(loc, "Steps", "Step", "Step"), e.StepIndex, pick(loc, "Evidence", "Evidence.", "evidence"))
 			} else {
-				cap = pick(loc, "证据截图", "證據截圖", "Evidence")
+				cap = pick(loc, "Evidence screenshot", "Evidence.", "Evidence")
 			}
 			if seq[e.StepIndex] > 1 {
 				cap = fmt.Sprintf("%s %d", cap, seq[e.StepIndex])

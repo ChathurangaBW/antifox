@@ -1,86 +1,86 @@
 ---
 name: business-logic-testing
-description: 业务逻辑漏洞测试的专业技能和方法论
+Professional skills and methodology for business logic vulnerability testing
 version: 1.0.0
 ---
 
-# 业务逻辑漏洞测试
+# Business logic vulnerability test
 
-## 概述
+## Overview
 
-业务逻辑漏洞是应用程序在业务处理流程中的设计缺陷，可能导致未授权操作、数据篡改、资金损失等。本技能提供业务逻辑漏洞的检测、利用和防护方法。
+This skill provides methods for detecting, using and protecting business logic vulnerabilities.
 
-## 漏洞类型
+## Vulnerability Types
 
-### 1. 工作流绕过
+### 1. Work flow around.
 
-**跳过验证步骤：**
-- 直接访问最终步骤
-- 修改步骤顺序
-- 重复执行步骤
+**Skip validation steps:**
+- Direct access to final steps
+- Modify Step Order
+- Repeated implementation steps
 
-### 2. 价格操作
+### 2. Price Manipulation
 
-**负数价格：**
-- 输入负数金额
-- 导致账户余额增加
+**Negative prices:**
+- Enter negative amount
+- Increased account balance
 
-**价格篡改：**
-- 修改前端价格
-- 修改API请求中的价格
+**Price tampering:**
+- Modify front end price
+- Change price in request for API
 
-### 3. 数量限制绕过
+### 3. Rate Limit Bypass
 
-**负数数量：**
-- 输入负数
-- 可能导致库存增加
+**Negative number:**
+- Enter negative number
+- May result in an increase in stocks
 
-**超出限制：**
-- 修改数量限制
-- 批量操作绕过
+**Exceeding limit:**
+- Modify Quantities Limit
+- Batch operation bypassed
 
-### 4. 时间竞争
+### 4. Time competition
 
-**并发请求：**
-- 同时发送多个请求
-- 绕过单次限制
+**With request:**
+- Send multiple requests simultaneously
+- Overstretched a single limit
 
-### 5. 状态操作
+### 5. Status Operations
 
-**状态回退：**
-- 将已完成订单改为待支付
-- 修改订单状态
+**Status retreat:**
+- For completed orders read pending payment
+- Modify order status
 
-## 测试方法
+## Test Method
 
-### 1. 工作流分析
+### 1. Workstream analysis
 
-**识别业务流程：**
-- 注册流程
-- 购买流程
-- 提现流程
-- 审核流程
+**Identification of business processes:**
+- Registration process
+- Purchase process
+- Current process
+- Audit process
 
-**测试步骤跳过：**
+**Test Step Skipped:**
 ```
-正常流程: 步骤1 → 步骤2 → 步骤3
-测试: 直接访问步骤3
-测试: 步骤1 → 步骤3（跳过步骤2）
+Normal process: Step1 → Step2 → Step3
+Test: Direct access steps3
+Test: Step1 Step3 (Skip Step2)
 ```
 
-### 2. 参数篡改
+### 2. Arguments tampering
 
-**修改关键参数：**
+**Modified key parameters:**
 ```http
 POST /api/purchase
 {
   "product_id": 123,
   "quantity": 1,
-  "price": 100.00  # 修改为 0.01
+  "price": 100.00  # Modify To 0.01
 }
 ```
 
-**负数测试：**
+**Negative test:**
 ```json
 {
   "quantity": -1,
@@ -88,45 +88,45 @@ POST /api/purchase
 }
 ```
 
-### 3. 并发测试
+### 3. And send out the tests.
 
-**同时发送请求：**
+**Requests sent simultaneously:**
 ```python
 import threading
 import requests
 
 def purchase():
-    requests.post('https://target.com/api/purchase', 
+    requests.post('https://target.com/api/purchase',
                   json={'product_id': 123, 'quantity': 1})
 
-# 同时发送10个请求
+# Send it simultaneously.10A request.
 for i in range(10):
     threading.Thread(target=purchase).start()
 ```
 
-### 4. 状态修改
+### 4. State Changes
 
-**修改订单状态：**
+**Modified order status:**
 ```http
 PATCH /api/order/123
 {
-  "status": "completed"  # 修改为已完成
+  "status": "completed"  # Modify to Completed
 }
 ```
 
-**回退状态：**
+**Regressive status:**
 ```http
 PATCH /api/order/123
 {
-  "status": "pending"  # 从已完成回退到待支付
+  "status": "pending"  # Refund from completed to pending payment
 }
 ```
 
-## 利用技术
+## Exploitation Techniques
 
-### 价格操作
+### Price Manipulation
 
-**负数价格：**
+**Negative prices:**
 ```json
 {
   "product_id": 123,
@@ -135,50 +135,50 @@ PATCH /api/order/123
 }
 ```
 
-**修改前端价格：**
+**Revised front end price:**
 ```javascript
-// 前端代码
+// Frontend Code
 const price = 100.00;
 
-// 修改为
+// Modify To
 const price = 0.01;
 ```
 
-**API价格修改：**
+**API price revision:**
 ```http
 POST /api/checkout
 {
   "items": [
     {
       "product_id": 123,
-      "price": 0.01,  # 原价100.00
+      "price": 0.01,  # Original price100.00
       "quantity": 1
     }
   ]
 }
 ```
 
-### 数量限制绕过
+### Rate Limit Bypass
 
-**负数数量：**
+**Negative number:**
 ```json
 {
   "product_id": 123,
-  "quantity": -10  # 可能导致库存增加
+  "quantity": -10  # May result in an increase in stocks
 }
 ```
 
-**超出限制：**
+**Exceeding limit:**
 ```json
 {
   "product_id": 123,
-  "quantity": 999999  # 超出单次购买限制
+  "quantity": 999999  # Exceeding single-purchase restrictions
 }
 ```
 
-### 优惠券滥用
+### Misuse of coupons
 
-**重复使用：**
+**Reuse:**
 ```http
 POST /api/checkout
 {
@@ -186,37 +186,37 @@ POST /api/checkout
   "items": [...]
 }
 
-# 重复使用同一优惠券
+# Reuse the same coupons
 ```
 
-**未激活优惠券：**
+**Unactivated coupons:**
 ```http
 POST /api/checkout
 {
-  "coupon": "EXPIRED_COUPON",  # 使用过期优惠券
+  "coupon": "EXPIRED_COUPON",  # Use of expired coupons
   "items": [...]
 }
 ```
 
-### 提现漏洞
+### Repository leaks.
 
-**负数提现：**
+**Negative presentation:**
 ```json
 {
-  "amount": -1000.00  # 可能导致账户余额增加
+  "amount": -1000.00  # Possible increase in account balances
 }
 ```
 
-**超出余额：**
+**Excess balance:**
 ```json
 {
-  "amount": 999999.00  # 超出账户余额
+  "amount": 999999.00  # Excess over account balance
 }
 ```
 
-### 时间竞争
+### Time competition
 
-**并发购买：**
+**Combined purchase:**
 ```python
 import threading
 import requests
@@ -225,61 +225,61 @@ def buy():
     requests.post('https://target.com/api/purchase',
                   json={'product_id': 123, 'quantity': 1})
 
-# 限时抢购，并发请求
+# And send a recall #
 for i in range(100):
     threading.Thread(target=buy).start()
 ```
 
-## 绕过技术
+## Bypass Techniques
 
-### 前端验证绕过
+### Front-end authentication bypass
 
-**直接调用API：**
-- 绕过前端JavaScript验证
-- 直接发送API请求
+**Direct call API:**
+- bypass front JavaScript authentication
+- Send API requests directly
 
-**修改请求：**
-- 使用Burp Suite拦截
-- 修改参数后发送
+**Request for modification:**
+- Intercept with Burp Suite
+- Send after changing parameters
 
-### 状态码分析
+### Status Code Analysis
 
-**观察响应：**
-- 200 OK - 可能成功
-- 400 Bad Request - 参数错误
-- 403 Forbidden - 权限不足
-- 500 Internal Server Error - 服务器错误
+**Observation response:**
+- 200 OK - It might be a success.
+- 400 Bad Request - Parameter Error
+- 403 Forbidden - Insufficient Permissions
+- 500 Internal Server Error - Server error
 
-### 错误信息利用
+### Error Message Exploitation
 
-**从错误信息获取信息：**
+**Information obtained from error information:**
 ```
-错误: "余额不足，当前余额: 100.00"
-→ 可以获取账户余额信息
+Error: "Insufficit ballage, Current ballage: 100.00."
+→ Access to account balance information
 ```
 
-## 工具使用
+## Using the Tools
 
 ### Burp Suite
 
-**使用Repeater：**
-1. 拦截业务请求
-2. 修改关键参数
-3. 观察响应
+**Using Repeater:**
+1. Interception of operational requests
+2. Modify Key Parameters
+3. Observe the Response
 
-**使用Intruder：**
-1. 标记参数
-2. 使用Payload列表
-3. 批量测试
+**Using Intruder:**
+1. Tag Parameters
+2. Use Payload List
+3. Bulk Tests
 
-### 自定义脚本
+### Custom Script
 
 ```python
 import requests
 import json
 
 def test_price_manipulation():
-    # 测试价格修改
+    # Test price modification
     for price in [0.01, -100, 0, 999999]:
         data = {
             "product_id": 123,
@@ -293,97 +293,97 @@ def test_price_manipulation():
 test_price_manipulation()
 ```
 
-## 验证和报告
+## Verification and Reporting
 
-### 验证步骤
+### Verification Steps
 
-1. 确认可以绕过业务逻辑限制
-2. 验证可以执行未授权操作
-3. 评估影响（资金损失、数据篡改等）
-4. 记录完整的POC
-5. 通过 `report_finding` 工具将确认的漏洞录入平台（本平台记录漏洞的唯一入口），字段涵盖位置、类型、严重度、复现步骤/PoC 与修复建议
+1. Confirms that operational logic limits can be bypassed
+2. Authenticate for unauthorised operations
+3. Assess the impact (fund losses, data manipulation, etc.)
+4. Record the completePOC
+5. Enter identified vulnerabilities into the platform (the only entry to the Platform 's recorded vulnerabilities) through the `report_finding` tool, with fields covering location, type, severity, recovery steps/PoC and recommendations for restoration
 
-### 报告要点
+### Reporting Checklist
 
-- 漏洞位置和业务流程
-- 可执行的未授权操作
-- 完整的利用步骤和PoC
-- 修复建议（服务端验证、业务规则检查等）
+- Gap locations and business processes
+- Executable Unauthorized Operation
+- the complete exploitation steps andPoC
+- Remediation recommendations (service-end validation, business rule inspection, etc.)
 
-## 防护措施
+## Preventive Measures
 
-### 推荐方案
+### Recommended Approach
 
-1. **服务端验证**
+1. **Server-side validation**
    ```python
    def process_purchase(product_id, quantity, price):
-       # 从数据库获取真实价格
+       # Get real prices from the database
        real_price = db.get_product_price(product_id)
-       
-       # 验证价格
+
+       # Authentication price
        if price != real_price:
            raise ValueError("Price mismatch")
-       
-       # 验证数量
+
+       # Number of authentications
        if quantity <= 0:
            raise ValueError("Invalid quantity")
-       
-       # 处理购买
+
+       # Processing of purchases
        process_order(product_id, quantity, real_price)
    ```
 
-2. **状态机验证**
+2. **State Machine Authentication**
    ```python
    class OrderState:
        PENDING = "pending"
        PAID = "paid"
        SHIPPED = "shipped"
        COMPLETED = "completed"
-       
+
        TRANSITIONS = {
            PENDING: [PAID],
            PAID: [SHIPPED],
            SHIPPED: [COMPLETED]
        }
-       
+
        def can_transition(self, from_state, to_state):
            return to_state in self.TRANSITIONS.get(from_state, [])
    ```
 
-3. **并发控制**
+3. **Concurrency Control**
    ```python
    import threading
-   
+
    lock = threading.Lock()
-   
+
    def process_order(order_id):
        with lock:
-           # 检查订单状态
+           # Check order status
            order = db.get_order(order_id)
            if order.status != 'pending':
                raise ValueError("Order already processed")
-           
-           # 处理订单
+
+           # Processing of orders
            process(order)
    ```
 
-4. **业务规则验证**
+4. **Certification of business rules**
    ```python
    def validate_business_rules(order):
-       # 验证数量限制
+       # Authentication Quantities Limit
        if order.quantity > MAX_QUANTITY:
            raise ValueError("Quantity exceeds limit")
-       
-       # 验证价格范围
+
+       # Validate price ranges
        if order.price <= 0:
            raise ValueError("Invalid price")
-       
-       # 验证库存
+
+       # Validate inventory
        if order.quantity > get_stock(order.product_id):
            raise ValueError("Insufficient stock")
    ```
 
-5. **审计日志**
+5. **Audit log**
    ```python
    def log_business_action(user_id, action, details):
        log_entry = {
@@ -395,9 +395,9 @@ test_price_manipulation()
        db.log_action(log_entry)
    ```
 
-## 注意事项
+## Important Notes
 
-- 仅在授权测试环境中进行
-- 避免对业务造成实际影响
-- 注意不同业务流程的差异
-- 测试时注意数据一致性
+- Perform only in an authorized testing environment
+- Avoiding operational impact
+- Pay attention to differences in business processes
+- Pay attention to data consistency when testing

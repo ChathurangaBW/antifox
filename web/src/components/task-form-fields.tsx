@@ -20,14 +20,14 @@ export const ACTIVE_PROFILE = "__active__";
 
 // TaskFormValues is the shared shape edited by both the create-task and edit-task
 // dialogs (task list + task detail). timeoutMin is the task-level timeout in
-// minutes as a raw string (""/"0" = 不限时).
+// minutes as a raw string (""/"0" = Timeless).
 export interface TaskFormValues {
   name: string;
   description: string;
   goal: string;
   llmProfile: string; // ACTIVE_PROFILE sentinel or a profile id string
   timeoutMin: string;
-  egress: string; // ""=跟随全局 | "proxy"=走全局代理 | "direct"=直连
+  egress: string; // ""=Follow Global | "proxy"=I'm going to the whole agency. | "direct"=Straight Company
 }
 
 export const BLANK_TASK_FORM: TaskFormValues = {

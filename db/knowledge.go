@@ -104,7 +104,7 @@ func (d *DB) SaveKnowledgeConfig(enabled bool, baseURL, model, apiKey string, di
 
 // AdoptKnowledgeKeyFromProfile copies an LLM profile's api_key into knowledge_config
 // when the embedder has no key yet — convenience for reusing a configured provider
-// (e.g. a 智谱 profile) as the embedder. No-op if a key is already set or the
+// (e.g. a Think. profile) as the embedder. No-op if a key is already set or the
 // profile has none. Returns whether a key was adopted.
 func (d *DB) AdoptKnowledgeKeyFromProfile(profileID int64) (bool, error) {
 	var res sql.Result

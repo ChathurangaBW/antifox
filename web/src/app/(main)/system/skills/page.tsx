@@ -140,7 +140,7 @@ export default function SkillsPage() {
   // skill detail — MCP edit state (optimistic, rolls back on error)
   const [detailMcps, setDetailMcps] = React.useState<string[]>([]);
 
-  // 调用统计（复用可观测性）
+  // Call statistics (re-use detectability)
   const [stats, setStats] = React.useState<SkillStatsResp | null>(null);
   const [statsOpen, setStatsOpen] = React.useState(false);
   const statByName = React.useMemo(() => {
@@ -179,7 +179,7 @@ export default function SkillsPage() {
     } catch (e) {
       const msg = (e as Error).message;
       // offer overwrite when the skill already exists
-      if (!overwrite && msg.includes("已存在")) {
+      if (!overwrite && msg.includes("Exists")) {
         if (window.confirm(`${msg}\n\n${t("skills.confirmOverwrite")}`)) {
           await uploadZip(file, true);
           return;
@@ -507,7 +507,7 @@ export default function SkillsPage() {
         </div>
       </div>
       <div className="flex flex-1 overflow-hidden">
-        {/* ── 左侧文件树 ── */}
+        {/* ── Left File Tree ── */}
         <div className="flex w-64 shrink-0 flex-col border-r">
           <div className="flex flex-col gap-2 border-b p-2">
             <Button size="sm" variant="outline" className="w-full" onClick={() => setNewOpen(true)}>
@@ -540,7 +540,7 @@ export default function SkillsPage() {
                 const isSkillSelected = selected?.skill === s.name && selected.path === null;
                 return (
                   <div key={s.name}>
-                    {/* skill 根节点 */}
+                    {/* skill Root */}
                     <div
                       className={cn(
                         "group flex cursor-pointer select-none items-center gap-1 rounded px-2 py-1 text-sm",
@@ -582,7 +582,7 @@ export default function SkillsPage() {
                       </span>
                     </div>
 
-                    {/* 展开：递归文件树 */}
+                    {/* Expand: Recursive File Tree */}
                     {isOpen && (
                       <>
                         {renderTree(tree, s.name, 0)}
@@ -601,7 +601,7 @@ export default function SkillsPage() {
           </ScrollArea>
         </div>
 
-        {/* ── 右侧面板 ── */}
+        {/* ── Right Panel ── */}
         <div className="flex flex-1 flex-col overflow-auto p-4">
           {!selected && (
             <div className="flex h-full items-center justify-center">
@@ -626,7 +626,7 @@ export default function SkillsPage() {
                 </div>
               </div>
 
-              {/* ── 关联 MCP ── */}
+              {/* ── Association MCP ── */}
               <div className="space-y-2">
                 <Label className="text-xs text-muted-foreground">
                   {t("skills.linkMcp")}
@@ -649,7 +649,7 @@ export default function SkillsPage() {
                 )}
               </div>
 
-              {/* ── 可见性 ── */}
+              {/* ── Visibility ── */}
               <div className="space-y-2">
                 <Label className="text-xs text-muted-foreground">{t("skills.visibilityLabel")}</Label>
                 <div className="space-y-2">
@@ -694,7 +694,7 @@ export default function SkillsPage() {
         </div>
       </div>
 
-      {/* ── 调用统计（复用可观测性）── */}
+      {/* ── Call statistics (re-use detectability)── */}
       <Sheet open={statsOpen} onOpenChange={setStatsOpen}>
         <SheetContent side="right" className="flex w-full flex-col gap-0 data-[side=right]:sm:max-w-xl">
           <SheetHeader className="px-4 pt-4">
@@ -750,7 +750,7 @@ export default function SkillsPage() {
         </SheetContent>
       </Sheet>
 
-      {/* ── 新建 Skill 对话框 ── */}
+      {/* ── New Skill Dialogue ── */}
       <Sheet open={newOpen} onOpenChange={setNewOpen}>
         <SheetContent side="right" className="flex w-full flex-col gap-0 data-[side=right]:sm:max-w-xl">
           <SheetHeader className="px-4 pt-4">
@@ -777,7 +777,7 @@ export default function SkillsPage() {
               </TabsTrigger>
             </TabsList>
 
-            {/* 基本信息 */}
+            {/* Basic information */}
             <TabsContent value="basic" className="flex min-h-0 flex-1 flex-col gap-4 overflow-y-auto px-4 pb-4 pt-4 data-[state=inactive]:hidden">
               <div className="grid gap-1.5">
                 <Label htmlFor="sk-name">{t("common.name")} <span className="text-destructive">*</span></Label>
@@ -809,7 +809,7 @@ export default function SkillsPage() {
               </div>
             </TabsContent>
 
-            {/* 关联 MCP */}
+            {/* Association MCP */}
             <TabsContent value="mcp" className="overflow-y-auto px-4 pb-4 pt-4 data-[state=inactive]:hidden">
               <p className="mb-3 text-xs text-muted-foreground">{t("skills.linkMcpHint2")}</p>
               {mcpOptions.length === 0 ? (
@@ -831,7 +831,7 @@ export default function SkillsPage() {
               )}
             </TabsContent>
 
-            {/* 可见性 */}
+            {/* Visibility */}
             <TabsContent value="visibility" className="overflow-y-auto px-4 pb-4 pt-4 data-[state=inactive]:hidden">
               <p className="mb-3 text-xs text-muted-foreground">{t("skills.visibilityHint")}</p>
               {agents.length === 0 ? (

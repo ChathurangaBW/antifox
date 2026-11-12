@@ -15,8 +15,8 @@ import { LayoutControls } from "./sidebar/layout-controls";
 import { SearchDialog } from "./sidebar/search-dialog";
 import { ThemeSwitcher } from "./sidebar/theme-switcher";
 
-// 仅任务【详情】页满屏（自带头部/Tabs/内边距）；任务【列表】等其它页保留全局头部（含主题切换/账号）。
-// 注意静态导出带尾斜杠，故 /function/tasks/ 会误配，必须精确到 detail。
+// Colours for display/Tabs/Internal margin; other pages, such as task [list], retain global header (with themegap)/Account number.
+// Watch out for static export with tail slash, so... /function/tasks/ It's a mismatch. detail。
 function isFullBleed(pathname: string) {
   const p = (() => {
     try {

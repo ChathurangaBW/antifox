@@ -19,15 +19,15 @@ type WorkerVars struct{ ProxyAddr, WorkerName string }
 type MainVars struct{ Goal, AssetSummary, FindingsSummary string }
 type GoalsVars struct{ EngagementDescription, Now string }
 
-// renderSystem returns the rendered system-prompt BODY (段 [A]) for agentKey.
+// renderSystem returns the rendered system-prompt BODY (Paragraph [A]) for agentKey.
 // Precedence: the DB-stored template (if any) over the built-in default template
 // (def). BOTH are Go templates now — the built-in default is seeded into the DB
 // verbatim, so the two paths render identically until a user edits the prompt.
 // Rendering always runs (def used to be pre-substituted plain text; it is now a
 // {{.Var}} template like the DB one). On any render error we fall back to the
 // default template, then to the raw default string — an agent never starts with a
-// half-rendered prompt. Callers append the code-owned tail (trafficTool / 中间产物
-// 输出规约) AFTER this, so those can't be edited away via the DB body.
+// half-rendered prompt. Callers append the code-owned tail (trafficTool / Intermediate
+// Export Statute) AFTER this, so those can't be edited away via the DB body.
 func renderSystem(agentKey, def string, vars any) string {
 	tmpl := def
 	if PromptOverride != nil {

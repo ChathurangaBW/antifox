@@ -19,8 +19,8 @@ import { api } from "@/lib/api";
 import type { Finding } from "@/lib/types";
 import { taskLabel } from "@/lib/task-label";
 
-// LinkTrafficDialog：把勾选的流量 exchange 关到某个漏洞（作证据来源）。
-// 数据只写 PG 的 finding_traffic（关联），报文仍留在流量库，供后续截图自动化取用。
+// LinkTrafficDialog: bind the selected traffic exchange to a finding as a source of evidence.
+// The link is stored in finding_traffic; the exchange stays in the traffic store so later interceptions remain accessible.
 export function LinkTrafficDialog({
   open,
   exchangeIds,

@@ -1,122 +1,122 @@
 ---
 name: idor-testing
-description: IDOR不安全的直接对象引用测试的专业技能和方法论
+Professional skills and methodology for IDOR (insecure direct object reference) testing
 version: 1.0.0
 ---
 
-# IDOR不安全的直接对象引用测试
+# IDOR (Insecure Direct Object Reference) Testing
 
-## 概述
+## Overview
 
-IDOR（Insecure Direct Object Reference）是一种访问控制漏洞，当应用程序直接使用用户提供的输入来访问资源，而未验证用户是否有权限访问该资源时发生。本技能提供IDOR漏洞的检测、利用和防护方法。
+This skill provides detection, use, and protection of IDOR vulnerabilities.
 
-## 漏洞原理
+## Vulnerability Principle
 
-应用程序使用可预测的标识符（如ID、文件名）直接引用资源，未验证当前用户是否有权限访问该资源。
+The application uses a predictable identifier (e.g. ID, filename) for direct reference to the resource and does not verify that the current user has access to the resource.
 
-**危险代码示例：**
+**Example of hazard code:**
 ```php
-// 直接使用用户输入的ID
+// Direct use of the user-supplied ID
 $file = file_get_contents('/files/' . $_GET['id'] . '.pdf');
 ```
 
-## 测试方法
+## Test Method
 
-### 1. 识别直接对象引用
+### 1. Identify direct object references
 
-**常见资源类型：**
-- 用户ID
-- 文件ID/文件名
-- 订单ID
-- 文档ID
-- 账户ID
-- 记录ID
+**Common resource type:**
+- User ID
+- File ID / file name
+- OrderID
+- DocumentID
+- Account ID
+- RecordsID
 
-**常见位置：**
-- URL参数
-- POST数据
-- Cookie值
-- HTTP头
-- 文件路径
+**Common locations:**
+- URL parameter
+- POST data
+- Cookie value
+- HTTPHead
+- File Path
 
-### 2. 枚举测试
+### 2. Enumeration Test
 
-**顺序ID测试：**
+**Sequential ID test:**
 ```
 /user?id=1
 /user?id=2
 /user?id=3
 ```
 
-**UUID测试：**
+**UUID test:**
 ```
 /user?id=550e8400-e29b-41d4-a716-446655440000
 /user?id=550e8400-e29b-41d4-a716-446655440001
 ```
 
-**文件名测试：**
+**Filename test:**
 ```
 /files/document1.pdf
 /files/document2.pdf
 /files/invoice_2024_001.pdf
 ```
 
-### 3. 水平权限测试
+### 3. Horizontal permission test
 
-**访问其他用户资源：**
+**Access another user's resources:**
 ```
-当前用户ID: 100
-测试: /user?id=101
-测试: /user?id=102
+Current User ID: 100
+Test: /user?id=101
+Test: /user?id=102
 ```
 
-**访问其他用户文件：**
+**Access another user's files:**
 ```
 /files/user100_document.pdf
-测试: /files/user101_document.pdf
+Test: /files/user101_document.pdf
 ```
 
-### 4. 垂直权限测试
+### 4. Vertical Permission Test
 
-**普通用户访问管理员资源：**
+**A regular user accessing administrator resources:**
 ```
 /admin/users?id=1
 /admin/settings
 /admin/logs
 ```
 
-## 利用技术
+## Exploitation Techniques
 
-### 用户信息泄露
+### User Information Disclosure
 
-**枚举用户资料：**
+**Enumerate user profiles:**
 ```bash
-# 顺序枚举
+# Sequential enumeration
 for i in {1..1000}; do
   curl "https://target.com/user?id=$i"
 done
 
-# 观察响应差异
+# Observe the response differences
 ```
 
-### 文件访问
+### File Access
 
-**访问其他用户文件：**
+**Access another user's files:**
 ```
 /files/invoice_12345.pdf
 /files/report_67890.pdf
 /files/contract_11111.pdf
 ```
 
-**目录遍历结合：**
+**Combined with Directory Traversal:**
 ```
 /files/../admin/config.php
 /files/../../etc/passwd
 ```
 
-### 数据修改
+### Data Modification
 
-**修改其他用户数据：**
+**Modify another user's data:**
 ```http
 POST /api/user/update
 Content-Type: application/json
@@ -127,9 +127,9 @@ Content-Type: application/json
 }
 ```
 
-### 批量操作
+### Batch Operations
 
-**批量获取数据：**
+**Bulk data retrieval:**
 ```python
 import requests
 
@@ -139,27 +139,27 @@ for user_id in range(1, 1000):
         print(f"User {user_id}: {response.json()}")
 ```
 
-## 绕过技术
+## Bypass Techniques
 
-### ID混淆
+### IDConfusion
 
-**Base64编码：**
+**Base64 encoding:**
 ```
-原始ID: 123
-编码: MTIz
+OriginalID: 123
+Encoded: MTIz
 URL: /user?id=MTIz
 ```
 
-**哈希值：**
+**Hash value:**
 ```
-原始ID: 123
-哈希: 202cb962ac59075b964b07152d234b70
+OriginalID: 123
+Hash: 202cb962ac59075b964b07152d234b70
 URL: /user?id=202cb962ac59075b964b07152d234b70
 ```
 
-### 参数名混淆
+### Parameter Name Obfuscation
 
-**使用不同参数名：**
+**Using different parameter names:**
 ```
 /user?id=123
 /user?uid=123
@@ -167,9 +167,9 @@ URL: /user?id=202cb962ac59075b964b07152d234b70
 /user?account=123
 ```
 
-### HTTP方法绕过
+### HTTPWay around.
 
-**尝试不同HTTP方法：**
+**Try different zzozz methods:**
 ```
 GET /user/123
 POST /user/123
@@ -177,9 +177,9 @@ PUT /user/123
 PATCH /user/123
 ```
 
-### 路径混淆
+### Path Obfuscation
 
-**尝试不同路径：**
+**Try different paths:**
 ```
 /api/v1/user/123
 /api/user/123
@@ -187,30 +187,30 @@ PATCH /user/123
 /users/123
 ```
 
-## 工具使用
+## Using the Tools
 
 ### Burp Suite
 
-**使用Intruder：**
-1. 拦截请求
-2. 发送到Intruder
-3. 标记ID参数
-4. 使用数字序列或自定义列表
-5. 观察响应差异
+**Using Intruder:**
+1. Intercept the request
+2. Send toIntruder
+3. Mark ID parameters
+4. Use numerical series or custom list
+5. Observe the response differences
 
-**使用Repeater：**
-1. 手动修改ID
-2. 测试不同值
-3. 观察响应
+**Using Repeater:**
+1. Manual ChangesID
+2. Test Different Values
+3. Observe the Response
 
 ### OWASP ZAP
 
 ```bash
-# 使用ZAP进行IDOR扫描
+# UsingZAPConductIDORScan
 zap-cli active-scan --scanners all http://target.com
 ```
 
-### Python脚本
+### PythonScript
 
 ```python
 import requests
@@ -220,7 +220,7 @@ def test_idor(base_url, user_id_range):
     for user_id in user_id_range:
         url = f"{base_url}/user?id={user_id}"
         response = requests.get(url)
-        
+
         if response.status_code == 200:
             data = response.json()
             print(f"User {user_id}: {data.get('email', 'N/A')}")
@@ -228,47 +228,47 @@ def test_idor(base_url, user_id_range):
 test_idor("https://target.com", range(1, 100))
 ```
 
-## 验证和报告
+## Verification and Reporting
 
-### 验证步骤
+### Verification Steps
 
-1. 确认可以访问未授权的资源
-2. 验证可以读取、修改或删除其他用户数据
-3. 评估影响（数据泄露、隐私侵犯等）
-4. 记录完整的POC
-5. 通过 `report_finding` 工具将确认的漏洞录入平台（本平台记录漏洞的唯一入口），字段涵盖位置、类型、严重度、复现步骤/PoC 与修复建议
+1. Confirm that access to unauthorized resources
+2. Verify that another user's data can be read, modified, or deleted other user data
+3. Assess the impact (data disclosure, invasion of privacy, etc.)
+4. Record the completePOC
+5. Enter identified vulnerabilities into the platform (the only entry to the Platform 's recorded vulnerabilities) through the `report_finding` tool, with fields covering location, type, severity, recovery steps/PoC and recommendations for restoration
 
-### 报告要点
+### Reporting Checklist
 
-- 漏洞位置和资源标识符
-- 可访问的未授权资源
-- 完整的利用步骤和PoC
-- 修复建议（访问控制、资源映射等）
+- Gap location and resource identifier
+- Accessible unauthorized resources
+- the complete exploitation steps andPoC
+- Remediation recommendations (access control, resource mapping, etc.)
 
-## 防护措施
+## Preventive Measures
 
-### 推荐方案
+### Recommended Approach
 
-1. **访问控制验证**
+1. **Access Control Authentication**
    ```python
    def get_user_data(user_id, current_user_id):
-       # 验证权限
+       # Verify the permission
        if user_id != current_user_id:
            raise PermissionDenied("Cannot access other user's data")
-       
-       # 返回数据
+
+       # Return the data
        return db.get_user(user_id)
    ```
 
-2. **间接对象引用**
+2. **Indirect Object Reference**
    ```python
-   # 使用映射表
+   # Use the mapping table
    user_mapping = {
        'abc123': 100,
        'def456': 101,
        'ghi789': 102
    }
-   
+
    def get_user(mapped_id):
        real_id = user_mapping.get(mapped_id)
        if not real_id:
@@ -276,7 +276,7 @@ test_idor("https://target.com", range(1, 100))
        return db.get_user(real_id)
    ```
 
-3. **基于角色的访问控制**
+3. **Role-based access control**
    ```python
    def check_permission(user, resource):
        if user.role == 'admin':
@@ -286,35 +286,35 @@ test_idor("https://target.com", range(1, 100))
        return False
    ```
 
-4. **资源所有权验证**
+4. **Validation of resource ownership**
    ```python
    def update_user_data(user_id, data, current_user):
        user = db.get_user(user_id)
-       
-       # 验证所有权
+
+       # Verify the ownership
        if user.id != current_user.id and current_user.role != 'admin':
            raise PermissionDenied()
-       
-       # 更新数据
+
+       # Update the data
        db.update_user(user_id, data)
    ```
 
-5. **使用不可预测的标识符**
+5. **Use unpredictable identifiers**
    ```python
    import uuid
-   
-   # 使用UUID替代顺序ID
+
+   # UsingUUIDSubstitution OrderID
    resource_id = str(uuid.uuid4())
    ```
 
-6. **最小权限原则**
-   - 只返回用户有权限访问的数据
-   - 使用数据过滤
-   - 限制可访问的资源范围
+6. **Principle of Least Privilege**
+   - Returns only the data that the user has access to with permission
+   - Use data filtering
+   - Limit the range of resources available
 
-## 注意事项
+## Important Notes
 
-- 仅在授权测试环境中进行
-- 避免访问或修改真实用户数据
-- 注意不同资源的访问控制差异
-- 测试时注意请求频率，避免触发防护
+- Perform only in an authorized testing environment
+- Avoid access to or modification of real user data
+- Note the access-control differences between resources
+- Be careful with the frequency of requests during testing and avoid triggering protection.

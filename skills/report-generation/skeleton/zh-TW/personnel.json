@@ -1,12 +1,12 @@
 [
   {
-    "contact": "",
-    "name": "專案負責人 / 安全工程師",
-    "role": "專案負責人 / 安全工程師"
+    "name": "Lead Consultant / Security Engineer",
+    "role": "Lead Consultant / Security Engineer",
+    "contact": ""
   },
   {
-    "contact": "",
-    "name": "紅隊評估小組",
-    "role": "攻防團隊"
+    "name": "Red Team Assessment Group",
+    "role": "Offensive Security Team",
+    "contact": ""
   }
 ]

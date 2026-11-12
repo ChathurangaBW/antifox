@@ -1,30 +1,30 @@
 [
   {
     "name": "Burp Suite",
-    "desc": "用於 Web 應用程式安全測試的整合平台，作為本次滲透測試的核心代理與封包擷取工具。"
+    "desc": "An integrated platform for web application security testing, serving as the primary proxy and packet-capture tool for this penetration test."
   },
   {
     "name": "SQLMap",
-    "desc": "用於偵測與利用 SQL 注入漏洞的開源工具。"
+    "desc": "An open-source tool for detecting and exploiting SQL injection vulnerabilities."
   },
   {
     "name": "Nmap",
-    "desc": "網路連接埠掃描與服務辨識工具。"
+    "desc": "A network port scanning and service identification tool."
   },
   {
     "name": "Nuclei",
-    "desc": "基於 YAML 範本的漏洞掃描器，用於批次指紋辨識與漏洞驗證。"
+    "desc": "A YAML-template-based vulnerability scanner used for bulk fingerprinting and vulnerability verification."
   },
   {
     "name": "cURL / httpie",
-    "desc": "命令列 HTTP 請求建構與回應分析工具。"
+    "desc": "Command-line tools for crafting HTTP requests and analyzing responses."
   },
   {
     "name": "Wappalyzer / EHole",
-    "desc": "Web 應用程式框架與指紋辨識工具。"
+    "desc": "Web application framework and fingerprint identification tools."
   },
   {
-    "name": "自研 POC 庫",
-    "desc": "內部維護的漏洞驗證指令碼庫，搭配本地漏洞庫索引使用。"
+    "name": "In-house POC Library",
+    "desc": "An internally maintained library of vulnerability verification scripts, used together with a local vulnerability database index."
   }
 ]

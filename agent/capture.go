@@ -4,16 +4,16 @@ import (
 	"context"
 	"strings"
 
+	"antifox/db"
 	"antifox/engine/agentcore"
 	"antifox/engine/harness"
 	"antifox/engine/llm"
-	"antifox/db"
 )
 
 // captureRun drives one agent turn-to-completion over Session.Prompt and emits a
 // coalesced ActivityRecord per execution step (tool_use / tool_result / text /
 // thinking / result). It is shared by every LLM agent in the system (worker,
-// planner, …) so their execution is visible instead of a black box — the old
+// planner, ...) so their execution is visible instead of a black box — the old
 // agentcore.Run discarded every event. The emitted records carry only
 // Kind/Tool/ToolUseID/IsError/Summary/Detail; the caller's emit fills in
 // IntentID/Worker. Returns the final assistant text + terminal error.
@@ -70,10 +70,10 @@ func captureRunSession(ctx context.Context, s *agentcore.Session, input string, 
 		if err != nil {
 			flush()
 			if ctx.Err() != nil { // ctx cancelled = manual stop, not a failure
-				rec(db.Activity{Kind: "result", Summary: "（已手动停止本次运行）"})
+				rec(db.Activity{Kind: "result", Summary: "(Stopped this run manually)"})
 				return finalText, reason, ctx.Err()
 			}
-			rec(db.Activity{Kind: "result", IsError: true, Summary: "执行出错: " + err.Error(), Detail: err.Error()})
+			rec(db.Activity{Kind: "result", IsError: true, Summary: "Error executing: " + err.Error(), Detail: err.Error()})
 			return finalText, reason, err
 		}
 		switch ev.Kind {
@@ -127,13 +127,13 @@ func captureRunSession(ctx context.Context, s *agentcore.Session, input string, 
 						// interruption (task paused / worker killed / backend restart),
 						// not a real completion — the intent is re-queued (open) or
 						// stopped, so the session icon reflects that, not this run.
-						sum = "（运行被中断：任务暂停 / 终止 / 重启所致；未完成）"
+						sum = "(Operation interrupted: Task suspended / Termination / As a result of restart; not completed)"
 					case harness.ReasonTimeout, harness.ReasonMaxTurns:
 						// budget hit → settlement ran (facts/assets were written back);
 						// only the trailing text summary is missing, not a failure.
-						sum = "（达运行预算上限，已收尾写回事实；本次无文字总结，终态: " + string(ev.Terminal.Reason) + "）"
+						sum = "(Operating budget ceiling reached, facts written back; no summary, final: " + string(ev.Terminal.Reason) + ")"
 					default:
-						sum = "（无总结，终态: " + string(ev.Terminal.Reason) + "）"
+						sum = "(No summary, final: " + string(ev.Terminal.Reason) + ")"
 					}
 				}
 				u := ev.Terminal.Usage // cumulative token usage for this session
@@ -172,7 +172,7 @@ func firstLine(s string, max int) string {
 		s = s[:i]
 	}
 	if len(s) > max {
-		s = s[:max] + "…"
+		s = s[:max] + "..."
 	}
 	return s
 }

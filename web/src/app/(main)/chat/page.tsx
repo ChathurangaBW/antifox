@@ -55,7 +55,7 @@ function fmtDuration(ms: number): string {
   return `${h}h${String(m % 60).padStart(2, "0")}m`;
 }
 
-// LiveBadge is the small pulsing "实时" chip reused from the task's main-agent
+// LiveBadge is the small pulsing "Real time" chip reused from the task's main-agent
 // console — shown while a turn is streaming.
 function LiveBadge() {
   const { t } = useTranslation();
@@ -428,7 +428,7 @@ function ChatView({
   const tokenTotal = React.useMemo(() => {
     let i = 0, o = 0, cr = 0;
     let li = 0, lo = 0, lcr = 0;
-    let turns = 0; // agent 循环轮次 = 模型调用次数（每次一条 kind='usage'）
+    let turns = 0; // agent Cycle = Model call times (one at a time) kind='usage')
     for (const a of messages) {
       if (a.kind === "result") {
         i += a.input_tokens ?? 0;
@@ -656,7 +656,7 @@ export default function ChatPage() {
 
   const selected = convs.find((c) => c.id === selectedId) ?? null;
   // conversation agents: custom agents + conversational built-ins (role=assistant,
-  // e.g. Auto / 渗透测试). The orchestration built-ins (goals/planner/mainagent/worker)
+  // e.g. Auto / Penetration Testing). The orchestration built-ins (goals/planner/mainagent/worker)
   // are task-specific and stay hidden from the chat page.
   const chatAgents = agents.filter((a) => !a.builtin || a.role === "assistant");
 

@@ -168,7 +168,7 @@ func TestDetectPython(t *testing.T) {
 func TestClipOutput(t *testing.T) {
 	long := strings.Repeat("x", 7000)
 	got := clipOutput(long, nil)
-	if len(got) >= 7000 || !strings.Contains(got, "截断") {
+	if len(got) >= 7000 || !strings.Contains(got, "Cut") {
 		t.Fatalf("clipOutput should truncate long output, got len %d", len(got))
 	}
 	short := "ok"

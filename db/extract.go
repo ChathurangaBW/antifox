@@ -1,13 +1,13 @@
 package db
 
-// Support for retroactive finding extraction (漏洞补录): gather an exploration's
+// Support for retroactive finding extraction (Hole-filling): gather an exploration's
 // agent OUTPUT transcript (the synthesis + worker conclusions) so an LLM can pull
 // out confirmed vulns the agents described but never recorded via report_finding.
 
 import "strings"
 
 // ExplorationSynthesis returns the agent-generated text for an exploration —
-// the 主 Agent (mainagent) synthesis first (it holds the vuln round-up), then
+// the Lord Agent (mainagent) synthesis first (it holds the vuln round-up), then
 // planner/worker text — concatenated and capped at maxChars. Only kind in
 // (text, result): the actual model output, not thinking/tool traffic.
 func (d *DB) ExplorationSynthesis(expID int64, maxChars int) string {
@@ -81,13 +81,13 @@ func (d *DB) FindingReproTranscript(nodeID int64, maxChars int) string {
 		// Responses (tool_result) can be huge (full 4KB+ pages); the recipe needs the
 		// status line + a short indicator, not the whole body. Requests kept full.
 		if kind == "tool_result" && len(content) > 700 {
-			content = strings.ToValidUTF8(content[:700], "") + " …(响应已截断)"
+			content = strings.ToValidUTF8(content[:700], "") + " …(Response stopped)"
 		}
-		label := "请求"
+		label := "Request"
 		if kind == "tool_result" {
-			label = "响应"
+			label = "Response"
 		} else if kind == "result" {
-			label = "小结"
+			label = "Summary"
 		}
 		hdr := "\n【" + label
 		if tool != "" {

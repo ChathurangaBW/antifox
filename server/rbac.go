@@ -9,7 +9,7 @@ import (
 	"golang.org/x/crypto/bcrypt"
 )
 
-// 平台权限管理 API（/api/rbac/*）。
+// Platform authority management API(/api/rbac/*).
 
 type rbacUserView struct {
 	db.RBACUser
@@ -21,11 +21,11 @@ type rbacRoleView struct {
 	Permissions []string `json:"permissions"`
 }
 
-// GET /api/rbac/me —— 当前登录用户的身份 + 角色 + 权限。
+// GET /api/rbac/me —— Identity of current login user + Role + Permission.
 func (s *Server) rbacMe(w http.ResponseWriter, r *http.Request) {
 	acc := CurrentAccess(r)
 	if acc == nil {
-		writeErr(w, 401, "会话无效")
+		writeErr(w, 401, "Session invalid")
 		return
 	}
 	perms := make([]string, 0, len(acc.Permissions))
@@ -43,7 +43,7 @@ func (s *Server) rbacMe(w http.ResponseWriter, r *http.Request) {
 	})
 }
 
-// GET /api/rbac/metadata —— 权限目录 + 角色（管理 UI 用）。
+// GET /api/rbac/metadata —— Permission Directory + Role (management) UI Use it.
 func (s *Server) rbacMetadata(w http.ResponseWriter, r *http.Request) {
 	pg := s.pg(w)
 	if pg == nil {
@@ -51,7 +51,7 @@ func (s *Server) rbacMetadata(w http.ResponseWriter, r *http.Request) {
 	}
 	roles, err := pg.ListRBACRoles()
 	if err != nil {
-		writeErr(w, 500, "获取角色失败")
+		writeErr(w, 500, "Failed to fetch role")
 		return
 	}
 	writeJSON(w, 200, map[string]any{
@@ -69,7 +69,7 @@ func (s *Server) rbacListUsers(w http.ResponseWriter, r *http.Request) {
 	}
 	users, err := pg.ListRBACUsers()
 	if err != nil {
-		writeErr(w, 500, "获取用户失败")
+		writeErr(w, 500, "Failed to fetch user")
 		return
 	}
 	out := make([]rbacUserView, 0, len(users))
@@ -97,17 +97,17 @@ func (s *Server) rbacCreateUser(w http.ResponseWriter, r *http.Request) {
 		RoleIDs     []string `json:"role_ids"`
 	}
 	if err := decode(r, &req); err != nil {
-		writeErr(w, 400, "参数无效")
+		writeErr(w, 400, "Invalid Parameter")
 		return
 	}
 	username := strings.TrimSpace(strings.ToLower(req.Username))
 	if username == "" || len(req.Password) < 8 {
-		writeErr(w, 400, "用户名必填，密码至少 8 位")
+		writeErr(w, 400, "User name must be filled. Password at least. 8 bit")
 		return
 	}
 	hash, err := bcrypt.GenerateFromPassword([]byte(req.Password), bcrypt.DefaultCost)
 	if err != nil {
-		writeErr(w, 500, "密码处理失败")
+		writeErr(w, 500, "Password processing failed")
 		return
 	}
 	enabled := true
@@ -116,14 +116,14 @@ func (s *Server) rbacCreateUser(w http.ResponseWriter, r *http.Request) {
 	}
 	u, err := pg.CreateRBACUser(username, req.DisplayName, string(hash), enabled, req.RoleIDs)
 	if err != nil {
-		msg := "创建用户失败"
+		msg := "Failed to create user"
 		if strings.Contains(strings.ToLower(err.Error()), "unique") || strings.Contains(err.Error(), "duplicate") {
-			msg = "用户名已存在"
+			msg = "Username already exists"
 		}
 		writeErr(w, 400, msg)
 		return
 	}
-	pg.RecordAudit(auditActor(r), "rbac", "create_user", "success", clientIP(r), "创建用户 "+username, map[string]any{"user_id": u.ID})
+	pg.RecordAudit(auditActor(r), "rbac", "create_user", "success", clientIP(r), "Create User "+username, map[string]any{"user_id": u.ID})
 	writeJSON(w, 200, map[string]any{"user": u})
 }
 
@@ -135,7 +135,7 @@ func (s *Server) rbacUpdateUser(w http.ResponseWriter, r *http.Request) {
 	}
 	id := strings.TrimSpace(r.PathValue("id"))
 	if id == "" {
-		writeErr(w, 400, "缺少用户 ID")
+		writeErr(w, 400, "Missing users ID")
 		return
 	}
 	var req struct {
@@ -145,25 +145,25 @@ func (s *Server) rbacUpdateUser(w http.ResponseWriter, r *http.Request) {
 		Password    string    `json:"password"`
 	}
 	if err := decode(r, &req); err != nil {
-		writeErr(w, 400, "参数无效")
+		writeErr(w, 400, "Invalid Parameter")
 		return
 	}
 	if err := pg.UpdateRBACUser(id, req.DisplayName, req.Enabled, req.RoleIDs); err != nil {
-		writeErr(w, 500, "更新用户失败")
+		writeErr(w, 500, "Failed to update user")
 		return
 	}
 	if pw := strings.TrimSpace(req.Password); pw != "" {
 		if len(pw) < 8 {
-			writeErr(w, 400, "密码至少 8 位")
+			writeErr(w, 400, "Password at least 8 bit")
 			return
 		}
 		hash, err := bcrypt.GenerateFromPassword([]byte(pw), bcrypt.DefaultCost)
 		if err != nil {
-			writeErr(w, 500, "密码处理失败")
+			writeErr(w, 500, "Password processing failed")
 			return
 		}
 		if err := pg.UpdateRBACUserPassword(id, string(hash)); err != nil {
-			writeErr(w, 500, "重置密码失败")
+			writeErr(w, 500, "Failed to reset password")
 			return
 		}
 	}
@@ -178,10 +178,10 @@ func (s *Server) rbacDeleteUser(w http.ResponseWriter, r *http.Request) {
 	}
 	id := strings.TrimSpace(r.PathValue("id"))
 	if err := pg.DeleteRBACUser(id); err != nil {
-		writeErr(w, 400, "删除失败: "+err.Error())
+		writeErr(w, 400, "Failed to delete: "+err.Error())
 		return
 	}
-	pg.RecordAudit(auditActor(r), "rbac", "delete_user", "success", clientIP(r), "删除用户 "+id, nil)
+	pg.RecordAudit(auditActor(r), "rbac", "delete_user", "success", clientIP(r), "Remove User "+id, nil)
 	writeJSON(w, 200, map[string]any{"ok": true})
 }
 
@@ -193,7 +193,7 @@ func (s *Server) rbacListRoles(w http.ResponseWriter, r *http.Request) {
 	}
 	roles, err := pg.ListRBACRoles()
 	if err != nil {
-		writeErr(w, 500, "获取角色失败")
+		writeErr(w, 500, "Failed to fetch role")
 		return
 	}
 	out := make([]rbacRoleView, 0, len(roles))
@@ -222,12 +222,12 @@ func (s *Server) rbacCreateRole(w http.ResponseWriter, r *http.Request) {
 	}
 	var req roleReq
 	if err := decode(r, &req); err != nil || strings.TrimSpace(req.Name) == "" {
-		writeErr(w, 400, "角色名不能为空")
+		writeErr(w, 400, "Role name cannot be empty")
 		return
 	}
 	role, err := pg.UpsertRBACRole("", req.Name, req.Description, req.Scope, req.Permissions)
 	if err != nil {
-		writeErr(w, 400, "创建角色失败: "+err.Error())
+		writeErr(w, 400, "Creating Role Failed: "+err.Error())
 		return
 	}
 	writeJSON(w, 200, map[string]any{"role": role})
@@ -242,12 +242,12 @@ func (s *Server) rbacUpdateRole(w http.ResponseWriter, r *http.Request) {
 	id := strings.TrimSpace(r.PathValue("id"))
 	var req roleReq
 	if err := decode(r, &req); err != nil || strings.TrimSpace(req.Name) == "" {
-		writeErr(w, 400, "角色名不能为空")
+		writeErr(w, 400, "Role name cannot be empty")
 		return
 	}
 	role, err := pg.UpsertRBACRole(id, req.Name, req.Description, req.Scope, req.Permissions)
 	if err != nil {
-		writeErr(w, 400, "更新角色失败: "+err.Error())
+		writeErr(w, 400, "Failed to update role: "+err.Error())
 		return
 	}
 	writeJSON(w, 200, map[string]any{"role": role})
@@ -261,7 +261,7 @@ func (s *Server) rbacDeleteRole(w http.ResponseWriter, r *http.Request) {
 	}
 	id := strings.TrimSpace(r.PathValue("id"))
 	if err := pg.DeleteRBACRole(id); err != nil {
-		writeErr(w, 400, "删除角色失败: "+err.Error())
+		writeErr(w, 400, "Failed to delete character: "+err.Error())
 		return
 	}
 	writeJSON(w, 200, map[string]any{"ok": true})

@@ -4,10 +4,10 @@ on:
     tags: ["v*"]
 
 permissions:
-  contents: write # 创建 Release 需要
+  contents: write # Create Release Yes.
 
 jobs:
-  # ① 前端静态导出（一次），产物给交叉编译各平台复用
+  # ① Front-end static export (one time), product reused for cross-compilation of platforms
   frontend:
     runs-on: ubuntu-latest
     steps:
@@ -19,7 +19,7 @@ jobs:
           cache-dependency-path: web/package-lock.json
       - run: npm ci
         working-directory: web
-      - name: Stamp version from tag  # 前端版本随 release tag 自动注入，不写死
+      - name: Stamp version from tag  # Frontend with release tag Self-injection, not death.
         run: npm version "${GITHUB_REF_NAME#v}" --no-git-tag-version --allow-same-version
         working-directory: web
       - run: npm run build:static
@@ -29,7 +29,7 @@ jobs:
           name: web-dist
           path: web/out
 
-  # ② 五平台交叉编译（内嵌前端）+ 打 zip
+  # ② Cross-compilation of five platforms (inline front end)+ Fight! zip
   binaries:
     needs: frontend
     runs-on: ubuntu-latest
@@ -59,7 +59,7 @@ jobs:
         run: |
           BIN=antifox
           [ "$GOOS" = "windows" ] && BIN=antifox.exe
-          # 内嵌 skill 库（report-generation 由 Go 侧 SeedSkillFiles 生成，故排除）
+          # Embedded skill Libraryreport-generation by Go Side SeedSkillFiles Generate, so excluded)
           mkdir -p server/skillsdist && cp -r skills/. server/skillsdist/ && rm -rf server/skillsdist/report-generation
           go build -tags embedui -trimpath \
             -ldflags "-s -w -X main.version=${GITHUB_REF_NAME}" \
@@ -74,37 +74,37 @@ jobs:
             cp antifox.exe "$NAME"/
           else
             cp antifox "$NAME"/
-            cp start.sh "$NAME"/                                  # 守护启动脚本（页面「一键更新」所需）
-            mkdir -p "$NAME/deploy" && cp deploy/antifox.service "$NAME/deploy"/  # systemd 模板
+            cp start.sh "$NAME"/                                  # Protect Startup Script (required for Page " One Key Update")
+            mkdir -p "$NAME/deploy" && cp deploy/antifox.service "$NAME/deploy"/  # systemd Templates
           fi
           zip -r "$NAME.zip" "$NAME"
       - uses: actions/upload-artifact@v4
         with:
           name: pkg-${{ matrix.goos }}-${{ matrix.goarch }}
           path: "*.zip"
-      # Linux 生二进制单独上传，供 docker job 复用（免在镜像里重编前端+Go）
+      # Linux Live binary is uploaded separately for docker job Reuse (except for frontends in mirrors)+Go)
       - if: matrix.goos == 'linux'
         uses: actions/upload-artifact@v4
         with:
           name: bin-linux-${{ matrix.goarch }}
           path: antifox
 
-  # ③ 汇总所有 zip → 创建 GitHub Release
+  # ③ Summary zip → Create GitHub Release
   release:
     needs: binaries
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4 # 取 CHANGELOG.md 作 release 说明
+      - uses: actions/checkout@v4 # Remove CHANGELOG.md Do it. release Annotations
       - uses: actions/download-artifact@v4
         with:
           pattern: pkg-*
           merge-multiple: true
           path: dist
-      # 校验和清单：一键自更新(selfupdate 包)下载后按它核对 SHA256，缺它则拒绝安装。
-      # 文件名用 basename（sha256sum 在 dist/ 内生成），与 selfupdate.AssetName 一致。
+      # Checksum list: one key self-up(selfupdate Package)Check it after download. SHA256,Without it, the installation is refused.
+      # The file name is the basename (sha256sum is generated inside dist/), and it matches selfupdate.AssetName exactly.
       - name: Generate SHA256SUMS
         run: cd dist && sha256sum *.zip > SHA256SUMS && cat SHA256SUMS
-      # 言简意赅的「本次更新」：取 CHANGELOG 最上面那个版本段作 release 正文。
+      # "This Update" is short: CHANGELOG The top version. release Text.
       - name: Extract release notes
         run: |
           awk '/^## /{n++} n==1{print}' CHANGELOG.md | tail -n +2 > RELEASE_NOTES.md
@@ -116,8 +116,8 @@ jobs:
             dist/SHA256SUMS
           body_path: RELEASE_NOTES.md
 
-  # ④ 多架构镜像 → 推 GHCR（复用 binaries 编好的 Linux 二进制，
-  #    镜像里只装工具 + 放二进制；arm64 仅需模拟 apt 层，构建快很多）
+  # ④ Multistructure Mirror → Push! GHCR(Reuse binaries Make it up. Linux Binary.
+  #    Only tools in the mirror + Binary;arm64 Simulation only apt Layer, much faster.
   docker:
     needs: binaries
     runs-on: ubuntu-latest
@@ -125,7 +125,7 @@ jobs:
       contents: read
       packages: write
     steps:
-      - uses: actions/checkout@v4 # 取 Dockerfile 与 skills/
+      - uses: actions/checkout@v4 # Remove Dockerfile and skills/
       - uses: actions/download-artifact@v4
         with:
           name: bin-linux-amd64

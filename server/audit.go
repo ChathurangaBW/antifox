@@ -8,7 +8,7 @@ import (
 	"antifox/db"
 )
 
-// 审计日志 API（/api/audit/logs）。完整审计中心后续增强。
+// Audit log API(/api/audit/logs). Follow-up enhancement of the full audit centre.
 
 // GET /api/audit/logs?category=&actor=&action=&result=&limit=&offset=
 func (s *Server) auditLogs(w http.ResponseWriter, r *http.Request) {
@@ -25,7 +25,7 @@ func (s *Server) auditLogs(w http.ResponseWriter, r *http.Request) {
 	offset, _ := strconv.Atoi(q.Get("offset"))
 	logs, total, err := pg.ListAuditLogs(category, actor, action, result, limit, offset)
 	if err != nil {
-		writeErr(w, 500, "获取审计日志失败")
+		writeErr(w, 500, "Failed to obtain audit log")
 		return
 	}
 	if logs == nil {
@@ -34,7 +34,7 @@ func (s *Server) auditLogs(w http.ResponseWriter, r *http.Request) {
 	writeJSON(w, 200, map[string]any{"logs": logs, "total": total})
 }
 
-// auditActor 从当前请求取操作者用户名（审计记录用）。
+// auditActor Remove the user name of the operator from the current request (for audit records).
 func auditActor(r *http.Request) string {
 	if acc := CurrentAccess(r); acc != nil {
 		return acc.User.Username

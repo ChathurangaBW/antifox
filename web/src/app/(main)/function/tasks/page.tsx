@@ -176,7 +176,7 @@ export default function TasksPage() {
     api.llmProfiles().then(setProfiles).catch(() => setProfiles([]));
   }, []);
 
-  // tick every second so running tasks' 运行时长 counts up live.
+  // tick every second so running tasks' Run-time counts up live.
   React.useEffect(() => {
     const i = setInterval(() => setNowSec(Math.floor(Date.now() / 1000)), 1000);
     return () => clearInterval(i);

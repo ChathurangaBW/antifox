@@ -1,343 +1,343 @@
 ---
 name: cloud-security-audit
-description: 云安全审计的专业技能和方法论
+description: Professional skills and methodology for cloud safety audits
 version: 1.0.0
 ---
 
-# 云安全审计
+# Cloud safety audit
 
-## 概述
+## Overview
 
-云安全审计是评估云环境安全性的重要环节。本技能提供云安全审计的方法、工具和最佳实践，涵盖AWS、Azure、GCP等主流云平台。
+This skill provides the methods, tools, and best practices for cloud security auditing, covering mainstream cloud platforms such as AWS, Azure, and GCP.
 
-## 审计范围
+## Audit coverage
 
-### 1. 身份和访问管理
+### 1. Identity and access management
 
-**检查项目：**
-- IAM策略配置
-- 用户权限
-- 角色权限
-- 访问密钥管理
+**Inspection items:**
+- IAMPolicy Configuration
+- User Permissions
+- Role permissions
+- Access Key Management
 
-### 2. 网络安全
+### 2. Network Security
 
-**检查项目：**
-- 安全组配置
-- 网络ACL
-- VPC配置
-- 流量加密
+**Inspection items:**
+- Security Group Configuration
+- NetworkACL
+- VPCConfiguration
+- Flow Encryption
 
-### 3. 数据安全
+### 3. Data Security
 
-**检查项目：**
-- 数据加密
-- 密钥管理
-- 备份策略
-- 数据分类
+**Inspection items:**
+- Data Encryption
+- Key Management
+- Backup Policy
+- Data disaggregation
 
-### 4. 合规性
+### 4. Compliance
 
-**检查项目：**
-- 合规框架
-- 审计日志
-- 监控告警
-- 事件响应
+**Inspection items:**
+- Compliance framework
+- Audit log
+- Security alert.
+- Event response
 
-## AWS安全审计
+## AWSSecurity Audit
 
-### IAM审计
+### IAMAudit
 
-**检查IAM策略：**
+**Inspection of IAM strategy:**
 ```bash
-# 列出所有IAM用户
+# List allIAMUser
 aws iam list-users
 
-# 列出所有IAM策略
+# List allIAMPolicy
 aws iam list-policies
 
-# 检查用户权限
+# Check User Permissions
 aws iam list-user-policies --user-name username
 aws iam list-attached-user-policies --user-name username
 
-# 检查角色权限
+# Check Role Permissions
 aws iam list-role-policies --role-name rolename
 ```
 
-**常见问题：**
-- 过度权限
-- 未使用的访问密钥
-- 密码策略弱
-- MFA未启用
+**Common problems:**
+- Excessive Permissions
+- Unused access keys
+- The password policy is weak.
+- MFANot enabled
 
-### S3安全审计
+### S3Security Audit
 
-**检查S3存储桶：**
+**Inspection of S3 storage drums:**
 ```bash
-# 列出所有存储桶
+# List all storage barrels
 aws s3 ls
 
-# 检查存储桶策略
+# Check the storage drum policy
 aws s3api get-bucket-policy --bucket bucketname
 
-# 检查存储桶ACL
+# Check storage drumsACL
 aws s3api get-bucket-acl --bucket bucketname
 
-# 检查存储桶加密
+# Check storage drum encryption
 aws s3api get-bucket-encryption --bucket bucketname
 ```
 
-**常见问题：**
-- 公开访问
-- 未加密
-- 版本控制未启用
-- 日志记录未启用
+**Common problems:**
+- Public access
+- Synchronising folder failed: %s: %s
+- Version control not enabled
+- Log logs not enabled
 
-### 安全组审计
+### Audit of the Security Group
 
-**检查安全组：**
+**Inspection Security Unit:**
 ```bash
-# 列出所有安全组
+# List all security teams.
 aws ec2 describe-security-groups
 
-# 检查开放端口
+# Check Open Port
 aws ec2 describe-security-groups --group-ids sg-xxx
 ```
 
-**常见问题：**
-- 0.0.0.0/0开放
-- 不必要的端口开放
-- 规则过于宽松
+**Common problems:**
+- 0.0.0.0/0Open
+- Unnecessary port open
+- The rules are too loose.
 
-### CloudTrail审计
+### CloudTrailAudit
 
-**检查审计日志：**
+**Inspection of audit log:**
 ```bash
-# 列出所有跟踪
+# List All Tracks
 aws cloudtrail describe-trails
 
-# 检查日志文件完整性
+# Check log file integrity
 aws cloudtrail get-trail-status --name trailname
 ```
 
-## Azure安全审计
+## AzureSecurity Audit
 
-### 订阅和资源组
+### Subscriptions and Resources Group
 
-**检查订阅：**
+**Checked subscription:**
 ```bash
-# 列出所有订阅
+# List all subscriptions
 az account list
 
-# 检查资源组
+# Inspection Resource Group
 az group list
 ```
 
-### 网络安全组
+### Cyber Security Unit
 
-**检查NSG：**
+**Inspection of NSG:**
 ```bash
-# 列出所有NSG
+# List allNSG
 az network nsg list
 
-# 检查NSG规则
+# CheckNSGRules
 az network nsg rule list --nsg-name nsgname --resource-group rgname
 ```
 
-### 存储账户
+### Store Account
 
-**检查存储账户：**
+**Inspection of storage account:**
 ```bash
-# 列出所有存储账户
+# List all stored accounts
 az storage account list
 
-# 检查访问策略
+# Check access policy
 az storage account show --name accountname --resource-group rgname
 ```
 
-## GCP安全审计
+## GCPSecurity Audit
 
-### 项目和组织
+### Projects and organization
 
-**检查项目：**
+**Inspection items:**
 ```bash
-# 列出所有项目
+# List all items
 gcloud projects list
 
-# 检查IAM策略
+# CheckIAMPolicy
 gcloud projects get-iam-policy project-id
 ```
 
-### 计算引擎
+### Calculating Engines
 
-**检查实例：**
+**Examples of inspections:**
 ```bash
-# 列出所有实例
+# List all examples
 gcloud compute instances list
 
-# 检查防火墙规则
+# Check firewall rules
 gcloud compute firewall-rules list
 ```
 
-### 存储
+### Storage
 
-**检查存储桶：**
+**Inspection of storage drums:**
 ```bash
-# 列出所有存储桶
+# List all storage barrels
 gsutil ls
 
-# 检查存储桶权限
+# Check storage drum privileges
 gsutil iam get gs://bucketname
 ```
 
-## 自动化工具
+## Automation tools
 
 ### Scout Suite
 
 ```bash
-# AWS审计
+# AWSAudit
 scout aws
 
-# Azure审计
+# AzureAudit
 scout azure
 
-# GCP审计
+# GCPAudit
 scout gcp
 ```
 
 ### Prowler
 
 ```bash
-# AWS安全审计
+# AWSSecurity audit
 prowler -c check11,check12,check13
 
-# 完整审计
+# Complete audit
 prowler
 ```
 
 ### CloudSploit
 
 ```bash
-# 扫描AWS账户
+# ScanAWSAccount
 cloudsploit scan aws
 
-# 扫描Azure订阅
+# ScanAzureSubscriptions
 cloudsploit scan azure
 ```
 
 ### Pacu
 
 ```bash
-# AWS渗透测试框架
+# AWSInfiltration test frame
 pacu
 ```
 
-## 审计清单
+## Audit list
 
-### IAM安全
-- [ ] 检查用户权限
-- [ ] 检查角色权限
-- [ ] 检查访问密钥
-- [ ] 检查密码策略
-- [ ] 检查MFA启用情况
+### IAMSecurity
+- [ ] Check User Permissions
+- [ ] Check Role Permissions
+- [ ] Check access keys
+- [ ] Check password policy
+- [ ] Check MFA usage
 
-### 网络安全
-- [ ] 检查安全组/NSG规则
-- [ ] 检查VPC配置
-- [ ] 检查网络ACL
-- [ ] 检查流量加密
+### Network Security
+- [ ] Inspection of security team/NSG rules
+- [ ] Check VPC Configuration
+- [ ] Check the networkACL
+- [ ] Check traffic encryption
 
-### 数据安全
-- [ ] 检查数据加密
-- [ ] 检查密钥管理
-- [ ] 检查备份策略
-- [ ] 检查数据分类
+### Data Security
+- [ ] Check Data Encryption
+- [ ] Check Key Management
+- [ ] Check backup policy
+- [ ] Check data disaggregation
 
-### 合规性
-- [ ] 检查审计日志
-- [ ] 检查监控告警
-- [ ] 检查事件响应
-- [ ] 检查合规框架
+### Compliance
+- [ ] Inspection of audit logs
+- [ ] Check the surveillance alarms.
+- [ ] Check incident response
+- [ ] Check compliance framework
 
-## 常见安全问题
+## Common Security Issues
 
-### 1. 过度权限
+### 1. Excessive Permissions
 
-**问题：**
-- IAM策略过于宽松
-- 用户拥有管理员权限
-- 角色权限过大
+**Question:**
+- IAMThe strategy is too loose.
+- User has administrator privileges
+- It's too much of a role.
 
-**修复：**
-- 最小权限原则
-- 定期审查权限
-- 使用IAM策略模拟
+**Repairs:**
+- Principle of Least Privilege
+- Periodic review of competence
+- Simulate using IAM strategy
 
-### 2. 公开资源
+### 2. Open Resources
 
-**问题：**
-- S3存储桶公开
-- 安全组开放0.0.0.0/0
-- 数据库公开访问
+**Question:**
+- S3Storage drums are public
+- Security team open.0.0.0.0/0
+- Open access to databases
 
-**修复：**
-- 限制访问范围
-- 使用私有网络
-- 启用访问控制
+**Repairs:**
+- Restricted access
+- Use private networks
+- Enable access control
 
-### 3. 未加密数据
+### 3. Unencrypted Data
 
-**问题：**
-- 存储未加密
-- 传输未加密
-- 密钥管理不当
+**Question:**
+- Store unencrypted
+- Transfer unencrypted
+- Unable to manage key
 
-**修复：**
-- 启用加密
-- 使用TLS/SSL
-- 使用密钥管理服务
+**Repairs:**
+- Enable encryption
+- UsingTLS/SSL
+- Use key management services
 
-### 4. 日志缺失
+### 4. Log Missing
 
-**问题：**
-- 未启用审计日志
-- 日志未保留
-- 日志未监控
+**Question:**
+- Audit log not activated
+- Log not kept
+- Log not monitored
 
-**修复：**
-- 启用CloudTrail/Azure Monitor
-- 设置日志保留策略
-- 配置监控告警
+**Repairs:**
+- EnableCloudTrail/Azure Monitor
+- Set log retention policy
+- Configure surveillance alarms
 
-## 最佳实践
+## Best Practices
 
-### 1. 最小权限
+### 1. Least Privilege
 
-- 只授予必要权限
-- 定期审查权限
-- 使用IAM策略模拟
+- Grant only necessary permissions
+- Periodic review of competence
+- Simulate using IAM strategy
 
-### 2. 多层防护
+### 2. Multiple layers of protection.
 
-- 网络层防护
-- 应用层防护
-- 数据层防护
+- Network layer protection
+- Application layer protection
+- Data layer protection
 
-### 3. 监控和告警
+### 3. Surveillance and alarm.
 
-- 启用审计日志
-- 配置监控告警
-- 建立事件响应流程
+- Enable audit log
+- Configure surveillance alarms
+- Create event response process
 
-### 4. 合规性
+### 4. Compliance
 
-- 遵循合规框架
-- 定期安全审计
-- 文档化安全策略
+- Compliance framework adhered to
+- Periodic security audits
+- Documentation security policy
 
-## 注意事项
+## Important Notes
 
-- 仅在授权环境中进行审计
-- 避免对生产环境造成影响
-- 注意不同云平台的差异
-- 定期进行安全审计
+- Audit only in an authorized environment
+- Avoiding effects on the production environment
+- Pay attention to the differences between cloud platforms.
+- Regular security audits conducted

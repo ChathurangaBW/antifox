@@ -11,10 +11,10 @@ import (
 	"antifox/engine/llm"
 )
 
-// LLM 轮询(故障转移)服务端接线（移植自 AntiFox 0.3.3，适配 antifox 单二进制）：
-//   - 只有【全局激活配置】这条路径(未 pin、未绑定)才轮询；
-//   - 链序 = 激活配置(永远居首) → 其余按 priority DESC，排除 pool_exclude 的；
-//   - 熔断状态进程级共享(s.llmHealth)，重建 pool 不清空、重启从 PG 恢复未过期窗口。
+// LLM Rotation(Fragmentation)Service-end connection (transplanted from AntiFox 0.3.3,Fit antifox Single binary:
+//   - Only [global activation configuration] path(Not pin, Unbound)It's just a question.
+//   - Chain = Activate Configuration(Forever.) → The rest press priority DESC,Exclude pool_exclude ;
+//   - Melting State Process Level Sharing(s.llmHealth),Reconstruction pool Not clear. Restart from PG Restores an unexpired window.
 
 // newLLMHealthRegistry builds the process-wide circuit-breaker registry, mirroring
 // state into PG so a cooling-off window survives a restart. Writes are async and
@@ -31,7 +31,7 @@ func newLLMHealthRegistry(pg *db.DB) *llmpool.Registry {
 		}
 		go func() {
 			if err := pg.SaveLLMHealth(h); err != nil {
-				log.Printf("[llmpool] 熔断状态落库失败: %v", err)
+				log.Printf("[llmpool] Melting status library failed: %v", err)
 			}
 		}()
 	}
@@ -44,7 +44,7 @@ func newLLMHealthRegistry(pg *db.DB) *llmpool.Registry {
 				st.OpenUntil = *h.OpenUntil
 			}
 			reg.Restore(h.ProfileID, st)
-			log.Printf("[llmpool] 恢复熔断状态: 配置 #%d 冷却至 %s", h.ProfileID, st.OpenUntil.Format(time.RFC3339))
+			log.Printf("[llmpool] Restore melting state: Configure #%d It's cooling. %s", h.ProfileID, st.OpenUntil.Format(time.RFC3339))
 		}
 	}
 	return reg
@@ -76,7 +76,7 @@ func (s *Server) poolChain(headID int64, headProv llm.Provider, headCfg agent.Co
 	}
 	profs, err := s.m.pg.PoolProfiles()
 	if err != nil {
-		log.Printf("[llmpool] 读取轮询链失败: %v", err)
+		log.Printf("[llmpool] Failed to read round query chain: %v", err)
 		return nil
 	}
 	members := []*llmpool.Member{{
@@ -115,14 +115,14 @@ func (s *Server) poolForActive(activeID int64, prov llm.Provider, cfg agent.Conf
 	for _, m := range pool.Members() {
 		names = append(names, m.Name+"/"+m.Model)
 	}
-	log.Printf("[llmpool] LLM 轮询已启用，链路(%d): %v", len(names), names)
+	log.Printf("[llmpool] LLM Query has been activated, link.(%d): %v", len(names), names)
 	return pool
 }
 
 // poolForBinding wraps a role-bound / task-pinned profile's provider so it ALSO fails
 // over to the chain (bound profile as head) when the pool is on. Off / single usable
 // member → returns the bare provider unchanged (old behavior). This is what lets a
-// planner-strong / worker-weak 分级 role, or a task pinned to one profile, keep running
+// planner-strong / worker-weak Level role, or a task pinned to one profile, keep running
 // when that profile runs out of credit instead of failing hard.
 func (s *Server) poolForBinding(id int64, prov llm.Provider, cfg agent.Config) llm.Provider {
 	if pool := s.poolChain(id, prov, cfg); pool != nil {

@@ -5,31 +5,31 @@ import (
 	"encoding/json"
 	"strings"
 
+	"antifox/db"
 	"antifox/engine/agentcore"
 	acperm "antifox/engine/permission"
 	actool "antifox/engine/tool"
-	"antifox/db"
 )
 
-// goalsDefaultTmpl is the built-in EDITABLE body (段 [A]) of the goals-decomposer
+// goalsDefaultTmpl is the built-in EDITABLE body (Paragraph [A]) of the goals-decomposer
 // prompt, seeded into agent_prompts. No template vars are used today.
-const goalsDefaultTmpl = `你是渗透测试目标分解器。你的职责是从用户输入中识别出**最终要达成的结果**，而不是规划攻击步骤。
+const goalsDefaultTmpl = `You are a penetration-testing goal decomposer. Your responsibility is to identify the **final outcomes to be achieved** from the user's input, not to plan attack steps.
 
-**目标 = 最终可交付/可核验的结果**
+**Goal = a final deliverable or independently verifiable outcome**
 
-**不是目标的内容（禁止列为子目标）**：
-- 信息收集、侦察、端点扫描
-- 漏洞分析与验证过程
-- 攻击步骤、利用手段
-- 结果验证步骤
+**The following are not goals and must not be listed as subgoals:**
+- Information gathering, reconnaissance, or endpoint scanning
+- Vulnerability analysis or validation activities
+- Attack steps or exploitation techniques
+- Steps used only to verify a result
 
-**拆分原则**：
-- 用户描述的最终目标只有一个 → 输出一个
-- 存在多个**相互独立**的最终交付物 → 分别列出
-- 能对应明确漏洞类的标注 vulnclass；信息收集/业务逻辑类目标留空
-- 严禁臆造用户未提及的目标
+**Decomposition rules:**
+- If the user describes only one final outcome, output one goal.
+- If the user requests multiple **independent** final deliverables, list them separately.
+- Set vulnclass when a goal clearly corresponds to a vulnerability class, such as SQLi or IDOR. Leave it empty for business-logic or non-vulnerability outcomes.
+- Never invent goals that the user did not request.
 
-调用 set_goals 提交结果。`
+Call set_goals to submit the result.`
 
 // GoalSpec is one decomposed objective.
 type GoalSpec struct {
@@ -42,7 +42,7 @@ type GoalSpec struct {
 // no provider is configured or the call yields nothing — the caller then falls
 // back to a rule-based split so goal nodes always exist.
 //
-// desc is the task's free-text description (背景：靶标范围/flag 数量/交战说明等).
+// desc is the task's free-text description (Background: range of targets/flag Number/Statements of engagement, etc.).
 // It is fed alongside the goal so the decomposer no longer splits blind — the
 // prompt still forbids inventing anything the two texts don't state.
 //
@@ -59,12 +59,12 @@ func DecomposeGoals(ctx context.Context, c Config, goalText, desc string, emit f
 	captured := false
 	submitTool := actool.Build(actool.Spec{
 		Name:        "set_goals",
-		Description: "提交拆分后的目标列表。",
+		Description: "Submit the decomposed list of independently verifiable goals.",
 		Schema: map[string]any{"type": "object", "properties": map[string]any{
 			"goals": map[string]any{"type": "array", "items": map[string]any{
 				"type": "object", "properties": map[string]any{
-					"text":      map[string]any{"type": "string", "description": "一个独立可验证的目标"},
-					"vulnclass": map[string]any{"type": "string", "description": "对应漏洞类(若明确)，如 SQLi/IDOR；业务逻辑目标可留空"},
+					"text":      map[string]any{"type": "string", "description": "One independently verifiable goal"},
+					"vulnclass": map[string]any{"type": "string", "description": "The corresponding vulnerability class, when explicit (for example SQLi or IDOR); leave empty for business-logic goals"},
 				}, "required": []string{"text"},
 			}},
 		}, "required": []string{"goals"}},
@@ -79,9 +79,9 @@ func DecomposeGoals(ctx context.Context, c Config, goalText, desc string, emit f
 	// {{.EngagementDescription}} template var — else a prompt that references the var
 	// would inject the description twice. System prompt stays pure static instructions.
 	sys := renderSystem("goals", goalsDefaultTmpl, GoalsVars{})
-	userMsg := "任务目标：\n" + goalText
+	userMsg := "Task goal:\n" + goalText
 	if d := strings.TrimSpace(desc); d != "" {
-		userMsg += "\n\n任务描述（背景信息，可能含靶标范围/flag 数量/交战说明；仅供参考，不要臆造其中未提及的内容）：\n" + d
+		userMsg += "\n\nTask description (background that may include target scope, flag count, or rules of engagement; use it only as context and do not invent anything it does not state):\n" + d
 	}
 	// Use captureRun so every LLM step is emitted as an activity record (visible in
 	// the plan tab under the round-0 marker). Falls back gracefully when emit is nil.

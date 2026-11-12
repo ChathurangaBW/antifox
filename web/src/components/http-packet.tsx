@@ -7,9 +7,9 @@ import { useTranslation } from "react-i18next";
 
 import { cn } from "@/lib/utils";
 
-// HttpPacket：带行号 + Burp 风语法高亮 + 自动换行 + 一键复制 + 报文内搜索(高亮全部命中 +
-// 计数) 的 HTTP 报文渲染件。请求/响应共用；报文视图(流量页 + 截图模式)复用同一组件，样式
-// 统一、可直接截图替代 Burp。搜索命中计数便于「截图证明获取到的数据量」。
+// HttpPacket:Line Number + Burp High accent + Automatic Line Break + Copy one. + Search in the message(Highlight all hits. +
+// Shared HTTP rendering for requests and responses, used by both the paper view and the flow page (including screenshot mode); reuses the same component and styles.
+// Uniform, directly truncable instead Burp. The search for the hit count is easy to "interview the amount of data obtained."
 
 export function statusTone(status: number): string {
   if (status >= 500) return "text-red-500";
@@ -33,14 +33,14 @@ const C = {
   tag: "text-sky-600 dark:text-sky-400",
 };
 
-// requestWithHost 为缺少 Host 头的旧报文补上 Host（net/http 把 Host 放在 Header 之外，早期录制可能漏）。
+// requestWithHost For Missing Host The old paper on the head. Host(net/http Put Host Put it on. Header Outside, early recording may be missing).
 export function requestWithHost(raw: string, host: string, url: string): string {
   if (!raw.trim() || /^host\s*:/im.test(raw)) return raw;
   let h = host;
   try {
     h = new URL(url).host || host;
   } catch {
-    /* 相对/旧 URL 回退到索引的 host */
+    /* Relative/Old URL Back to index host */
   }
   const nl = raw.includes("\r\n") ? "\r\n" : "\n";
   const end = raw.indexOf(nl);

@@ -31,7 +31,7 @@ function fmtSize(n: number): string {
 }
 
 // KnowledgeTab manages THIS task's knowledge library (scope=task): upload the
-// engagement's background (授权书/评分规则/范围/检查项) so the agents auto-retrieve
+// engagement's background (Authorization/Rating rules/Scope/Checkpoint) so the agents auto-retrieve
 // it alongside the global library while working this task.
 export function KnowledgeTab({ taskId }: { taskId: string }) {
   const { t } = useTranslation();

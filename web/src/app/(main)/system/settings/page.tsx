@@ -212,7 +212,7 @@ export default function SystemSettingsPage() {
         <p className="text-muted-foreground text-sm">{t("settings.subtitle")}</p>
       </div>
 
-      {/* 2 列自适应瀑布流：窄屏单列，≥lg 双列按列紧凑排布(避免行高对齐留白) */}
+      {/* 2 It's an adaptation of waterfalls: a narrow screen line.≥lg Double column tight lined(Avoid line alignment) */}
       <div className="columns-1 gap-4 md:gap-6 lg:columns-2 [&>*]:mb-4 md:[&>*]:mb-6 [&>*]:break-inside-avoid">
       <UpdateCard />
 

@@ -31,7 +31,7 @@ import { cn } from "@/lib/utils";
 
 const SEVERITY_ORDER: Record<Severity, number> = { critical: 4, high: 3, medium: 2, low: 1 };
 
-// 实心强色严重度徽标——全部填充、色相区分(红→橙→琥珀→石板)，整齐可扫读、比浅底更扎实。
+// Solid, color-intensive logo——Fill All, Color Distinguishing(Red→Orange→Amber.→Tablet),It's more solid than shallow.
 const SEV_PILL: Record<string, string> = {
   critical: "border-transparent bg-red-600 text-white",
   high: "border-transparent bg-orange-500 text-white",
@@ -63,7 +63,7 @@ function fmtTime(ts: string) {
 const TLD = "org|com|net|io|gov|edu|cn|hk|tw|co|info|biz|app|dev|xyz|me|jp|kr|uk|us|de|fr|ru|sg|au";
 function extractTarget(f: Finding): string {
   const text = `${f.summary ?? ""} ${f.evidence ?? ""}`;
-  const url = text.match(/https?:\/\/[^\s"'）)\]]+/i);
+  const url = text.match(/https?:\/\/[^\s"'))\]]+/i);
   if (url) {
     try {
       return new URL(url[0]).host;
@@ -79,10 +79,10 @@ function extractTarget(f: Finding): string {
 }
 
 // vulnCategory collapses a verbose vulnclass to its category: everything before the
-// first parenthetical or " — / - " description. "Broken Access Control / IDOR (跨用户写)"
-// and "… IDOR — Unauthenticated enum" both become "Broken Access Control / IDOR".
+// first parenthetical or " — / - " description. "Broken Access Control / IDOR (Cross-User)"
+// and "... IDOR — Unauthenticated enum" both become "Broken Access Control / IDOR".
 function vulnCategory(vc: string): string {
-  return (vc || "").split(/[(（]|\s[—–-]\s/)[0].trim();
+  return (vc || "").split(/[((]|\s[—–-]\s/)[0].trim();
 }
 
 export default function FindingsPage() {
@@ -112,7 +112,7 @@ export default function FindingsPage() {
     api.tasks().then((r) => setTasks(r.tasks)).catch(() => {});
   }, []);
 
-  // Agents put long, slightly-varying descriptions INTO vulnclass ("Cat / Sub (一长串)"),
+  // Agents put long, slightly-varying descriptions INTO vulnclass ("Cat / Sub (A long string.)"),
   // so a raw distinct-list is hundreds of near-duplicate entries. Collapse each to its
   // category (strip the parenthetical / dash description) and count per category, so the
   // type filter is short and usable.
@@ -126,7 +126,7 @@ export default function FindingsPage() {
   }, [findings]);
 
   // distinct tasks present in the loaded findings, for the task filter dropdown;
-  // labels prefer the task's 名称/目标 (from the tasks list) then #id·描述.
+  // labels prefer the task's Name/Objective (from the tasks list) then #id·Description.
   const tmap = React.useMemo(() => taskMap(tasks), [tasks]);
   const taskOptions = React.useMemo(() => {
     const descById = new Map<string, string>();

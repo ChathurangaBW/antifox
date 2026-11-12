@@ -10,21 +10,21 @@ import (
 )
 
 // =====================================================================
-// 统一资产表
+// Consolidated statement of assets
 // =====================================================================
 
 // Asset is a row in the assets table.
 type Asset struct {
-	ID          int64   `json:"id"`
-	Type        string  `json:"type"`
-	CompanyID   *int64  `json:"company_id,omitempty"`
-	TaskIDs     []int64 `json:"task_ids"`
-	Domain      string  `json:"domain,omitempty"`
-	RootDomain  string  `json:"root_domain,omitempty"`
-	IP          string  `json:"ip,omitempty"`
-	CSegment    string  `json:"c_segment,omitempty"`
-	Port        *int    `json:"port,omitempty"`
-	ICP         string  `json:"icp,omitempty"`
+	ID         int64   `json:"id"`
+	Type       string  `json:"type"`
+	CompanyID  *int64  `json:"company_id,omitempty"`
+	TaskIDs    []int64 `json:"task_ids"`
+	Domain     string  `json:"domain,omitempty"`
+	RootDomain string  `json:"root_domain,omitempty"`
+	IP         string  `json:"ip,omitempty"`
+	CSegment   string  `json:"c_segment,omitempty"`
+	Port       *int    `json:"port,omitempty"`
+	ICP        string  `json:"icp,omitempty"`
 	// ip fields
 	BoundDomains []string         `json:"bound_domains,omitempty"`
 	OpenPorts    []map[string]any `json:"open_ports,omitempty"`
@@ -970,7 +970,6 @@ const assetSelectCols = `SELECT id, type, company_id, array_to_json(task_ids)::t
        COALESCE(page_title,''), array_to_json(technologies)::text, array_to_json(auth)::text,
        COALESCE(method,''), array_to_json(params)::text, extra, last_seen::text
 FROM assets`
-
 
 // GetByIDs returns assets with the given ids (order preserved by id array order).
 func (s *AssetStore) GetByIDs(ids []int64) ([]*Asset, error) {

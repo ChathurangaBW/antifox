@@ -15,7 +15,7 @@ import (
 	"time"
 )
 
-// EmbedConfig is one OpenAI-compatible embeddings endpoint (works with 智谱/
+// EmbedConfig is one OpenAI-compatible embeddings endpoint (works with Think./
 // SiliconFlow/OpenAI/Ollama — all expose POST {base}/embeddings).
 type EmbedConfig struct {
 	BaseURL string
@@ -45,10 +45,10 @@ type embedResp struct {
 // response's index field.
 func EmbedTexts(ctx context.Context, cfg EmbedConfig, texts []string) ([][]float32, error) {
 	if strings.TrimSpace(cfg.APIKey) == "" {
-		return nil, fmt.Errorf("embedder 未配置 api_key")
+		return nil, fmt.Errorf("embedder Not configured api_key")
 	}
 	if strings.TrimSpace(cfg.Model) == "" {
-		return nil, fmt.Errorf("embedder 未配置 model")
+		return nil, fmt.Errorf("embedder Not configured model")
 	}
 	if len(texts) == 0 {
 		return nil, nil
@@ -67,22 +67,22 @@ func EmbedTexts(ctx context.Context, cfg EmbedConfig, texts []string) ([][]float
 	req.Header.Set("Authorization", "Bearer "+cfg.APIKey)
 	resp, err := (&http.Client{Timeout: 90 * time.Second}).Do(req)
 	if err != nil {
-		return nil, fmt.Errorf("embeddings 请求失败: %w", err)
+		return nil, fmt.Errorf("embeddings Request Failed: %w", err)
 	}
 	defer resp.Body.Close()
 	raw, _ := io.ReadAll(io.LimitReader(resp.Body, 64<<20))
 	var out embedResp
 	if err := json.Unmarshal(raw, &out); err != nil {
-		return nil, fmt.Errorf("embeddings 响应解析失败 (HTTP %d): %s", resp.StatusCode, snippet(raw))
+		return nil, fmt.Errorf("embeddings Reply Parsing Failed (HTTP %d): %s", resp.StatusCode, snippet(raw))
 	}
 	if out.Error != nil && out.Error.Message != "" {
-		return nil, fmt.Errorf("embeddings 错误: %s", out.Error.Message)
+		return nil, fmt.Errorf("embeddings Error: %s", out.Error.Message)
 	}
 	if resp.StatusCode >= 400 {
 		return nil, fmt.Errorf("embeddings HTTP %d: %s", resp.StatusCode, snippet(raw))
 	}
 	if len(out.Data) != len(texts) {
-		return nil, fmt.Errorf("embeddings 数量不符: got %d want %d", len(out.Data), len(texts))
+		return nil, fmt.Errorf("embeddings The number doesn't match.: got %d want %d", len(out.Data), len(texts))
 	}
 	res := make([][]float32, len(texts))
 	for _, d := range out.Data {

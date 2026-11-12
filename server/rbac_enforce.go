@@ -7,14 +7,14 @@ import (
 	"antifox/db"
 )
 
-// RBAC 权限强制拦截：路由 → 所需权限映射。
-// 安全阀：未映射路由放行（不打成 403，避免遗漏破坏平台）；admin 拥有全部权限永不被拦。
-// 开关：settings 键 rbac.enforce（默认 true）。
+// RBAC Permission to enforce interception: route → requires permission maps.
+// Safety valve: Unmagnified routers released (not completed) 403,Avoiding leakage to destroy platforms;admin All rights will never be stopped.
+// Switches:settings Keys rbac.enforce(Default true).
 
-// isAdmin 报告当前请求是否由内置 admin 角色发起。用于额外收紧「能在宿主机执行命令」
-// 这类高危操作（stdio MCP、command/script/shell 自定义工具）——这些等价于主机命令执行，
-// 只应由 admin 使用，不随 tool:write / mcp:write 下放给 operator。无授权画像时按非 admin
-// 处理（fail-closed）。
+// isAdmin Report whether the current request is built-in admin Activate. For additional tightening to "capable of executing commands at the host."
+// This type of high-risk operationstdio MCP, command/script/shell Custom tool)——These are equivalent to the implementation of the host order.
+// Should only admin Use, leave tool:write / mcp:write Delegation of authority operator. If you're not allowed to paint admin
+// Processfail-closed).
 func isAdmin(r *http.Request) bool {
 	acc := CurrentAccess(r)
 	if acc == nil {
@@ -28,7 +28,7 @@ func isAdmin(r *http.Request) bool {
 	return false
 }
 
-// hostExecToolKind 报告某自定义工具类型是否会在宿主机上执行命令/脚本。
+// hostExecToolKind Report whether a custom tool type will execute the command on the host/Script.
 func hostExecToolKind(kind string) bool {
 	switch kind {
 	case "command", "script", "shell":
@@ -37,7 +37,7 @@ func hostExecToolKind(kind string) bool {
 	return false
 }
 
-// crudPerm 按 HTTP 方法给出 read/write/delete 权限。
+// crudPerm Press HTTP Method given read/write/delete Permission.
 func crudPerm(method, module string) string {
 	switch method {
 	case http.MethodGet, http.MethodHead:
@@ -56,7 +56,7 @@ func crudPerm(method, module string) string {
 	}
 }
 
-// permissionForRequest 返回该请求所需权限；返回 "" 表示未映射（放行）。
+// permissionForRequest Permission to return the request; return "" indicates that the map is unmapped.
 func permissionForRequest(method, fullPath string) string {
 	p := strings.TrimPrefix(fullPath, "/api")
 	switch {
@@ -103,16 +103,16 @@ func permissionForRequest(method, fullPath string) string {
 	case strings.HasPrefix(p, "/settings"):
 		return crudPerm(method, "config")
 	case strings.HasPrefix(p, "/update"):
-		// 一键更新归在系统配置下：检查/进度 = config:read；apply/rollback(POST) = config:write
-		// （config:write 仅给 admin，故高危的下载换装/回滚只有 admin 能触发）。
+		// One key update under system configuration: check/Progress = config:read;apply/rollback(POST) = config:write
+		// (config:write Only for admin,So high-risk downloads and reloads/♪ Rolling back ♪ admin It can be triggered.
 		return crudPerm(method, "config")
 	case strings.HasPrefix(p, "/report"):
-		// 覆盖 /report, /reports, /report/generate, /report-settings,
-		// /report-templates, /report-assets（均以 /report 开头）。
-		// GET=read(查看/下载/状态)，POST/PUT=write(生成报告/管理模版设置)，
-		// DELETE=delete(删报告/模版)。report 模块 read/write/delete 齐全。
+		// Overwrite /report, /reports, /report/generate, /report-settings,
+		// /report-templates, /report-assets (other than /report at the top level).
+		// GET=read(View/Download/Status),POST/PUT=write(Generate Report/Manage Template Settings),
+		// DELETE=delete(Delete Report/Template). report Module read/write/delete Full.
 		return crudPerm(method, "report")
 	default:
-		return "" // 未映射 → 放行
+		return "" // Unmapped → Let go!
 	}
 }

@@ -545,7 +545,7 @@ export default function MCPPage() {
         </SheetContent>
       </Sheet>
 
-      {/* ── MCP 调用统计 ── */}
+      {/* ── MCP Call Statistics ── */}
       <Sheet open={statsOpen} onOpenChange={setStatsOpen}>
         <SheetContent side="right" className="flex w-full flex-col gap-0 data-[side=right]:sm:max-w-xl">
           <SheetHeader className="px-4 pt-4">

@@ -442,7 +442,7 @@ func (d *DB) TokenTotalsAll() (map[int64]TokenUsage, error) {
 // LastActivityAll returns the unix time of the most recent activity per
 // exploration (exploration_id → max created_at epoch), one query for all tasks.
 // Persisted (unlike Engine.LastActivity's in-memory map), so it survives restarts
-// and gives终态任务 a stable "ran until" time for computing run duration.
+// and givesFinal Task a stable "ran until" time for computing run duration.
 func (d *DB) LastActivityAll() (map[int64]int64, error) {
 	rows, err := d.Query(`SELECT exploration_id, EXTRACT(EPOCH FROM MAX(created_at))::bigint FROM activity GROUP BY exploration_id`)
 	if err != nil {
@@ -570,8 +570,8 @@ func scanActivities(rows *sql.Rows, byID map[int64]Activity) error {
 // the whole-task stream (nodeID==nil). It is the most-recent `limit` steps overall
 // (so a long-running task shows CURRENT activity, not the first `limit` recon steps),
 // UNIONed with the most-recent `limit` main-agent steps (worker='mainagent' — the
-// 编排会话). The conversation is small but on a long task it predates the recent
-// window; without this union it falls off the replay and 编排会话 renders empty even
+// Organisation). The conversation is small but on a long task it predates the recent
+// window; without this union it falls off the replay and Organisation renders empty even
 // though the turns are persisted. Ascending by id; cursor = max id returned.
 func (s *ExplorationStore) ActivityReplay(sinceID int64, limit int) ([]Activity, int64, error) {
 	if limit <= 0 {

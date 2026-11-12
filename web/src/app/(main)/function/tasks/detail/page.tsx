@@ -179,7 +179,7 @@ function TaskDetailInner() {
   }
 
   const engineMode = paused ? "paused" : task.engine_mode ?? "idle";
-  // 停机态 = 终态(done/failed/timeout) 或 stalled → 可「继续运行」。
+  // Interrupted mode = Final(done/failed/timeout) or stalled → It's not like it's going to work.
   const terminal = ["done", "failed", "timeout"].includes(task.status);
   const stopped = terminal || !!task.stalled || task.engine_mode === "stalled";
 

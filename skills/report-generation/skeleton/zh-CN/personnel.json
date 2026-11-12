@@ -1,12 +1,12 @@
 [
   {
-    "contact": "",
-    "name": "项目负责人 / 安全工程师",
-    "role": "项目负责人 / 安全工程师"
+    "name": "Lead Consultant / Security Engineer",
+    "role": "Lead Consultant / Security Engineer",
+    "contact": ""
   },
   {
-    "contact": "",
-    "name": "红队评估小组",
-    "role": "攻防团队"
+    "name": "Red Team Assessment Group",
+    "role": "Offensive Security Team",
+    "contact": ""
   }
 ]

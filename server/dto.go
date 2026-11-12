@@ -29,24 +29,24 @@ func rawString(raw json.RawMessage) string {
 
 // ---- Task (frontend "Task") ---- created_at as RFC3339, plus a derived status.
 type TaskDTO struct {
-	ID            string        `json:"id"`
-	ExplorationID int64         `json:"exploration_id"`
-	Name          string        `json:"name"` // 简短任务名/目标；空=回退 #id·描述
-	Description   string        `json:"description"`
-	Goal          string        `json:"goal"`
-	Status        string        `json:"status"` // created | running | paused | done | failed
-	CreatedAt     string        `json:"created_at"`
-	CreatedUnix   int64         `json:"created_unix"`       // created_at as unix seconds (for run-duration calc)
-	CompletedAt   string        `json:"completed_at"`       // RFC3339 finish time (done/failed); "" if unfinished
-	CompletedUnix int64         `json:"completed_unix"`     // completed_at as unix seconds (0 if unfinished)
-	LastActivity  int64         `json:"last_activity_unix"` // unix seconds of the last activity (0 if none)
-	Paused        bool          `json:"paused"`
-	Tokens        TokenTotalDTO `json:"tokens"` // whole-task token consumption
-	GoalsTotal     int          `json:"goals_total"`
-	GoalsMet       int          `json:"goals_met"`
-	LLMProfileID   *int64       `json:"llm_profile_id,omitempty"` // LLM profile used for this task; nil = default
-	TimeoutSeconds int          `json:"timeout_seconds"`          // 任务级超时(秒);0=不限时。供编辑回填。
-	Egress         string       `json:"egress,omitempty"`         // 出口代理:''=跟随全局|'direct'=直连|'proxy'=走全局代理
+	ID             string        `json:"id"`
+	ExplorationID  int64         `json:"exploration_id"`
+	Name           string        `json:"name"` // Short Task Name/targets; empty=Back #id·Description
+	Description    string        `json:"description"`
+	Goal           string        `json:"goal"`
+	Status         string        `json:"status"` // created | running | paused | done | failed
+	CreatedAt      string        `json:"created_at"`
+	CreatedUnix    int64         `json:"created_unix"`       // created_at as unix seconds (for run-duration calc)
+	CompletedAt    string        `json:"completed_at"`       // RFC3339 finish time (done/failed); "" if unfinished
+	CompletedUnix  int64         `json:"completed_unix"`     // completed_at as unix seconds (0 if unfinished)
+	LastActivity   int64         `json:"last_activity_unix"` // unix seconds of the last activity (0 if none)
+	Paused         bool          `json:"paused"`
+	Tokens         TokenTotalDTO `json:"tokens"` // whole-task token consumption
+	GoalsTotal     int           `json:"goals_total"`
+	GoalsMet       int           `json:"goals_met"`
+	LLMProfileID   *int64        `json:"llm_profile_id,omitempty"` // LLM profile used for this task; nil = default
+	TimeoutSeconds int           `json:"timeout_seconds"`          // Task level timeout(sec);0=Open-ended. For editing back.
+	Egress         string        `json:"egress,omitempty"`         // Export agents:''=Follow Global|'direct'=Straight Company|'proxy'=I'm going to the whole agency.
 }
 
 // TokenTotalDTO is a whole-task (all agents) token aggregate.
@@ -68,16 +68,16 @@ func tokenTotalDTO(u db.TokenUsage) TokenTotalDTO {
 
 func taskDTO(t *Task, status string) TaskDTO {
 	return TaskDTO{
-		ID:            t.ID,
-		ExplorationID: t.ExpID,
-		Name:          t.Name,
-		Description:   t.Description,
-		Goal:          t.Goal,
-		Status:        status,
-		CreatedAt:     rfc3339(time.Unix(t.CreatedAt, 0)),
-		CreatedUnix:   t.CreatedAt,
-		CompletedAt:   completedRFC(t.CompletedAt),
-		CompletedUnix: t.CompletedAt,
+		ID:             t.ID,
+		ExplorationID:  t.ExpID,
+		Name:           t.Name,
+		Description:    t.Description,
+		Goal:           t.Goal,
+		Status:         status,
+		CreatedAt:      rfc3339(time.Unix(t.CreatedAt, 0)),
+		CreatedUnix:    t.CreatedAt,
+		CompletedAt:    completedRFC(t.CompletedAt),
+		CompletedUnix:  t.CompletedAt,
 		Paused:         t.Paused,
 		LLMProfileID:   t.LLMProfileID,
 		TimeoutSeconds: t.TimeoutSeconds,
@@ -104,7 +104,7 @@ type TrafficExchangeDTO struct {
 	ContentType string `json:"content_type"`
 	RespLen     int    `json:"resp_len"`
 	// MatchSnippet is the highlighted body excerpt when the page was filtered by a
-	// 正文 keyword (\x01/\x02 wrap the hit); empty otherwise.
+	// Text keyword (\x01/\x02 wrap the hit); empty otherwise.
 	MatchSnippet string `json:"match_snippet,omitempty"`
 }
 
@@ -192,13 +192,13 @@ type FindingDTO struct {
 	TaskDescription string `json:"task_description,omitempty"`
 	TS              string `json:"ts"`
 	// enrichment summary (merged from finding_enrichment for list display)
-	EnrName   string  `json:"enr_name,omitempty"`
-	EnrTarget string  `json:"enr_target,omitempty"`
-	Status    string  `json:"status,omitempty"` // open|confirmed|fixed|false_positive|ignored
+	EnrName       string  `json:"enr_name,omitempty"`
+	EnrTarget     string  `json:"enr_target,omitempty"`
+	Status        string  `json:"status,omitempty"` // open|confirmed|fixed|false_positive|ignored
 	Enriched      bool    `json:"enriched,omitempty"`
-	CVSSScore     float64 `json:"cvss_score,omitempty"`     // 富化后的 CVSS 分值（列表直接显示）
-	EvidenceCount int     `json:"evidence_count,omitempty"` // 证据截图数量（列表显示"证据 N 张"）
-	TrafficCount  int     `json:"traffic_count,omitempty"`  // 关联流量条数（列表显示"关联流量 N 条"）
+	CVSSScore     float64 `json:"cvss_score,omitempty"`     // After the enrichment CVSS Points (list directly)
+	EvidenceCount int     `json:"evidence_count,omitempty"` // Number of exhibits (list shows)"Evidence N Chang!")
+	TrafficCount  int     `json:"traffic_count,omitempty"`  // Number of associated traffic bars (list shows)"Related flows N Article")
 }
 
 // findingPayload mirrors the JSON written by the worker's report_finding tool
@@ -225,7 +225,7 @@ func findingDTO(n *db.Node) FindingDTO {
 }
 
 // findingDTOsForTask converts a task's finding nodes to DTOs, stamping each with
-// the owning task's id/description so the global 发现 page can group across tasks.
+// the owning task's id/description so the global Found page can group across tasks.
 func findingDTOsForTask(t *Task, in []*db.Node) []FindingDTO {
 	out := make([]FindingDTO, 0, len(in))
 	for _, n := range in {
@@ -324,7 +324,7 @@ type AgentDTO struct {
 	RunSecs          int    `json:"run_seconds"`
 	WebSearch        bool   `json:"web_search"`
 	InteractiveShell bool   `json:"interactive_shell"`
-	LLMProfileID     int64  `json:"llm_profile_id"` // 分级绑定；0=用全局激活配置
+	LLMProfileID     int64  `json:"llm_profile_id"` // (b) Grade binding;0=Activate Configuration with Global
 	// binding counts (populated only by the list endpoint) — shown on agent cards.
 	McpCount   int `json:"mcp_count"`
 	SkillCount int `json:"skill_count"`
@@ -359,36 +359,36 @@ func agentDTOs(in []*db.Agent) []AgentDTO {
 // ---- LLMProfile (frontend "LLMProfile") — string id ----
 
 type LLMProfileDTO struct {
-	ID              string  `json:"id"`
-	Name            string  `json:"name"`
-	Format          string  `json:"format"`
-	BaseURL         string  `json:"base_url,omitempty"`
-	Proxy           string  `json:"proxy,omitempty"`
-	Model           string  `json:"model"`
-	APIKeyHint      string  `json:"api_key_hint,omitempty"`
-	RatePerSecond   float64 `json:"rate_per_second"`
-	RatePerMinute   float64 `json:"rate_per_minute"`
-	ContextWindowK  int     `json:"context_window_k"`
-	ReasoningEffort string  `json:"reasoning_effort"`
-	IsDefault        bool   `json:"is_default"`
-	Priority         int    `json:"priority"`
-	PoolExclude      bool   `json:"pool_exclude"`
-	SessionHeaderKey string `json:"session_header_key,omitempty"`
+	ID               string  `json:"id"`
+	Name             string  `json:"name"`
+	Format           string  `json:"format"`
+	BaseURL          string  `json:"base_url,omitempty"`
+	Proxy            string  `json:"proxy,omitempty"`
+	Model            string  `json:"model"`
+	APIKeyHint       string  `json:"api_key_hint,omitempty"`
+	RatePerSecond    float64 `json:"rate_per_second"`
+	RatePerMinute    float64 `json:"rate_per_minute"`
+	ContextWindowK   int     `json:"context_window_k"`
+	ReasoningEffort  string  `json:"reasoning_effort"`
+	IsDefault        bool    `json:"is_default"`
+	Priority         int     `json:"priority"`
+	PoolExclude      bool    `json:"pool_exclude"`
+	SessionHeaderKey string  `json:"session_header_key,omitempty"`
 }
 
 func llmProfileDTO(p *db.LLMProfile) LLMProfileDTO {
 	return LLMProfileDTO{
-		ID:              i64s(p.ID),
-		Name:            p.Name,
-		Format:          p.Format,
-		BaseURL:         p.BaseURL,
-		Proxy:           p.Proxy,
-		Model:           p.Model,
-		APIKeyHint:      p.APIKeyHint,
-		RatePerSecond:   p.RatePerSecond,
-		RatePerMinute:   p.RatePerMinute,
-		ContextWindowK:  p.ContextWindowK,
-		ReasoningEffort: p.ReasoningEffort,
+		ID:               i64s(p.ID),
+		Name:             p.Name,
+		Format:           p.Format,
+		BaseURL:          p.BaseURL,
+		Proxy:            p.Proxy,
+		Model:            p.Model,
+		APIKeyHint:       p.APIKeyHint,
+		RatePerSecond:    p.RatePerSecond,
+		RatePerMinute:    p.RatePerMinute,
+		ContextWindowK:   p.ContextWindowK,
+		ReasoningEffort:  p.ReasoningEffort,
 		IsDefault:        p.IsDefault,
 		Priority:         p.Priority,
 		PoolExclude:      p.PoolExclude,

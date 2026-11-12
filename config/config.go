@@ -33,7 +33,7 @@ type Config struct {
 // BaseDir is the directory that anchors all runtime artifacts (config.json and
 // the data/ store). It is the directory the running binary lives in, so a
 // distributed executable keeps its files next to itself on any OS (Windows,
-// Linux, …) regardless of the working directory it is launched from.
+// Linux, ...) regardless of the working directory it is launched from.
 //
 // When launched via `go run`, the binary is throwaway: it sits either in a temp
 // build dir (cache miss → fresh link) OR straight inside the Go build cache
@@ -54,7 +54,7 @@ func BaseDir() string {
 
 // isGoRunDir reports whether dir is where `go run` parked its executable: under
 // the system temp dir (cache miss), or anywhere inside a Go build cache
-// (…/go-build/…, the cache-hit case — NOT under os.TempDir(), which is why the
+// (.../go-build/..., the cache-hit case — NOT under os.TempDir(), which is why the
 // old temp-only check failed intermittently). In both cases the binary is
 // throwaway, so config/data must resolve against the CWD.
 func isGoRunDir(dir string) bool {
@@ -140,16 +140,16 @@ func SkillDir(fallback string) string {
 // DSN came from (for startup logging).
 func PostgresDSN() (dsn, source string, err error) {
 	if v := strings.TrimSpace(os.Getenv("ANTIFOX_PG_DSN")); v != "" {
-		return v, "环境变量 ANTIFOX_PG_DSN", nil
+		return v, "Environmental variables ANTIFOX_PG_DSN", nil
 	}
 	db := Load().Database
 	if d := strings.TrimSpace(db.DSN); d != "" {
-		return d, "配置文件 " + Path() + " (database.dsn)", nil
+		return d, "Profile " + Path() + " (database.dsn)", nil
 	}
 	if db.Host != "" || db.DBName != "" || db.User != "" {
-		return db.buildDSN(), "配置文件 " + Path() + " (database 字段)", nil
+		return db.buildDSN(), "Profile " + Path() + " (database Fields)", nil
 	}
-	return "", "", fmt.Errorf("未找到数据库配置：环境变量 ANTIFOX_PG_DSN 未设置，且配置文件 %s 未提供 database（dsn 或 host/user/dbname）。请创建该配置文件或设置环境变量后重试", Path())
+	return "", "", fmt.Errorf("Database configuration not found: environment variable ANTIFOX_PG_DSN Not set and profile %s Not provided database(dsn or host/user/dbname). Please try again after creating the profile or setting the environment variable", Path())
 }
 
 func (d Database) buildDSN() string {

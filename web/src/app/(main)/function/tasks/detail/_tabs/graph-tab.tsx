@@ -58,9 +58,9 @@ const relColor: Record<string, string> = {
 
 type TypeMeta = {
   icon: LucideIcon;
-  iconBg: string; // Dify 风格实心图标块底色
-  chip: string; // 抽屉里用的柔和底色
-  hex: string; // minimap / 连线取色
+  iconBg: string; // Dify Solid icon base colour for style
+  chip: string; // It's the soft, bottom color in the drawer.
+  hex: string; // minimap / Connect Color
 };
 
 // Human labels are resolved via t(`taskDetail.graph.kind.<kind>`) at render time.
@@ -116,7 +116,7 @@ function useKindLabel() {
 }
 
 // The task root is now an origin fact (kind='fact', state='origin') rather than a
-// dedicated 'begin' node. Render/layout it with the "起点" visual (the `begin`
+// dedicated 'begin' node. Render/layout it with the "Start" visual (the `begin`
 // entry above) so the graph root still reads as the origin.
 function viewKind(n: TaskNode): ExploreKind {
   return n.type === "fact" && n.state === "origin" ? "begin" : n.type;
@@ -126,8 +126,8 @@ function prioTone(p: number): Tone {
   return p >= 8 ? "red" : p >= 5 ? "amber" : "slate";
 }
 
-// 各类型节点在卡片上展示的字段：payload 通常是一段 JSON 字符串，
-// 按类型取其中的 summary / text / description 作为显示内容。
+// Fields displayed on cards by type nodes:payload It's usually a period. JSON String,
+// Take them by type summary / text / description as display.
 const summaryFields: Record<ExploreKind, string[]> = {
   task: ["summary", "description"],
   begin: ["summary", "description"],
@@ -138,7 +138,7 @@ const summaryFields: Record<ExploreKind, string[]> = {
   finding: ["summary"],
 };
 
-// 解析 payload 得到节点显示文案；解析失败或字段缺失时回退到原始 payload。
+// Parsing payload Shows the text when getting nodes; back to original when parse failed or fields are missing payload.
 function nodeSummary(n: TaskNode): string {
   const raw = n.payload ?? "";
   const fields = summaryFields[viewKind(n)] ?? [];
@@ -152,7 +152,7 @@ function nodeSummary(n: TaskNode): string {
         }
       }
     } catch {
-      /* 非 JSON：按原始内容显示 */
+      /* Not JSON:Show as original */
     }
   }
   return raw;
@@ -170,12 +170,12 @@ function pushMap(m: Map<string, string[]>, k: string, v: string) {
   else m.set(k, [v]);
 }
 
-// 按连线的“递进深度”自动分层：顺着边从左往右排（意图→事实，事实/漏洞→再生意图…），
-// 而不是按节点类型固定分列——这样反向/回环的边才不会互相缠绕。
-//   1) DFS 断环：指向递归栈中节点的边视为回边，不参与分层（处理 意图↔事实 这类回环）；
-//   2) 最长路径分层：谁在链路上更靠后，列就越靠右；
-//   3) 重心排序：每层按相邻层邻居的平均位置重排，让有连线的节点对齐、减少交叉；
-//   4) 每层整体垂直居中。
+// Press the wire.“Progressive Depth”Automatic layering: Left-to-right row side by side (intent)→Facts, facts./Hole→Regenerative intent....),
+// Instead of a fixed breakdown by node type——This way./The side of the loop is not entanglement.
+//   1) DFS Breakring: Pointing to the edge of the secondary node of the reincarnation is considered to be a backside and does not participate in the layering (processing intent)↔(a) The fact that this type of loop;
+//   2) (a) Maximum path layers: the more the column is right who is behind the chain road;
+//   3) (a) Focusing: each layer is rearranged by the average position of the adjacent neighbour, aligning the connected nodes and reducing cross-cutting;
+//   4) Each layer is vertically centred.
 function computeLayout(
   nodes: TaskNode[],
   edges: Edge[],
@@ -188,7 +188,7 @@ function computeLayout(
   const out = new Map<string, string[]>();
   for (const e of valid) pushMap(out, e.src, e.dst);
 
-  // 1) 迭代式 DFS 断环
+  // 1) Iteration DFS Break
   const seen = new Map<string, 0 | 1 | 2>();
   const back = new Set<string>();
   for (const root of order) {
@@ -205,7 +205,7 @@ function computeLayout(
       }
       const v = nbrs[top.i++];
       const s = seen.get(v) ?? 0;
-      if (s === 1) back.add(key(top.u, v)); // 回边
+      if (s === 1) back.add(key(top.u, v)); // Back up.
       else if (s === 0) {
         seen.set(v, 1);
         stack.push({ u: v, i: 0 });
@@ -213,7 +213,7 @@ function computeLayout(
     }
   }
 
-  // 2) 最长路径分层（忽略回边）
+  // 2) Maximum Path Layer (overlooking backside)
   const dagSucc = new Map<string, string[]>();
   const indeg = new Map<string, number>(order.map((id) => [id, 0]));
   for (const e of valid) {
@@ -233,12 +233,12 @@ function computeLayout(
     }
   }
 
-  // 3) 按层分列
+  // 3) By layer
   const maxLayer = Math.max(0, ...layer.values());
   const columns: string[][] = Array.from({ length: maxLayer + 1 }, () => []);
   for (const id of order) columns[layer.get(id) ?? 0].push(id);
 
-  // 重心排序：只统计相邻层之间的连线
+  // Gravity sorting: only count connections between adjacent layers
   const colIndexOf = new Map<string, number>();
   columns.forEach((ids, c) => ids.forEach((id) => colIndexOf.set(id, c)));
   const neighbors = new Map<string, string[]>();
@@ -271,7 +271,7 @@ function computeLayout(
     sweep(-1);
   }
 
-  // 4) 垂直居中
+  // 4) Centre Vertically
   const maxCount = Math.max(1, ...columns.map((c) => c.length));
   const midline = ((maxCount - 1) * ROW_H) / 2;
   const pos = new Map<string, { x: number; y: number }>();
@@ -282,7 +282,7 @@ function computeLayout(
   return pos;
 }
 
-// Dify 工作流风格节点：白色圆角卡片 + 实心配色图标块 + 选中/运行蓝色描边。
+// Dify Workstream style node: white round card + Solid Colour Blocks + Select/Run the blue side.
 function ExploreNode({ data, selected }: NodeProps<ExploreRFNode>) {
   const n = data.node;
   const kind = viewKind(n);
@@ -306,7 +306,7 @@ function ExploreNode({ data, selected }: NodeProps<ExploreRFNode>) {
           position={Position.Left}
           className="!size-2 !border-2 !border-neutral-300 !bg-white opacity-0 transition-opacity group-hover:opacity-100 dark:!border-neutral-600 dark:!bg-neutral-800"
         />
-        {/* 头部：实心图标块 + 类型标题 + 状态点 / 优先级 */}
+        {/* Head: Solid icon block + Type Title + Status Point / Priority */}
         <div className="flex items-center gap-2 px-3 pt-3 pb-1.5">
           <span
             className={cn(
@@ -336,11 +336,11 @@ function ExploreNode({ data, selected }: NodeProps<ExploreRFNode>) {
             </span>
           )}
         </div>
-        {/* 摘要 */}
+        {/* Summary */}
         <div className="line-clamp-3 px-3 pb-2 text-[13px] leading-snug text-neutral-500 dark:text-neutral-400">
           {nodeSummary(n) || label}
         </div>
-        {/* 底部：状态徽章 + 来源/ID */}
+        {/* Bottom: Status badge + Source/ID */}
         <div className="flex items-center justify-between gap-2 px-3 pb-2.5">
           {showState ? (
             <StatusBadge
@@ -379,7 +379,7 @@ function DetailRow({ label, children }: { label: string; children: React.ReactNo
   );
 }
 
-// 点击节点后弹出的抽屉：上半展示可读摘要，下半展示节点原始 JSON。
+// Click the drawer that pops up after the node: display a readable summary in the first half and original node in the second half JSON.
 function NodeDetailSheet({
   node,
   onOpenChange,
@@ -493,10 +493,10 @@ function GraphInner({ taskId }: { taskId: string }) {
           const nodes = g.nodes ?? [];
           const edges: Edge[] = g.edges ?? [];
           setIsEmpty(nodes.length === 0);
-          // 抽屉打开时，让其中的数据随轮询保持最新。
+          // When the drawer is opened, the data therein will be kept up to date with the inquiry.
           setSelected((cur) => (cur ? (nodes.find((n) => n.id === cur.id) ?? cur) : cur));
 
-          // 目标指向「执行中」意图的连线做流动动画，直观展示活跃探索路径。
+          // Targets point to a mobile animation of the "ongoing" intent, visualizing the active search path.
           const liveTargets = new Set(
             nodes.filter((n) => n.type === "intent" && n.state === "running").map((n) => n.id),
           );

@@ -1,52 +1,52 @@
 # Contributing to AntiFox
 
-[中文](#中文) | [English](#english)
+[Chinese](#Chinese) | [English](#english)
 
 ---
 
-## 中文
+## Chinese
 
-欢迎贡献代码、文档、翻译与问题反馈。
+Contribution codes, documentation, translation and problem feedback are welcome.
 
-### 从源码构建
+### Build from Source
 
-前置：Go 1.24+、Node.js 20+、PostgreSQL、Python 3（报告渲染，需 `python-docx`）。
+Prefix:Go 1.24+, Node.js 20+, PostgreSQL, Python 3(Rendering report required `python-docx`).
 
 ```bash
-# 1. 前端静态导出 → 内嵌
+# 1. Front-end static export → Embedded
 cd web && NEXT_EXPORT=1 npx next build && cd ..
 rm -rf server/webui/dist && mkdir -p server/webui/dist && cp -r web/out/. server/webui/dist/
 
-# 2. 内置 skill 库 → 内嵌（排除 report-generation，由 Go 生成）
+# 2. Internal skill Library → Embedded (exclusion) report-generation,by Go generated)
 rm -rf server/skillsdist && mkdir -p server/skillsdist && cp -r skills/. server/skillsdist/ && rm -rf server/skillsdist/report-generation
 
-# 3. 编译单二进制（前端 + skill 内嵌）
+# 3. Compile a document binary (frontend) + skill Embedded)
 CGO_ENABLED=0 go build -tags embedui -o antifox ./cmd/antifox
 
-# 4. 运行（数据库连接用环境变量；dataDir 用持久目录）
+# 4. Operating (database connection using environmental variables);dataDir with a persistent directory)
 export ANTIFOX_PG_DSN="postgres://antifox:antifox@localhost:5432/antifox?sslmode=disable"
 ./antifox -addr :8787 -data ~/antifox-data
 ```
 
-打开 http://localhost:8787 ，首次进入 `/setup` 设置管理员密码。
+Open http://localhost:8787 ,First entry `/setup` Sets the administrator password.
 
-数据库 schema 每次启动幂等自建/迁移，改 `db/schema.sql` 重启即生效。
+Database schema Every time you start a troupe, you build it./Move, change. `db/schema.sql` Effective on resumption.
 
-### 开发约定
+### Development engagements
 
-- 改前端后重新执行上面的构建步骤（静态导出 → 内嵌 → 重编二进制）。
-- 改 i18n 后运行 `scripts/check-i18n-keys.mjs` 对账三语键。
-- 提交信息简洁、描述清楚改动动机。
+- Redo the build step above after changing the frontend (static export) → Embedded → Renumber binary.
+- Change i18n Run After `scripts/check-i18n-keys.mjs` Reconciling three words.
+- The information is concise and clearly describes the motive for change.
 
-### 贡献流程
+### Contribution Process
 
-1. Fork 本仓库，基于 `main` 建分支。
-2. 提交改动，保持编译通过（`go build ./...`）。
-3. 发起 Pull Request，说明动机与影响范围。
+1. Fork This warehouse, based on `main` Build branches.
+2. Submit changes and maintain translation pass (`go build ./...`).
+3. Start Pull Request,Description of motive and scope of impact.
 
-### 协议
+### Agreements
 
-本项目采用 **AGPL-3.0**。提交贡献即表示你同意你的贡献以相同协议授权。
+Use of this project **AGPL-3.0**. The submission of the contribution means that you agree that your contribution is authorized by the same agreement.
 
 ---
 

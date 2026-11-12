@@ -2,152 +2,152 @@
 
 # 🦊 AntiFox
 
-**AI 自主渗透测试平台**
+**AI-Driven Autonomous Penetration Testing Platform**
 
-从侦察到报告交付，多智能体自主完成 · 全程可视化 · 可介入 · 可交付
+From recon to report delivery — multi-agent, autonomous · fully observable · interactive · deliverable
 
-中文 | [English](README.en.md)
+[Chinese](README.md) | English
 
 [![License](https://img.shields.io/badge/license-AGPL--3.0-blue.svg)](LICENSE)
 [![Release](https://img.shields.io/github/v/release/AntiFox-AI/antifox?color=success)](https://github.com/AntiFox-AI/antifox/releases/latest)
 [![Docker](https://img.shields.io/badge/GHCR-ghcr.io%2Fantifox--ai%2Fantifox-2496ED?logo=docker&logoColor=white)](https://github.com/AntiFox-AI/antifox/pkgs/container/antifox)
 [![Go](https://img.shields.io/badge/Go-1.24+-00ADD8?logo=go&logoColor=white)](go.mod)
 
-<img src="screenshots/login.png" alt="AntiFox" width="860" />
+<img src="screenshots/login-en.png" alt="AntiFox" width="860" />
 
 </div>
 
 ---
 
-## 简介
+## Overview
 
-AntiFox 是一套 AI 自主渗透测试平台：给定授权目标，由规划器 / 工作者 / 主控多智能体围绕**双图架构**（全局资产图 + 每任务探索图）自主完成 侦察 → 攻击面发现 → 利用验证 → 漏洞记录 → **报告交付**，全程可视化、可介入、可交付。
+AntiFox is an AI-driven autonomous penetration testing platform. Given an authorized target, a planner / worker / main-agent multi-agent system runs the full engagement over a **dual-graph** core (a global asset graph + a per-task exploration graph) — **recon → attack-surface discovery → exploitation → finding capture → report delivery** — fully observable, interactive, and deliverable.
 
-与多数"擅长发现、止于发现"的自动化渗透工具不同，AntiFox 把重心放在**交付**——让 AI 挖到的漏洞，变成工程师看得懂、能复现、带证据、可直接交付客户的报告。
+Unlike most automated pentest tools that are "great at discovery, but stop at discovery," AntiFox puts its weight on **delivery** — turning what the AI finds into a report that an engineer can understand, reproduce, back with evidence, and hand straight to the client.
 
-## ✨ v2.0 新特性：证据驱动的交付
+## ✨ What's New in v2.0: Evidence-Driven Delivery
 
-v2.0 聚焦一件事——**把"挖得到"做成"交得出"**。agent 在挖洞的同时就把复现过程与证据固定下来，工程师的工作也随之从"从零整理报告"转变为"验证确认"。
-
-<div align="center">
-<img src="screenshots/demo.gif" alt="AntiFox 演示" width="880" />
-</div>
-
-**① 复现过程就地落库。** agent 执行利用的同时，将每一步的请求、响应、预期结果与验证结论结构化记录入库，而非事后重构，从根本上杜绝复现步骤"拼不全、靠编造"。
-
-**② 发现页按利用链分步呈现。** 漏洞不再是"一条命令加一句结论"，而是从入口点、前置条件到逐步利用的完整链条，每一步以自然语言说明配一个真实请求，工程师打开即可理解漏洞的来源与利用路径。
+v2.0 is about one thing — **turning "can find it" into "can deliver it."** The agent fixes the reproduction steps and evidence in place while it works, so the engineer's job shifts from "assembling a report from scratch" to "verify and confirm."
 
 <div align="center">
-<img src="screenshots/finding-steps.png" alt="利用链分步呈现" width="860" />
+<img src="screenshots/demo.gif" alt="AntiFox demo" width="880" />
 </div>
 
-**③ 每一步自动关联真实流量包。** agent 作业期间发出的全部请求经 MITM 录制完整落库；在记录漏洞的同时，系统按时间窗口与步骤顺序，将每一步精确关联到其对应的真实数据包。点击即可查看原始请求与响应报文，带语法高亮、正文检索与命中计数，无需再回到代理工具重新构造、重新复测。
+**① Reproduction captured in place.** As the agent exploits, each step's request, response, expected outcome, and verification conclusion are recorded as structured data — not reconstructed after the fact — eliminating the old "incomplete or fabricated reproduction" problem.
+
+**② Findings laid out as a kill chain.** A finding is no longer "one command plus a verdict," but a full chain from entry point and preconditions through each exploitation step, each in plain language paired with a real request — so an engineer opening the finding immediately grasps where it came from and how it was chained.
 
 <div align="center">
-<img src="screenshots/traffic-packet.png" alt="每步关联真实流量包" width="860" />
+<img src="screenshots/finding-steps.png" alt="Kill chain, step by step" width="860" />
 </div>
 
-**④ 证据即报文。** 对敏感信息泄露这类漏洞，流量报文本身就是证据，不必再事后截图拼凑。
+**③ Every step auto-linked to its real traffic.** All requests the agent makes are captured in full via MITM recording; when a finding is recorded, the system links each step to its corresponding real packet by time window and step order. One click shows the original request/response, with syntax highlighting, body search, and match counts — no need to go back to a proxy tool and reconstruct it.
 
 <div align="center">
-<img src="screenshots/env-leak.png" alt="流量报文即证据" width="860" />
+<img src="screenshots/traffic-packet.png" alt="Each step linked to its real packet" width="860" />
 </div>
 
-**⑤ 人工级三语报告。** AI 叙述 + python-docx 排版成交付级 `.docx`（封面 / 目录 / 页码 / 每漏洞属性表与结构化复现），支持简体 / 繁体 / 英文整份报告。
+**④ The packet is the evidence.** For findings like sensitive-information disclosure, the traffic packet itself is the proof — no more stitching together screenshots afterwards.
 
-> 以上界面数据均为本地靶场的合成演示数据。
+<div align="center">
+<img src="screenshots/env-leak.png" alt="The packet is the evidence" width="860" />
+</div>
 
-## 快速开始
+**⑤ Human-grade trilingual reports.** AI narrative + python-docx rendered into a delivery-grade `.docx` (cover / TOC / page numbers / per-vuln tables with structured reproduction), as a full report in Simplified Chinese / Traditional Chinese / English.
 
-依赖 **PostgreSQL**；探索需配置 **LLM**（`ANTHROPIC_API_KEY` 或 `OPENAI_API_KEY`，也可在 UI 的「LLM 配置」页填）。生成 `.docx` 报告需 `python3` + `python-docx`（Docker 镜像已内置）。
+> All UI data shown is synthetic demo data from a local test range.
 
-### 方式一：Docker 一键部署（推荐）
+## Quick Start
+
+Requires **PostgreSQL**; exploration needs an **LLM** (`ANTHROPIC_API_KEY` or `OPENAI_API_KEY`, or configure it in the UI). Generating `.docx` reports needs `python3` + `python-docx` (bundled in the Docker image).
+
+### Option 1: One-command Docker deploy (recommended)
 
 ```bash
 curl -O https://raw.githubusercontent.com/AntiFox-AI/antifox/main/docker-compose.yml
 curl -O https://raw.githubusercontent.com/AntiFox-AI/antifox/main/.env.example
-cp .env.example .env          # 设 POSTGRES_PASSWORD
-docker compose up -d          # 自动拉镜像 + PostgreSQL 并启动
+cp .env.example .env          # set POSTGRES_PASSWORD
+docker compose up -d          # pulls the image + PostgreSQL and starts
 ```
 
-打开 **http://localhost:8787**，首次进入 `/setup` 设置管理员密码。
+Open **http://localhost:8787** — on first run, go to `/setup` to set the admin password.
 
-### 方式二：下载预编译二进制
+### Option 2: Prebuilt binary
 
-到 [Releases](https://github.com/AntiFox-AI/antifox/releases/latest) 下载对应平台 zip（Linux amd64/arm64 · macOS amd64/arm64 · Windows amd64），解压后：
+Download the zip for your platform from [Releases](https://github.com/AntiFox-AI/antifox/releases/latest) (Linux amd64/arm64 · macOS amd64/arm64 · Windows amd64), then:
 
 ```bash
-cp config.example.json config.json    # 填好 database 连接
-./antifox                             # Windows 为 antifox.exe
+cp config.example.json config.json    # fill in the database connection
+./antifox                             # antifox.exe on Windows
 ```
 
-打开 **http://localhost:8787**。
+Open **http://localhost:8787**.
 
-### 方式三：从源码构建
+### Option 3: Build from source
 
-本项目**完整源码开放**（AGPL-3.0）。前置 Go 1.24+ / Node 20+ / PostgreSQL / Python 3（报告渲染）：
+The **full source is open** (AGPL-3.0). Requires Go 1.24+ / Node 20+ / PostgreSQL / Python 3 (report rendering):
 
 ```bash
-cd web && NEXT_EXPORT=1 npx next build && cd ..    # 前端静态导出
-cp -r web/out/. server/webui/dist/                 # 内嵌前端
+cd web && NEXT_EXPORT=1 npx next build && cd ..    # frontend static export
+cp -r web/out/. server/webui/dist/                 # embed the frontend
 CGO_ENABLED=0 go build -tags embedui -o antifox ./cmd/antifox
 ./antifox
 ```
 
-完整步骤（含 skill 内嵌、开发热更新）见 [CONTRIBUTING.md](CONTRIBUTING.md)。
+Full steps (skill embedding, dev hot-reload) are in [CONTRIBUTING.md](CONTRIBUTING.md).
 
-> **一键更新**：裸机/源码部署用 `./start.sh` 启动，或用 systemd（见 [`deploy/antifox.service`](deploy/antifox.service)，设 `RestartForceExitStatus=75`），即可在「系统配置」页检查并安装新版本（SHA256 校验 / 原子换装 / 失败回滚，数据不受影响）；Docker 部署用 `docker compose pull`。
+> **One-click update:** for a binary/source deploy, launch via `./start.sh` or systemd (see [`deploy/antifox.service`](deploy/antifox.service), set `RestartForceExitStatus=75`) to check for and install new versions from **System Settings** (SHA256 verify / atomic swap / rollback; data unaffected). For Docker, use `docker compose pull`.
 
-## 更多界面
+## More Screens
 
-| 仪表盘 | 任务 |
+| Dashboard | Tasks |
 | :---: | :---: |
-| ![仪表盘](screenshots/dashboard.png) | ![任务](screenshots/tasks.png) |
+| ![Dashboard](screenshots/dashboard-en.png) | ![Tasks](screenshots/tasks-en.png) |
 
-## 源起
+## Lineage
 
-AntiFox 自开源项目 ARTEX（作者 [@Autumn-27](https://github.com/Autumn-27)）的 **v0.1.1 起二次开发**，此后持续跟进上游演进，期间与上游相互交流借鉴。在此坦诚致谢原作者的奠基性工作。
+AntiFox is a fork that started from **v0.1.1** of the open-source project ARTEX (by [@Autumn-27](https://github.com/Autumn-27)), tracking upstream ever since, with mutual exchange along the way. Full credit to the original author's foundational work.
 
-需要说明的是，"自动发现"与"报告交付"本是两类目标：ARTEX 把发现做得很强，而交付更贴近具体项目、因客户而异。AntiFox 正是在其优秀底座之上，把工程重心补在了"交付"这一环。
+To be clear, "autonomous discovery" and "report delivery" are two different goals: ARTEX made discovery strong, while delivery is closer to each specific engagement and varies by client. AntiFox builds on that solid foundation and invests its engineering effort in the "delivery" half.
 
-## 相对 ARTEX 的改进
+## What AntiFox Adds (vs ARTEX)
 
-在继承其优秀底座（探索图引擎、MITM 流量录制、规则化 HITL 拦截、多智能体编排）的基础上，AntiFox 主要增强：
+Building on its solid foundation (exploration-graph engine, MITM traffic recording, rule-based HITL interception, multi-agent orchestration), AntiFox mainly adds:
 
-| 方面 | 说明 |
+| Area | Details |
 | --- | --- |
-| **证据驱动的交付** | 复现过程就地落库、发现页按利用链分步、每步自动关联真实流量包（语法高亮 / 正文检索 / 命中计数） |
-| **人工级报告** | AI 叙述 + python-docx 排版成交付级 .docx（封面 / 目录 / 页码 / 每漏洞属性表），支持简 / 繁 / 英整份 |
-| 报告管理 | 组织级设置、命名模版（出具方 / logo / 人员 / CVSS）、按任务生成、勾选收录漏洞子集 |
-| 漏洞管理深化 | AI 富化成结构化数据（CVSS / 影响 / 修复 / 结构化复现）、四级严重度、批量富化、会话漏洞补录 |
-| 三语国际化 | 全站简体 / 繁体 / 英文 |
-| 多用户权限（RBAC） | 可视化权限矩阵自定义角色、系统角色、资源级范围、登录审计 |
-| 知识库检索增强 | 全局 + 任务双层 pgvector RAG，为 Agent 提供领域知识 |
-| 一键更新 | 系统配置页从 GitHub Release 检查并安装新版本（SHA256 校验 / 原子换装 / 失败自动回滚），升级不影响数据 |
+| **Evidence-driven delivery** | Reproduction captured in place, findings laid out as a kill chain, every step auto-linked to its real packet (syntax highlight / body search / match counts) |
+| **Human-grade reports** | AI narrative + python-docx into delivery-grade .docx (cover / TOC / page numbers / per-vuln tables), full report in zh / zh-TW / en |
+| Report management | Org settings, named templates (issuer / logo / personnel / CVSS), per-task generation, select which findings to include |
+| Deeper vuln management | AI enrichment into structured data (CVSS / impact / fix / structured reproduction), 4 severity levels, batch enrichment, session finding capture |
+| Trilingual i18n | Full UI in Simplified Chinese / Traditional Chinese / English |
+| Multi-user RBAC | Visual permission-matrix custom roles, system roles, resource-level scope, login audit |
+| Knowledge-base RAG | Global + per-task two-tier pgvector retrieval augmentation for agents |
+| One-click update | Check for and install a new version from GitHub Releases (SHA256 verify / atomic swap / auto-rollback) right from System Settings — your data is untouched |
 
-## 技术架构
+## Architecture
 
-Go 单体后端（`go:embed` 内嵌 Next.js 前端）+ PostgreSQL。核心是**双图架构**：全局共享的资产图（跨任务的资产真值库）与每任务独立的探索图（目标 / 意图 / 事实 / 漏洞的推进血缘链），两图靠锚点互连。引擎事件驱动——图一变就唤醒规划器派意图，工作者领意图执行并把结果写回，写回再触发下一轮，直到目标被证明。
+A single Go backend (Next.js frontend embedded via `go:embed`) + PostgreSQL. The core is a **dual-graph** design: a globally shared asset graph (cross-task source of truth) and a per-task exploration graph (goal / intent / fact / finding lineage), linked by anchors. The engine is event-driven — any graph change wakes the planner to dispatch intents, workers execute and write back, which triggers the next round, until the goal is proven.
 
 ```mermaid
 flowchart TB
-  subgraph FE[前端 Next.js · go:embed 内嵌单二进制]
-    UI[仪表盘 · 任务 · 发现 · 资产 · 流量 · 报告 · 知识库]
+  subgraph FE[Frontend Next.js · embedded via go:embed]
+    UI[Dashboard · Tasks · Findings · Assets · Traffic · Reports · Knowledge]
   end
   subgraph SRV[server · Go net/http]
     API[REST /api · JWT · SSE]
-    ENG[engine 事件驱动调度]
+    ENG[event-driven engine]
   end
-  subgraph AG[多智能体编排]
-    PL[planner 规划 · 唯一产意图]
-    WK[worker 执行 ×N]
-    MA[mainagent 人机接口]
+  subgraph AG[Multi-agent orchestration]
+    PL[planner · sole intent producer]
+    WK[worker ×N]
+    MA[mainagent · human-in-the-loop]
   end
   subgraph DB[PostgreSQL]
-    AGRAPH[资产图 · 全局共享]
-    EGRAPH[探索图 · 每任务独立]
+    AGRAPH[Asset graph · global]
+    EGRAPH[Exploration graph · per-task]
   end
-  SUB[MITM 流量录制 · HITL 拦截 · 资产补全 · 报告 · 知识库 RAG]
+  SUB[MITM recording · HITL interception · asset enrichment · reports · knowledge RAG]
 
   UI --> API --> ENG --> PL & WK
   API --> MA
@@ -155,46 +155,46 @@ flowchart TB
   WK --> SUB
 ```
 
-## 核心能力
+## Core Capabilities
 
-- 双图架构：全局共享资产图 + 每任务独立探索图，靠锚点互连
-- 多智能体编排：事件驱动引擎，planner 产意图 / N 个 worker 执行 / mainagent 人机接口
-- 证据驱动交付：复现就地落库、发现页利用链分步、每步关联真实流量包
-- 人工级三语报告：AI 叙述 + python-docx 交付级 .docx
-- MITM 流量录制、规则化 HITL 拦截、MCP / Skill 扩展体系、pgvector 知识库
+- Dual-graph: global asset graph + per-task exploration graph, linked by anchors
+- Multi-agent orchestration: event-driven engine, planner produces intents / N workers execute / mainagent is the human interface
+- Evidence-driven delivery: reproduction captured in place, findings as a kill chain, every step linked to its real packet
+- Human-grade trilingual reports: AI narrative + python-docx delivery-grade .docx
+- MITM traffic recording, rule-based HITL interception, MCP / Skill extension system, pgvector knowledge base
 
-## 关注公众号
+## Follow Us
 
-更多 AntiFox 的实战复盘、功能解析与版本更新，欢迎关注我们的微信公众号：
+For hands-on write-ups, feature deep-dives, and release updates, follow our WeChat Official Account:
 
 <div align="center">
-<img src="screenshots/wechat-qr.jpg" alt="AntiFox 公众号" width="200" />
+<img src="screenshots/wechat-qr.jpg" alt="AntiFox WeChat Official Account" width="200" />
 <br/>
-<sub>微信扫码关注 · <b>AntiFox</b></sub>
+<sub>Scan on WeChat · <b>AntiFox</b></sub>
 </div>
 
-## 致谢
+## Credits
 
-- ARTEX（作者 [@Autumn-27](https://github.com/Autumn-27)）—— 本项目的技术基座。
+- ARTEX (by [@Autumn-27](https://github.com/Autumn-27)) — the technical foundation of this project.
 
-## 许可与免责声明
+## License & Disclaimer
 
-本项目基于 **AGPL-3.0** 协议开源，详见 [LICENSE](LICENSE)。使用、修改与再分发（含以网络服务形式提供）须遵守该协议条款。
+Licensed under **AGPL-3.0** — see [LICENSE](LICENSE). Use, modification, and redistribution (including offering it as a networked service) must comply with its terms.
 
-**AntiFox 仅供个人学习、代码研究与本地技术验证使用，不得用于对任何线上系统或网站发起实际测试。**
+**AntiFox is for personal study, code research, and local technical validation only. It must not be used to perform actual testing against any online system or website.**
 
-### 允许使用范围
-- 仅可用于阅读、学习与研究本项目，以及在本地隔离环境中进行技术原理验证；
-- 适用于个人学习、学术研究等非攻击性用途。
+### Permitted use
+- Reading, studying, and researching this project, and verifying technical principles in a local, isolated environment;
+- Personal learning, academic research, and other non-offensive purposes.
 
-### 禁止事项
-- 严禁使用本工具对任何网站、线上服务或联网系统发起扫描、探测、利用或攻击；
-- 严禁将本工具用于任何实际的渗透测试、攻防对抗或生产环境；
-- 严禁用于非法入侵、数据窃取、勒索、拒绝服务或任何破坏性、犯罪性活动；
-- 严禁利用本工具从事违反所在国家 / 地区法律法规的行为。
+### Prohibited
+- Using this tool to scan, probe, exploit, or attack any website, online service, or networked system;
+- Using this tool for any real penetration testing, red/blue exercises, or production environment;
+- Using it for intrusion, data theft, ransom, denial of service, or any destructive or criminal activity;
+- Using it for anything violating the laws and regulations of your country / region.
 
-### 合规责任
-使用者须自行遵守所在国家 / 地区关于网络安全、数据保护与计算机犯罪的全部法律法规。因使用本项目产生的一切法律责任与后果，均由使用者自行承担。
+### Compliance
+Users must comply with all applicable laws and regulations on cybersecurity, data protection, and computer crime in their country / region. All legal responsibility and consequences arising from use of this project rest solely with the user.
 
-### 免责声明
-本项目按"现状（AS IS）"提供，不附带任何明示或默示的担保。作者及贡献者不对使用本工具所导致的任何直接或间接损失、数据丢失、系统损坏或法律纠纷承担责任。下载、安装或使用本项目，即表示你已阅读、理解并同意上述全部条款。
+### Disclaimer
+This project is provided "AS IS", without warranty of any kind. The authors and contributors are not liable for any direct or indirect loss, data loss, system damage, or legal dispute arising from use of this tool. By downloading, installing, or using this project, you acknowledge that you have read, understood, and agree to all of the above.

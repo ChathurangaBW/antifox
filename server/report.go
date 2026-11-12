@@ -55,7 +55,7 @@ func (s *Server) generateReport(w http.ResponseWriter, r *http.Request) {
 			if rec := recover(); rec != nil {
 				s.reportMu.Lock()
 				job.Status = "failed"
-				job.Error = fmt.Sprintf("报告生成异常：%v", rec)
+				job.Error = fmt.Sprintf("Report generation anomalies:%v", rec)
 				s.reportMu.Unlock()
 			}
 		}()
@@ -122,7 +122,7 @@ func (s *Server) downloadReport(w http.ResponseWriter, r *http.Request) {
 	}
 	s.reportMu.Unlock()
 	if job == nil || status != "done" || path == "" {
-		writeErr(w, 404, "报告尚未生成")
+		writeErr(w, 404, "Report not produced")
 		return
 	}
 	w.Header().Set("Content-Type", reportContentType(path))
@@ -130,7 +130,7 @@ func (s *Server) downloadReport(w http.ResponseWriter, r *http.Request) {
 	http.ServeFile(w, r, path)
 }
 
-// reportContentType 按扩展名给出报告下载的 MIME（支持 .docx / .md / .zip[MD 交付包]）。
+// reportContentType Download the report by extension MIME(Support .docx / .md / .zip[MD Delivery package]).
 func reportContentType(path string) string {
 	switch {
 	case strings.HasSuffix(strings.ToLower(path), ".zip"):
@@ -179,7 +179,7 @@ func (s *Server) buildReportInput(t *Task, q map[string][]string) *report.GenInp
 			Evidence  struct {
 				PoC string `json:"poc"`
 			} `json:"evidence"`
-			Reproduction json.RawMessage `json:"reproduction"` // 就地记录的结构化复现过程(可空)
+			Reproduction json.RawMessage `json:"reproduction"` // Structural reproduction of local records(Empty)
 		}
 		_ = json.Unmarshal(n.Payload, &p)
 		fi := report.FindingInput{
@@ -188,7 +188,7 @@ func (s *Server) buildReportInput(t *Task, q map[string][]string) *report.GenInp
 			PoC: p.Evidence.PoC, CreatedAt: n.CreatedAt,
 			Reproduction: p.Reproduction, // authoritative test_process — rendered verbatim, AI skips rebuild
 		}
-		// Reuse persisted enrichment (from the findings page "AI 分析") so the report
+		// Reuse persisted enrichment (from the findings page "AI Analysis") so the report
 		// is consistent with what the user reviewed and skips a redundant LLM call.
 		if enr, _ := s.m.pg.GetFindingEnrichment(n.ID); enr != nil {
 			if reuseEnrichment {
@@ -200,7 +200,7 @@ func (s *Server) buildReportInput(t *Task, q map[string][]string) *report.GenInp
 		}
 		// No persisted enrichment to reuse (fresh finding, or zh-TW/en-US
 		// regeneration) → ground the on-the-fly narrative in the real work
-		// transcript, same as the findings-page "AI 分析".
+		// transcript, same as the findings-page "AI Analysis".
 		if fi.Enrichment == nil {
 			fi.Transcript = s.m.pg.FindingSourceTranscript(n.ID, 40000)
 		}
@@ -212,11 +212,11 @@ func (s *Server) buildReportInput(t *Task, q map[string][]string) *report.GenInp
 			counts = c
 		}
 	}
-	// 项目名(封面/标题)用【短任务名】，绝不用整段描述——否则用户把目标系统清单写进
-	// 描述时会被灌进封面"项目名称"、撑爆封面(整段描述当标题会很乱)。完整描述另经 Scope 喂 AI。
-	project := defaultStrSrv(t.Name, "渗透测试项目")
-	if len([]rune(project)) > 40 { // 名称异常长(误填清单)→ 回退,别撑爆封面
-		project = "渗透测试项目"
+	// Project name(Cover/Title)Do not describe it as a whole.——Otherwise, the user will write down the target system list.
+	// The description will be inserted on the cover."Project name", Break cover.(The whole story is a mess when it's heading.). Full description is different. Scope Hello? AI.
+	project := defaultStrSrv(t.Name, "Penetration Testing Project")
+	if len([]rune(project)) > 40 { // Name is abnormally long.(Error filling list)→ Back,Don't blow up the cover.
+		project = "Penetration Testing Project"
 	}
 
 	// Resolve org-level cover metadata. Precedence: explicit query param >
@@ -255,18 +255,18 @@ func (s *Server) buildReportInput(t *Task, q map[string][]string) *report.GenInp
 		CompanyNameEn: companyEn,
 		ClientName:    get("client"),
 		ProjectName:   defaultStrSrv(get("project"), project),
-		Scope:         strings.TrimSpace(t.Description), // 完整目标系统清单/范围→喂 AI 叙述,不上封面
+		Scope:         strings.TrimSpace(t.Description), // Complete list of target systems/Scope→Hello? AI Description,No cover.
 
-		ReportTitle:   get("title"), // empty → BuildDoc applies locale-aware "<project> <报告词>"
-		Version:       defaultStrSrv(get("version"), "V1.0"),
-		Locale:        defaultStrSrv(locale, "zh-CN"),
-		CVSSVersion:   cvss,
-		LogoPath:      logoPath,
-		Personnel:     personnel,
-		Findings:      findings,
-		AssetCounts:   counts,
-		SkillDir:      s.skillDir,
-		DataDir:       s.dataDir, // 用于客户报告脱敏内部 scratch 路径
+		ReportTitle: get("title"), // empty → BuildDoc applies locale-aware "<project> <Reporting term>"
+		Version:     defaultStrSrv(get("version"), "V1.0"),
+		Locale:      defaultStrSrv(locale, "zh-CN"),
+		CVSSVersion: cvss,
+		LogoPath:    logoPath,
+		Personnel:   personnel,
+		Findings:    findings,
+		AssetCounts: counts,
+		SkillDir:    s.skillDir,
+		DataDir:     s.dataDir, // Internal desensitization for client reporting scratch Path
 	}
 }
 

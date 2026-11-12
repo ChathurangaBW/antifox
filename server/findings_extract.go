@@ -1,8 +1,8 @@
 package server
 
-// 漏洞补录：从任务的 agent 转录（主 Agent 综合 + workers）里用 AI 提取被描述但
-// 从未 report_finding 落库的确认漏洞，补建成 finding 节点。因为探索图/发现页/报告
-// 都读同一批 finding 节点，一次补录三处同时出现。
+// Gaps: From Task agent Recording Agent Synthesis + workers)Inline AI Ripping described but
+// Never. report_finding We need to clear the hole. finding Node. Because of the map./Found Page/Report
+// All read the same. finding Node, three copies at a time.
 
 import (
 	"encoding/json"
@@ -24,15 +24,15 @@ func (s *Server) extractFindings(w http.ResponseWriter, r *http.Request) {
 	expID := t.Store.ID()
 	transcript := s.m.pg.ExplorationSynthesis(expID, 48000)
 	if strings.TrimSpace(transcript) == "" {
-		writeErr(w, 400, "该任务暂无可分析的会话记录")
+		writeErr(w, 400, "An unanalysed session record for this task")
 		return
 	}
 
-	// 附上探索图里已记录的【事实】（含 worker 发现的接口/暴露面）——仅靠对话转录会漏掉
-	// 用 record_fact 写回、却没升级成 finding 的暴露/信息泄露，让"梳理"能把它们提出来。
+	// Attach the [facts] recorded in the exploration diagram worker Interface found/Exposure)——We'll miss the conversation.
+	// Use record_fact Write it back, but it didn't work out. finding Exposure/Information leak, Jean."Combination"You can raise them.
 	if facts, ferr := t.Store.ListByKind(db.KindFact, 200); ferr == nil && len(facts) > 0 {
 		var fb strings.Builder
-		fb.WriteString("\n\n【探索图已记录的事实（可能含未升级为发现的暴露/攻击面）】\n")
+		fb.WriteString("\n\n[Discovery chart documented facts (possibly including exposure not upgraded to discovery)/♪ The face of the attack ♪\n")
 		for _, n := range facts {
 			var p struct {
 				Summary string `json:"summary"`
@@ -49,7 +49,7 @@ func (s *Server) extractFindings(w http.ResponseWriter, r *http.Request) {
 				if rr := []rune(d); len(rr) > 200 {
 					d = string(rr[:200])
 				}
-				fb.WriteString("：")
+				fb.WriteString(":")
 				fb.WriteString(d)
 			}
 			fb.WriteString("\n")
@@ -73,7 +73,7 @@ func (s *Server) extractFindings(w http.ResponseWriter, r *http.Request) {
 
 	extracted, err := report.ExtractFindings(s.ctx, s.m.pg, transcript, labels)
 	if err != nil {
-		writeErr(w, 502, "AI 提取失败："+err.Error())
+		writeErr(w, 502, "AI Ripping failed:"+err.Error())
 		return
 	}
 
@@ -90,16 +90,16 @@ func (s *Server) extractFindings(w http.ResponseWriter, r *http.Request) {
 		}
 		payload := map[string]any{
 			"vulnclass": e.VulnClass, "severity": normalizeSeverity(e.Severity), "summary": e.Summary,
-			"evidence": map[string]any{"by": "补录", "poc": e.Evidence},
+			"evidence": map[string]any{"by": "Supplementary", "poc": e.Evidence},
 		}
-		id, aerr := t.Store.AddNode(db.KindFinding, payload, 9, "confirmed", "补录", nil)
+		id, aerr := t.Store.AddNode(db.KindFinding, payload, 9, "confirmed", "Supplementary", nil)
 		if aerr != nil {
 			continue
 		}
 		if begin > 0 {
 			_ = t.Store.Link(begin, db.RelYields, id) // connect into the graph
 		}
-		_, _ = t.Store.AddStandaloneFinding(taskID, id, e.VulnClass, normalizeSeverity(e.Severity), e.Summary, e.Evidence, "补录", nil)
+		_, _ = t.Store.AddStandaloneFinding(taskID, id, e.VulnClass, normalizeSeverity(e.Severity), e.Summary, e.Evidence, "Supplementary", nil)
 		existingKeys = append(existingKeys, key)
 		created++
 	}
@@ -108,14 +108,14 @@ func (s *Server) extractFindings(w http.ResponseWriter, r *http.Request) {
 
 func normalizeSeverity(s string) string {
 	switch strings.ToLower(strings.TrimSpace(s)) {
-	case "critical", "严重", "high", "高危", "高":
-		if strings.Contains(strings.ToLower(s), "crit") || strings.Contains(s, "严重") {
+	case "critical", "Serious", "high", "High risk", "High":
+		if strings.Contains(strings.ToLower(s), "crit") || strings.Contains(s, "Serious") {
 			return "high" // AntiFox severity set is high|medium|low
 		}
 		return "high"
-	case "medium", "中危", "中", "med":
+	case "medium", "It's dangerous.", "Medium", "med":
 		return "medium"
-	case "low", "低危", "低", "info", "信息":
+	case "low", "Low risk.", "Low", "info", "Information":
 		return "low"
 	}
 	return "medium"

@@ -25,7 +25,7 @@ import { cn } from "@/lib/utils";
 const STATUSES: FindingStatus[] = ["open", "confirmed", "fixed", "false_positive", "ignored"];
 const SEVERITIES = ["critical", "high", "medium", "low"];
 
-// openPacket opens the exact recorded packet in the 流量 page in a NEW TAB (so the
+// openPacket opens the exact recorded packet in the Traffic page in a NEW TAB (so the
 // finding stays open for side-by-side screenshotting).
 function openPacket(exchangeId: string) {
   window.open(`/function/traffic?exchange=${encodeURIComponent(exchangeId)}`, "_blank", "noopener");
@@ -33,7 +33,7 @@ function openPacket(exchangeId: string) {
 
 // FindingDetail is the shared rich body for a finding — used by both the global
 // findings page and the task-detail findings tab. It lazy-loads the enrichment,
-// offers "AI 分析", editable name/target/severity/status, and renders the
+// offers "AI Analysis", editable name/target/severity/status, and renders the
 // structured sections (description / risk / remediation / evidence).
 export function FindingDetail({ finding, onChanged }: { finding: Finding; onChanged?: () => void }) {
   const { t, i18n } = useTranslation();
@@ -44,7 +44,7 @@ export function FindingDetail({ finding, onChanged }: { finding: Finding; onChan
   const [editing, setEditing] = React.useState(false);
   const [form, setForm] = React.useState({ name: "", target: "", severity: "", status: "open" });
 
-  // Load persisted enrichment; also detect an in-flight AI-分析 job so returning to
+  // Load persisted enrichment; also detect an in-flight AI-Analysis job so returning to
   // this finding mid-analysis resumes the spinner (the job runs server-side and is
   // never lost to a page switch).
   React.useEffect(() => {
@@ -104,7 +104,7 @@ export function FindingDetail({ finding, onChanged }: { finding: Finding; onChan
   const severity = enr?.severity || finding.severity;
   const status = (enr?.status || finding.status || "open") as FindingStatus;
 
-  // Kick off async AI 分析. Returns immediately; the polling effect (driven by the
+  // Kick off async AI Analysis. Returns immediately; the polling effect (driven by the
   // analyzing flag) picks up the result — so switching pages can't abort it.
   function analyze() {
     setAnalyzing(true);
@@ -124,7 +124,7 @@ export function FindingDetail({ finding, onChanged }: { finding: Finding; onChan
   }
 
   // persist writes the triage fields and, when confirming an un-enriched finding,
-  // seamlessly picks up the auto-started 富化 (确认即富化): the server kicks the job,
+  // seamlessly picks up the auto-started Vulcanization (Affection is confirmation.): the server kicks the job,
   // we flip on the analyzing spinner and the existing poll streams in the result.
   function persist(patch: { name: string; target: string; severity: string; status: string }) {
     api
@@ -142,19 +142,19 @@ export function FindingDetail({ finding, onChanged }: { finding: Finding; onChan
   }
 
   // setStatus flips just the status from the header pill (no edit mode) — the common
-  // "triage → 已确认" action; confirming auto-enriches via persist().
+  // "triage → Confirmed" action; confirming auto-enriches via persist().
   function setStatus(next: string) {
     if (next === status) return;
     persist({ name, target, severity, status: next });
   }
 
-  // copyReport assembles a plain-markdown version of the whole finding (名称/严重度/
-  // 目标/CVSS + 描述/风险/修复 + 结构化复现) to the clipboard — the 复制 button, for
+  // copyReport assembles a plain-markdown version of the whole finding (Name/Severity/
+  // Objective/CVSS + Description/Risk/Rehabilitation + Structured recurrence) to the clipboard — the Copy button, for
   // pasting a single vuln into tickets/chat without exporting a full report.
   function copyReport() {
     const L: string[] = [`# ${name}`];
-    const meta = [`${t("findings.colSeverity")}：${t(`status.severity.${severity}`)}`];
-    if (target) meta.push(`${t("findings.colTarget")}：${target}`);
+    const meta = [`${t("findings.colSeverity")}:${t(`status.severity.${severity}`)}`];
+    if (target) meta.push(`${t("findings.colTarget")}:${target}`);
     if (enr && enr.cvss_score > 0) meta.push(`CVSS ${enr.cvss_score.toFixed(1)}${enr.cvss_vector ? ` ${enr.cvss_vector}` : ""}`);
     L.push(meta.join("　·　"));
     const desc = enr?.description?.length ? enr.description : finding.summary ? [finding.summary] : [];
@@ -163,9 +163,9 @@ export function FindingDetail({ finding, onChanged }: { finding: Finding; onChan
     if (enr?.remediation?.length) L.push(`\n## ${t("findings.remediation")}`, ...enr.remediation.map((r, i) => `${i + 1}. ${r}`));
     if (repro?.entry_point || (repro?.steps?.length ?? 0) > 0) {
       L.push(`\n## ${t("findings.testProcess")}`);
-      if (repro?.entry_point) L.push(`${t("findings.reproEntry")}：${repro.entry_point}`);
+      if (repro?.entry_point) L.push(`${t("findings.reproEntry")}:${repro.entry_point}`);
       (repro?.steps ?? []).forEach((st, i) => {
-        const d = [st.expected, st.proves].filter(Boolean).join(" ｜ ");
+        const d = [st.expected, st.proves].filter(Boolean).join(" | ");
         L.push(`\n${t("findings.reproStep")} ${i + 1}${d ? ` — ${d}` : ""}`);
         if (st.request?.trim()) L.push(st.request.trim());
         if (st.response?.trim()) L.push(`${t("findings.reproResponse")}:\n${st.response.trim()}`);
@@ -230,7 +230,7 @@ export function FindingDetail({ finding, onChanged }: { finding: Finding; onChan
               {name}
             </span>
             <StatusBadge domain="severity" value={severity} dot />
-            {/* 状态下拉 pill：直接改状态/确认，无需进编辑；选"已确认"即触发后台自动富化 */}
+            {/* Pull in status. pill:Direct Status Change/Confirm, no editing; select"Confirmed"Initiating automatic eutrophication of backstage */}
             <DropdownMenu>
               <DropdownMenuTrigger asChild>
                 <button
@@ -323,11 +323,11 @@ export function FindingDetail({ finding, onChanged }: { finding: Finding; onChan
         </Section>
       ) : null}
 
-      {/* ── 复现过程：有结构化 reproduction 时显式分步 + 每步证据；否则平铺 test_process + 单一证据区 ── */}
+      {/* ── Recurrence process: structured reproduction Show by step + Evidence per step; otherwise flatten test_process + Single evidence area ── */}
       <ReproductionSection nodeId={String(nodeId)} repro={repro} blocks={enr?.test_process ?? []} />
 
-      {/* ── raw evidence / PoC ── 当有结构化复现步骤时，步骤+请求/响应+截图已是实打实的证据，
-           原始 PoC 折叠成"来源/原始"审计项；无结构化时它仍是主证据，照常展开。 */}
+      {/* ── raw evidence / PoC ── When there is a structured recovery step, steps+Request/Response+The screenshot is a solid piece of evidence.
+           Original PoC Collapse into"Source/Original"Audit items; in the absence of a structured structure, it remains the primary evidence and continues as usual. */}
       {(() => {
         const hasRepro = (repro?.steps?.length ?? 0) > 0 || !!repro?.entry_point;
         const pre = (
@@ -364,13 +364,13 @@ export function FindingDetail({ finding, onChanged }: { finding: Finding; onChan
         );
       })()}
 
-      {/* ── 关联流量（手动/引擎自动记录的证据来源；可一键进截图模式截图）── */}
+      {/* ── Associated traffic (manual)/Evidentiary sources for automatic engine recording; one-clicked transcribed modeshot)── */}
       <TrafficLinksSection nodeId={String(nodeId)} />
     </div>
   );
 }
 
-// TrafficLinksSection 展示该漏洞关联的真实流量（证据来源）：每条可「截图」进截图模式、可解除关联。
+// TrafficLinksSection lists the real traffic exchanges (evidence sources) for this finding; each one can be unlinked with the "unlink" action.
 function TrafficLinksSection({ nodeId }: { nodeId: string }) {
   const { t } = useTranslation();
   const [items, setItems] = React.useState<TrafficExchange[]>([]);
@@ -441,10 +441,10 @@ function TrafficLinksSection({ nodeId }: { nodeId: string }) {
   );
 }
 
-// ReproductionSection 渲染复现过程并把证据截图按【步骤】归位：
-//  - 有结构化 reproduction（agent 就地记录）→ 显式分步：入口/前置头 + 每步(说明+逐字请求) + 该步证据上传区 + 来源脚注 + 概览证据区。
-//  - 否则 → 平铺 test_process（兼容旧富化）+ 单一证据区。
-// 证据与步骤的对应：finding_evidence.step_index == 步骤号(1..N)，0 = 概览/未归属。
+// ReproductionSection Rendering the recurrence and placing the evidence by [step]:
+//  - Structured reproduction(agent On-site records)→ Remarkable step: entrance/Front Header + Every step(Annotations+Word by Word Request) + The step of the evidence upload area + Source footnote + Overview of the evidence area.
+//  - Otherwise... → Tiled test_process(Compatibility with old eutrophication)+ Single evidence area.
+// Corresponding evidence to steps:finding_evidence.step_index == Step Number(1..N),0 = Overview/Not attributed.
 function ReproductionSection({
   nodeId,
   repro,
@@ -482,18 +482,18 @@ function ReproductionSection({
       <div className="min-w-0 space-y-3">
         {hasStructured ? (
           <>
-            {/* 入口点 / 前置条件 */}
+            {/* Entry point / Precondition */}
             {(repro?.entry_point || (repro?.prerequisites?.length ?? 0) > 0) && (
               <div className="rounded-md border bg-muted/30 px-3 py-2 text-sm">
                 {repro?.entry_point && (
                   <p className="break-words">
-                    <span className="text-muted-foreground">{t("findings.reproEntry")}：</span>
+                    <span className="text-muted-foreground">{t("findings.reproEntry")}:</span>
                     <code className="break-all font-mono">{repro.entry_point}</code>
                   </p>
                 )}
                 {(repro?.prerequisites?.length ?? 0) > 0 && (
                   <div className="mt-1">
-                    <span className="text-muted-foreground">{t("findings.reproPrereq")}：</span>
+                    <span className="text-muted-foreground">{t("findings.reproPrereq")}:</span>
                     <ul className="ml-4 list-disc break-words">
                       {repro!.prerequisites!.map((p, i) => (
                         <li key={i}>{p}</li>
@@ -503,10 +503,10 @@ function ReproductionSection({
                 )}
               </div>
             )}
-            {/* 分步：每步 说明 + 逐字请求 + 该步证据 */}
+            {/* Step: Each step Description + Word by Word Request + The evidence. */}
             {steps.map((st, i) => {
               const n = i + 1;
-              const desc = [st.expected, st.proves].filter(Boolean).join(" ｜ ");
+              const desc = [st.expected, st.proves].filter(Boolean).join(" | ");
               return (
                 <div key={n} className="rounded-md border px-3 py-2">
                   <div className="flex items-baseline gap-2">
@@ -526,7 +526,7 @@ function ReproductionSection({
                       </Button>
                     )}
                   </div>
-                  {/* 关键请求/响应（agent 记录的标准 HTTP 报文关键部分）；完整流量包靠步骤头部「查看流量包」跳转。 */}
+                  {/* Critical requests/Responseagent Standard of recording HTTP Key part of the message; complete flow pack jumps on the head of the step "see the flow pack". */}
                   {st.request?.trim() && (
                     <pre className="mt-1.5 max-w-full min-w-0 overflow-x-auto rounded bg-muted px-3 py-2 font-mono text-xs break-words whitespace-pre-wrap">
                       {st.request}
@@ -548,7 +548,7 @@ function ReproductionSection({
                     onChanged={load}
                     suggestedCaption={
                       (st.proves || st.expected || "").trim()
-                        ? `${t("findings.reproStep")} ${n}：${(st.proves || st.expected || "").trim().split("\n")[0].slice(0, 120)}`
+                        ? `${t("findings.reproStep")} ${n}:${(st.proves || st.expected || "").trim().split("\n")[0].slice(0, 120)}`
                         : undefined
                     }
                   />
@@ -557,10 +557,10 @@ function ReproductionSection({
             })}
             {repro?.provenance && (
               <p className="text-xs text-muted-foreground break-words">
-                {t("findings.reproProvenance")}：{repro.provenance}
+                {t("findings.reproProvenance")}:{repro.provenance}
               </p>
             )}
-            {/* 概览/未归属证据 */}
+            {/* Overview/Evidence not attributed */}
             <div className="rounded-md border border-dashed px-3 py-2">
               <div className="mb-1 text-xs font-medium text-muted-foreground">{t("findings.reproOverviewShots")}</div>
               <EvidenceStrip nodeId={nodeId} stepIndex={0} items={byStep.get(0) ?? []} onZoom={setLightbox} onChanged={load} />
@@ -568,7 +568,7 @@ function ReproductionSection({
           </>
         ) : (
           <>
-            {/* 旧富化：平铺 test_process */}
+            {/* Extremism: flatting test_process */}
             {blocks.length > 0 && (
               <div className="min-w-0 space-y-1.5">
                 {blocks.map((b, i) =>
@@ -613,7 +613,7 @@ function ReproductionSection({
   );
 }
 
-// EvidenceStrip 是一个步骤（或概览区）下的证据截图条：缩略图 + 图注(失焦存) + 删除 + 上传(绑定 stepIndex)。
+// EvidenceStrip Interception of evidence under one step (or overview area): Thumbnail + Figure(Out of focus.) + Delete + Upload(Tie stepIndex).
 function EvidenceStrip({
   nodeId,
   stepIndex,
@@ -627,8 +627,8 @@ function EvidenceStrip({
   items: FindingEvidenceItem[];
   onZoom: (url: string) => void;
   onChanged: () => void;
-  // Step-derived caption (from the agent's 复现 step text); pre-fills empty captions so
-  // 图注 is auto-written yet editable. New uploads already carry a server-derived caption.
+  // Step-derived caption (from the agent's Revert step text); pre-fills empty captions so
+  // Figure is auto-written yet editable. New uploads already carry a server-derived caption.
   suggestedCaption?: string;
 }) {
   const { t } = useTranslation();
@@ -653,7 +653,7 @@ function EvidenceStrip({
   function onFiles(files: FileList | null) {
     if (files?.length) doUpload(Array.from(files));
   }
-  // 粘贴截图：截图后直接 Ctrl/Cmd+V 粘到该步（聚焦上传区后粘贴），省去"先存盘再上传"。
+  // Paste screenshot: Right after screenshot Ctrl/Cmd+V Stick to that step. Save it."Save disk before uploading".
   function onPaste(e: React.ClipboardEvent) {
     const imgs = Array.from(e.clipboardData?.items ?? [])
       .filter((it) => it.kind === "file" && it.type.startsWith("image/"))
@@ -715,7 +715,7 @@ function EvidenceStrip({
           />
         </figure>
       ))}
-      {/* 可点击/拖拽/粘贴 的上传区：点"选择文件"开文件框；聚焦此区后 Ctrl/Cmd+V 粘贴截图；或直接拖图进来 */}
+      {/* Clickable/Drag/Paste Upload Area: Points"Select File"opening file boxes;after focus area Ctrl/Cmd+V Paste screenshot; or drag straight in */}
       {/* biome-ignore lint/a11y/noStaticElementInteractions: focusable paste/drop zone */}
       <div
         tabIndex={0}

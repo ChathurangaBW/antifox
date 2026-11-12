@@ -6,7 +6,7 @@ import (
 	"time"
 )
 
-// 审计日志数据层（登录/平台操作审计；后续可扩展为完整审计中心）。
+// Audit log data layer (entry)/Audit of platform operations; subsequent expansion to full audit centre)
 
 type AuditLog struct {
 	ID        int64          `json:"id"`
@@ -20,7 +20,7 @@ type AuditLog struct {
 	Detail    map[string]any `json:"detail"`
 }
 
-// RecordAudit 写一条审计日志（best-effort，出错只吞不影响主流程）。
+// RecordAudit Write an audit logbest-effort,The error does not affect the main process.
 func (d *DB) RecordAudit(actor, category, action, result, ip, message string, detail map[string]any) {
 	if result == "" {
 		result = "success"
@@ -35,7 +35,7 @@ func (d *DB) RecordAudit(actor, category, action, result, ip, message string, de
 		VALUES ($1,$2,$3,$4,$5,$6,$7::jsonb)`, actor, category, action, result, ip, message, string(dj))
 }
 
-// ListAuditLogs 分页倒序列出审计日志（可按 category/actor/action/result 过滤）。
+// ListAuditLogs Back-to-back pages from the audit log category/actor/action/result Filter.
 func (d *DB) ListAuditLogs(category, actor, action, result string, limit, offset int) ([]AuditLog, int, error) {
 	if limit <= 0 || limit > 500 {
 		limit = 50

@@ -36,15 +36,15 @@ async function http<T>(path: string, init?: RequestInit): Promise<T> {
       ...(init?.headers as Record<string, string> | undefined),
     },
   });
-  // 后端滑动续期：活跃使用时下发新 token，替换本地存储（含 cookie 供同源 SSE）。
+  // Backend slide extension: new when active token,Replace Local Storage cookie Source SSE).
   const refreshed = r.headers.get("X-Refresh-Token");
   if (refreshed && typeof window !== "undefined") {
     localStorage.setItem(TOKEN_KEY, refreshed);
     document.cookie = `${TOKEN_KEY}=${encodeURIComponent(refreshed)}; path=/; max-age=${7 * 24 * 60 * 60}; SameSite=Lax`;
   }
   if (r.status === 401) {
-    // 认证端点(/auth/login 等)的 401 = 凭证错误，交调用方展示提示，切勿跳转刷新(否则登录失败提示被刷掉)。
-    // 其它端点的 401 = 会话过期，清 token 并回登录页。
+    // Authentication request (/auth/login and similar). A 401 is a document error: the caller shows a hint and must not trigger a refresh, otherwise the login-failure message is lost.
+    // Other Ends 401 = Session expired, clear token And back to the login page.
     if (!path.startsWith("/auth/") && typeof window !== "undefined") {
       localStorage.removeItem(TOKEN_KEY);
       document.cookie = `${TOKEN_KEY}=; path=/; max-age=0`;
@@ -71,25 +71,25 @@ async function http<T>(path: string, init?: RequestInit): Promise<T> {
 // browser does not send cookies cross-port.
 // mockReport returns a canned Markdown report for the demo.
 function mockReport(_task?: string): string {
-  return `# AntiFox 渗透测试报告 — Acme Corp
+  return `# AntiFox Penetration Test Report - Acme Corp
 
-## 概览
-- 范围：acme.com（含 www / admin / api / shop / vpn 子域）
-- 已确认发现：6 项（高危 3 · 中危 3 · 低危 2）
-- 引擎模式：exploring
+## Overview
+- Scope:acme.com(Ham www / admin / api / shop / vpn Subdo)
+- It was confirmed that:6 Item (high risk) 3 · It's dangerous. 3 · Low risk. 2)
+- Engine mode:exploring
 
-## 关键发现
-1. **[高] 后台默认口令** admin.acme.com admin/admin123 → 可完全接管后台。
-2. **[高] SQL 注入** www.acme.com/search?q= → 可读取 acme_prod 库。
-3. **[高] IDOR** api.acme.com/v1/orders?id= → 可越权读取他人订单（含手机号/地址）。
-4. **[中] 反射型 XSS**、**暴露 .git 源码**、**登录无速率限制**。
+## Key findings
+1. **[High] Default password for background** admin.acme.com admin/admin123 → We can take over the backstage completely.
+2. **[High] SQL Injection** www.acme.com/search?q= → Readable acme_prod The library.
+3. **[High] IDOR** api.acme.com/v1/orders?id= → Overstepping access to other people ' s orders (including cell phone numbers)/Address.
+4. **[Medium] Reflection type XSS**, **Exposure .git Source**, **Login no speed limit**.
 
-## 建议
-- 后台强制改密 + 启用 MFA、封禁默认口令。
-- search 接口参数化查询、输出编码。
-- API 增加对象级授权校验（IDOR）、更换强 JWT 密钥。
+## Recommendations
+- Forced redacting backstage + Enable MFA, Ban the default password.
+- search Interface parameterized query, output code.
+- API Add Object Level Authorization ValidationIDOR), Replace Strong JWT Key.
 
-> （demo）本报告由 mock 数据生成，仅用于界面演示。`;
+> (demo)The present report is submitted by mock Data generation, only for interface presentations.`;
 }
 
 export function sseUrl(path: string): string {
@@ -122,8 +122,8 @@ export const api = {
     post<{ token: string }>("/auth/init", { password }),
   changePassword: (oldPassword: string, newPassword: string) =>
     post<{ ok: boolean; token?: string }>("/auth/change-password", { old_password: oldPassword, new_password: newPassword }).then((r) => {
-      // 改密会作废旧 token（含本次会话）；后端补发一张新 token，这里即时替换本地存储，
-      // 避免当前用户下一次请求被登出（其它设备的旧 token 仍失效）。
+      // It'll be obsolete. token(Including this session; backend to send a new token,Here, replace local storage instantaneously.
+      // Avoid the next user request to be posted (other equipment used) token It's still not working.
       if (r.token && typeof window !== "undefined") {
         localStorage.setItem(TOKEN_KEY, r.token);
         document.cookie = `${TOKEN_KEY}=${encodeURIComponent(r.token)}; path=/; max-age=${7 * 24 * 60 * 60}; SameSite=Lax`;
@@ -160,7 +160,7 @@ export const api = {
     get<{ count: number; assets: Asset[] }>(`/assets?task_id=${taskId}&type=${type}`)
       .then((r) => r?.assets ?? []),
 
-  // ---- companies (企业 + 资产范围；归属唯一来源) ----
+  // ---- companies (Enterprise + Scope of assets; attribution to sole source) ----
   companies: (task = 0) => get<Company[]>(`/companies${task ? `?task=${task}` : ""}`).then(arr),
   createCompany: (name: string, logo: string, scope: string) =>
     post<{ id: number; created: boolean; scope_added?: number; scope_invalid?: number; scope_errors?: string[] }>(
@@ -246,7 +246,7 @@ export const api = {
   testGlobalProxy: (proxy: string) =>
     post<{ ok: boolean; error?: string; egress_ip?: string; latency_ms?: number }>(`/settings/global-proxy/test`, { global_proxy: proxy }),
 
-  // ---- 一键更新（GitHub Release → 校验 → 暂存 → 守护脚本重启换装）----
+  // ---- Update One KeyGitHub Release → Verify → Pending → Guard script restarting)----
   updateCheck: (force = false) => get<UpdateCheck>(`/update/check${force ? "?force=1" : ""}`),
   updateApply: () => post<{ ok: boolean; target: string }>(`/update/apply`, {}),
   updateRollback: () => post<{ ok: boolean }>(`/update/rollback`, {}),
@@ -286,10 +286,10 @@ export const api = {
   },
   reportStatus: (task?: string) => get<ReportJob>(`/report/status${tq(task)}`),
   reportDownloadUrl: (task?: string) => `/api/report/download${tq(task)}`,
-  // 从任务会话转录补录漏洞（AI 提取被描述但未落库的确认漏洞 → finding 节点）
+  // Filling bugs from task session(s)AI Extract description but undefeated confirmation leaks Hole → finding Node)
   extractFindings: (taskId: string) =>
     post<{ extracted: number; created: number }>(`/tasks/${taskId}/extract-findings`, {}),
-  // ---- 报告管理（组织级设置 + 报告清单）----
+  // ---- Reporting management (organizational set-up) + List of reports)----
   reportSettings: () => get<ReportSettings>(`/report-settings`),
   saveReportSettings: (patch: Partial<ReportSettings>) => put<ReportSettings>(`/report-settings`, patch),
   reports: () => get<ReportRecord[]>(`/reports`).then(arr),
@@ -300,7 +300,7 @@ export const api = {
   createReportTemplate: (body: Partial<ReportTemplate>) => post<ReportTemplate>(`/report-templates`, body),
   updateReportTemplate: (id: number, body: Partial<ReportTemplate>) => put<ReportTemplate>(`/report-templates/${id}`, body),
   deleteReportTemplate: (id: number) => del<{ ok: boolean }>(`/report-templates/${id}`),
-  // ---- 知识库（两层 RAG：全局 + 任务）----
+  // ---- Knowledge base (two floors) RAG:Global + )----
   knowledgeDocs: (scope = "", task = 0) =>
     get<KnowledgeDoc[]>(`/knowledge?scope=${encodeURIComponent(scope)}&task=${task}`).then(arr),
   knowledgeDoc: (id: number) => get<KnowledgeDoc>(`/knowledge/${id}`),
@@ -328,7 +328,7 @@ export const api = {
       headers: token ? { Authorization: `Bearer ${token}` } : {},
     });
     const body = await r.json().catch(() => ({}));
-    if (!r.ok) throw new Error(body?.error || `上传失败(${r.status})`);
+    if (!r.ok) throw new Error(body?.error || `Upload failed(${r.status})`);
     return body as KnowledgeDoc;
   },
   uploadReportLogo: async (file: File) => {
@@ -341,23 +341,23 @@ export const api = {
       headers: token ? { Authorization: `Bearer ${token}` } : {},
     });
     const body = await r.json().catch(() => ({}));
-    if (!r.ok) throw new Error(body?.error || `上传失败(${r.status})`);
+    if (!r.ok) throw new Error(body?.error || `Upload failed(${r.status})`);
     return body as { logo_path: string; url: string };
   },
-  // ---- finding enrichment (漏洞管理深化) — keyed by exploration node_id ----
+  // ---- finding enrichment (Gap management deepening) — keyed by exploration node_id ----
   findingDetail: (nodeId: string) => get<FindingDetailResp>(`/findings/${nodeId}`),
-  // AI 分析 is async: POST starts (or re-attaches to) the job, GET status polls it.
+  // AI Analysis is async: POST starts (or re-attaches to) the job, GET status polls it.
   // The generation runs server-side on the app ctx, so switching pages can't abort it.
   findingEnrich: (nodeId: string, locale?: string) =>
     post<EnrichJob>(`/findings/${nodeId}/enrich${locale ? `?locale=${encodeURIComponent(locale)}` : ""}`, {}),
   findingEnrichStatus: (nodeId: string) => get<EnrichJob>(`/findings/${nodeId}/enrich/status`),
   // Returns the saved enrichment + `enriching`: true when setting status→confirmed
-  // kicked off an automatic background AI 富化 (确认即富化). Poll findingEnrichStatus then.
+  // kicked off an automatic background AI Vulcanization (Affection is confirmation.). Poll findingEnrichStatus then.
   findingUpdate: (
     nodeId: string,
     patch: { name?: string; target?: string; severity?: string; status?: string; locale?: string },
   ) => put<{ enrichment: Enrichment; enriching: boolean }>(`/findings/${nodeId}`, patch),
-  // ---- 漏洞证据截图 ----
+  // ---- Anecdotal evidence cut-off ----
   findingEvidenceList: (nodeId: string) =>
     get<{ items: FindingEvidenceItem[] }>(`/findings/${nodeId}/evidence`).then((r) => r.items ?? []),
   findingEvidenceUpload: async (nodeId: string, file: File, caption = "", stepIndex = 0) => {
@@ -372,14 +372,14 @@ export const api = {
       headers: token ? { Authorization: `Bearer ${token}` } : {},
     });
     const body = await r.json().catch(() => ({}));
-    if (!r.ok) throw new Error(body?.error || `上传失败(${r.status})`);
+    if (!r.ok) throw new Error(body?.error || `Upload failed(${r.status})`);
     return body as FindingEvidenceItem;
   },
   findingEvidenceUpdate: (nodeId: string, eid: number, patch: { caption: string; step_index: number; sort_order: number }) =>
     put<{ ok: boolean }>(`/findings/${nodeId}/evidence/${eid}`, patch),
   findingEvidenceDelete: (nodeId: string, eid: number) =>
     del<{ deleted: number }>(`/findings/${nodeId}/evidence/${eid}`),
-  // ---- 漏洞↔流量关联 ----
+  // ---- Hole↔Flow Link ----
   findingTrafficList: (nodeId: string) =>
     get<{ exchanges: TrafficExchange[] }>(`/findings/${nodeId}/traffic`).then((r) => r.exchanges ?? []),
   findingTrafficLink: (nodeId: string, exchangeIds: string[]) =>
@@ -429,14 +429,14 @@ export const api = {
   }) => post<{ id: number }>("/llm/profiles", p),
   deleteLLMProfile: (id: string) => del<{ deleted: number }>(`/llm/profiles/${id}`),
   activateLLMProfile: (id: string) => post<{ ok: boolean }>("/llm/profiles/active", { id: Number(id) }),
-  // LLM 轮询(故障转移)
+  // LLM Rotation(Fragmentation)
   llmPool: () => get<LLMPoolStatus>("/llm/pool"),
   setLLMPool: (enabled: boolean) => post<{ ok: boolean; enabled: boolean }>("/llm/pool", { enabled }),
   resetLLMPool: (profileId?: string) =>
     post<{ ok: boolean }>("/llm/pool/reset", { profile_id: profileId ? Number(profileId) : 0 }),
   setProfilePool: (id: string, priority: number, exclude: boolean) =>
     post<{ ok: boolean }>(`/llm/profiles/${id}/pool`, { priority, exclude }),
-  // LLM 角色分工（各角色映射到某配置；profile_id="0"=跟随全局激活）
+  // LLM Role segregation (the roles are mapped to a certain configuration);profile_id="0"=Follow global activation)
   llmRoles: () => get<{ roles: { role: string; profile_id: string }[] }>("/llm/roles").then((r) => arr(r.roles)),
   setLLMRole: (role: string, profileId: string) =>
     post<{ ok: boolean }>("/llm/roles", { role, profile_id: Number(profileId) || 0 }),
@@ -469,18 +469,18 @@ export const api = {
   stopConversation: (id: number) => post<{ status: string }>(`/conversations/${id}/stop`, {}),
   saveAgentPrompt: (key: string, template: string, note = "") => put<{ version: number }>(`/agents/${key}/prompt`, { template, note }),
   resetAgentPrompt: (key: string) => post<{ version: number }>(`/agents/${key}/prompt/reset`, {}),
-  // 收尾提示词(超时/步数耗尽的 settlement 提示);prompt 空串=清除覆盖、用内置默认;
-  // max_turns 省略则不动、传 0=用内置默认轮数
+  // Endnote(Timeout/We're running out of steps. settlement Hint);prompt Empty string=Clear Overwrite, Use Internal Default;
+  // max_turns It's not moving. 0=Use internal default wheel
   saveAgentWrapup: (key: string, prompt: string, maxTurns?: number) =>
     put<{ ok: boolean }>(`/agents/${key}/wrapup`, { prompt, max_turns: maxTurns }),
   resetAgentWrapup: (key: string) =>
     post<{ ok: boolean; wrapup_default: string; wrapup_max_turns_default: number }>(`/agents/${key}/wrapup/reset`, {}),
-  // 任务级超时收尾词(仅 worker/planner);prompt 空=清除、用内置默认
+  // Task Level Overtime(Only worker/planner);prompt Empty=Clear, use built-in default
   saveAgentTaskTimeoutWrapup: (key: string, prompt: string, maxTurns?: number) =>
     put<{ ok: boolean }>(`/agents/${key}/wrapup/task-timeout`, { prompt, max_turns: maxTurns }),
   resetAgentTaskTimeoutWrapup: (key: string) =>
     post<{ ok: boolean; task_timeout_wrapup_default: string; task_timeout_wrapup_max_turns_default: number }>(`/agents/${key}/wrapup/task-timeout/reset`, {}),
-  // P3 triggers (仅自定义 agent)
+  // P3 triggers (Custom only agent)
   agentTriggers: (key: string) =>
     get<{ triggers: AgentTrigger[] }>(`/agents/${key}/triggers`).then((r) => arr(r.triggers)),
   createTrigger: (key: string, t: Omit<AgentTrigger, "id" | "agent_key" | "last_fire">) =>
@@ -497,12 +497,12 @@ export const api = {
   getAgentVisibility: (key: string) => get<{ mcp: number[]; skill: string[] }>(`/agents/${key}/visibility`),
   setAgentVisibility: (key: string, mcp: number[], skill: string[]) => put<{ ok: boolean }>(`/agents/${key}/visibility`, { mcp, skill }),
 
-  // ---- tools (内置工具目录) ----
+  // ---- tools (Internal Tool Directory) ----
   tools: () => get<{ tools: Tool[] }>("/tools").then((r) => arr(r.tools)),
   saveTool: (key: string, patch: Pick<Tool, "description" | "schema" | "agents" | "enabled">) =>
     put<{ ok: boolean }>(`/tools/${key}`, patch),
   resetTool: (key: string) => post<{ ok: boolean }>(`/tools/${key}/reset`, {}),
-  // custom tools (自定义工具)
+  // custom tools (Custom Tools)
   createCustomTool: (t: Pick<Tool, "key" | "description" | "schema" | "agents" | "enabled" | "kind" | "exec" | "deferred">) =>
     post<{ key: string }>("/tools/custom", t),
   updateCustomTool: (key: string, t: Pick<Tool, "description" | "schema" | "agents" | "enabled" | "kind" | "exec" | "deferred">) =>
@@ -521,7 +521,7 @@ export const api = {
   mcpStats: () => get<MCPStatsResp>("/mcp/stats"),
   mcpHealthCheck: (id: number) => post<{ status: string; error?: string }>(`/mcp/${id}/health`, {}),
 
-  // ---- 资产同步 (ScopeSentry 数据源) ----
+  // ---- Asset Sync (ScopeSentry Data Sources) ----
   ssStatus: () =>
     get<{ exists: boolean; configured: boolean; enabled: boolean; reachable: boolean; url?: string; tools: string[] }>(
       "/sync/scopesentry/status",
@@ -550,14 +550,14 @@ export const api = {
       errors: string[] | null;
     }>("/sync/scopesentry/sync", body),
 
-  // ---- skills (文件系统) ----
+  // ---- skills (File System) ----
   skills: () => get<{ skills: SkillItem[] }>("/skills").then((r) => arr(r.skills)),
-  // 调用统计（复用可观测性）
+  // Call statistics (re-use detectability)
   skillStats: () => get<SkillStatsResp>("/skills/stats"),
   createSkill: (s: { name: string; description: string; license?: string; compatibility?: string; mcps?: string[]; instructions?: string }) =>
     post<{ name: string }>("/skills", s),
   // uploadSkill installs a skill from a .zip (multipart). Surfaces the backend
-  // error text (e.g. 已存在 / 缺少 SKILL.md) so the UI can show a precise message.
+  // error text (e.g. Exists / Missing SKILL.md) so the UI can show a precise message.
   uploadSkill: async (file: File, overwrite = false): Promise<{ name: string; files: number }> => {
     if (MOCK) return { name: file.name.replace(/\.zip$/i, ""), files: 1 };
     const fd = new FormData();
@@ -590,7 +590,7 @@ export const api = {
   toggleVisibility: (agentId: string, kind: string, resourceId: number, visible: boolean) =>
     post<{ ok: boolean }>("/visibility/toggle", { agent_id: agentId, kind, resource_id: resourceId, visible }),
 
-  // ---- visibility (Skill，按名称) ----
+  // ---- visibility (Skill,By Name) ----
   skillVisibility: (name: string) => get<{ agents: string[] }>(`/visibility/skill/${name}`).then((r) => arr(r.agents)),
   toggleSkillVisibility: (agentId: string, skillName: string, visible: boolean) =>
     post<{ ok: boolean }>("/visibility/skill/toggle", { agent_id: agentId, skill_name: skillName, visible }),
@@ -613,7 +613,7 @@ export const api = {
   interceptHistory: () => get<{ items: InterceptApprovalRow[] }>("/intercept/history").then((r) => arr(r.items)),
   interceptTask: (taskId: string) => get<{ items: InterceptApprovalRow[] }>(`/intercept/task/${taskId}`).then((r) => arr(r.items)),
 
-  // ---- intercept tool-config (全局工具拦截范围) ----
+  // ---- intercept tool-config (Global tool intercept range) ----
   interceptGetToolConfig: async (): Promise<{ enabled_tools: string[] }> => {
     if (MOCK) return { enabled_tools: ["bash"] };
     const token = getToken();
@@ -637,7 +637,7 @@ export const api = {
     if (!r.ok) throw new Error(await r.text());
   },
 
-  // ---- 平台权限 RBAC ----
+  // ---- Platform Permissions RBAC ----
   rbacMe: () => get<RBACMe>("/rbac/me"),
   rbacMetadata: () =>
     get<{ permissions: Record<string, string>; roles: RBACRole[]; scopes: string[] }>("/rbac/metadata"),

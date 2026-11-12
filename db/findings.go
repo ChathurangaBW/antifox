@@ -19,7 +19,7 @@ type DBFinding struct {
 	AssetIDs        []int64
 	CreatedAt       time.Time
 	TaskDescription string          // populated via LEFT JOIN on tasks
-	Reproduction    json.RawMessage // agent 就地记录的结构化复现过程(可空);null=无(走事后富化兜底)
+	Reproduction    json.RawMessage // agent Structural reproduction of local records(Empty);null=None(We'll go to the bottom.)
 }
 
 // AddFinding inserts a finding into the standalone findings table. taskID and

@@ -1,5 +1,5 @@
 // Centralised status → color/label semantics, reused across the whole app.
-// Spec §8.3: 意图 / 覆盖 / 任务 / 严重度 each have a consistent color set.
+// Spec §8.3: Intention / Overwrite / Tasks / Severity each have a consistent color set.
 
 import i18n from "@/i18n/config";
 
@@ -46,8 +46,8 @@ interface StatusMeta {
   tone: Tone;
 }
 
-// 每个 domain 的 key → tone 映射；label 文案改由 i18n 提供（status.<domain>.<key>），
-// 在 statusMeta() 访问时经 i18n.t() 取译文 → 消费端零改动，切换语言随组件重渲染即时更新。
+// Each domain maps a key to a tone; the label text comes from i18n at status.<domain>.<key>.
+// statusMeta() calls i18n.t() without an explicit translation -> consumers need no changes, and toggling the language updates immediately through component re-rendering.
 const tones = {
   intent: { open: "slate", running: "blue", done: "green", blocked: "red", exhausted: "violet" },
   task: { created: "slate", running: "blue", paused: "amber", done: "green", failed: "red", timeout: "amber" },

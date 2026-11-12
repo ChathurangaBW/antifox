@@ -38,7 +38,7 @@ func (s *Server) createGoals(ctx context.Context, t *Task, emit func(db.Activity
 		// No rule-based splitting: use the raw task goal verbatim as a single goal
 		// (only reached on an LLM error — normal runs get real decomposed goals).
 		if g := strings.TrimSpace(t.Goal); g != "" {
-			log.Printf("[goals] task %s: LLM 目标拆解无产出，回退为「原始目标作为单目标」", t.ID)
+			log.Printf("[goals] task %s: LLM goal decomposition returned no output; using the original goal as a single goal", t.ID)
 			specs = []goalSpec{{Text: g}}
 		}
 	}

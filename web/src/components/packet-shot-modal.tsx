@@ -22,8 +22,8 @@ function fmtTime(ts: string) {
   });
 }
 
-// PacketShotModal：全屏「截图模式」——请求+响应一屏、顶部自说明头(方法/状态/目标/URL/时间)，
-// 专为替代 Burp 截图。自行按需加载报文正文。流量页与漏洞详情(关联流量)共用。
+// PacketShotModal:Full Screen Screenshot Mode——Request+Response to one screen, top self-statement(Methodology/Status/Objective/URL/Time),
+// It's a substitute. Burp Screenshot. Load the main text of the paper as required. Traffic pages and gap details(Related flows)Shared.
 export function PacketShotModal({ exchange, onClose }: { exchange: TrafficExchange; onClose: () => void }) {
   const { t } = useTranslation();
   const [detail, setDetail] = React.useState<TrafficDetail | null>(null);

@@ -1,5 +1,5 @@
 export const TOKEN_KEY = "antifox_token";
-const COOKIE_MAX_AGE = 7 * 24 * 60 * 60; // 7 天（秒）
+const COOKIE_MAX_AGE = 7 * 24 * 60 * 60; // 7 Days (seconds)
 
 export interface CurrentUser {
   id: string;
@@ -13,13 +13,13 @@ export interface CurrentUser {
 export const auth = {
   getToken(): string | null {
     if (typeof window === "undefined") return null;
-    // Mock demo：无真实登录，返回一个假 token 让路由守卫放行、直接进主界面。
+    // Mock demo:No real login, return a fake token Let the guards walk and enter the main interface.
     return localStorage.getItem(TOKEN_KEY) ?? (process.env.NEXT_PUBLIC_MOCK === "1" ? "mock-demo" : null);
   },
 
   setToken(token: string): void {
     localStorage.setItem(TOKEN_KEY, token);
-    // 同步写 cookie，供 Next.js middleware 服务端读取
+    // Sync cookie,For Next.js middleware Service Read
     document.cookie = `${TOKEN_KEY}=${encodeURIComponent(token)}; path=/; max-age=${COOKIE_MAX_AGE}; SameSite=Lax`;
   },
 
@@ -28,8 +28,8 @@ export const auth = {
     document.cookie = `${TOKEN_KEY}=; path=/; max-age=0`;
   },
 
-  // 从 JWT payload 解析当前用户，仅用于展示，不做签名验证。
-  // sub = 用户 id，usr = 用户名（多用户 RBAC）。
+  // From JWT payload Parsing the current user, only for display, not for signature authentication.
+  // sub = User id,usr = Username (multi-user) RBAC).
   getCurrentUser(): CurrentUser | null {
     const token = this.getToken();
     if (!token) return null;

@@ -23,7 +23,7 @@ func ExtractText(path string, raw []byte) (string, error) {
 	case ".pdf":
 		return pythonExtract(path, pdfPy, "pdfplumber", raw)
 	default:
-		return "", fmt.Errorf("暂不支持的文件类型（支持 .md/.txt/.csv/.json/.docx/.pdf）")
+		return "", fmt.Errorf("Type of document not supported (support) .md/.txt/.csv/.json/.docx/.pdf)")
 	}
 }
 
@@ -58,18 +58,18 @@ func pythonExtract(path, script, requireMod string, raw []byte) (string, error) 
 	// real path). Write the bytes to a temp file so python can open it.
 	tmp, err := os.CreateTemp("", "kbdoc-*"+filepath.Ext(path))
 	if err != nil {
-		return "", fmt.Errorf("创建临时文件失败: %w", err)
+		return "", fmt.Errorf("Failed to create temporary file: %w", err)
 	}
 	defer os.Remove(tmp.Name())
 	if _, werr := tmp.Write(raw); werr != nil {
 		tmp.Close()
-		return "", fmt.Errorf("写入临时文件失败: %w", werr)
+		return "", fmt.Errorf("Failed to write temporary file: %w", werr)
 	}
 	tmp.Close()
 
 	py := findPythonWith(requireMod)
 	if py == "" {
-		return "", fmt.Errorf("未找到 python3（解析 .docx/.pdf 需 python3 + python-docx / pdfplumber）")
+		return "", fmt.Errorf("Not found python3(Parsing .docx/.pdf Yes python3 + python-docx / pdfplumber)")
 	}
 	cmd := exec.Command(py, "-c", script, tmp.Name())
 	var errb bytes.Buffer
@@ -78,9 +78,9 @@ func pythonExtract(path, script, requireMod string, raw []byte) (string, error) 
 	if err != nil {
 		detail := strings.TrimSpace(errb.String())
 		if len(detail) > 400 {
-			detail = "…" + detail[len(detail)-400:]
+			detail = "..." + detail[len(detail)-400:]
 		}
-		return "", fmt.Errorf("解析失败（python=%s；如缺库请对该 python 执行 pip install python-docx pdfplumber）: %v: %s",
+		return "", fmt.Errorf("parsing failed (python=%s; if dependencies are missing, run: pip install python-docx pdfplumber): %v: %s",
 			filepath.Base(py), err, detail)
 	}
 	return string(out), nil

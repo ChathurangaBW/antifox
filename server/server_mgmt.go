@@ -19,9 +19,9 @@ import (
 	"text/template/parse"
 	"time"
 
-	"antifox/engine/skill"
 	"antifox/agent"
 	"antifox/db"
+	"antifox/engine/skill"
 )
 
 // reSkillName is the base character-set pattern; validSkillName enforces
@@ -50,7 +50,7 @@ var reAgentKey = regexp.MustCompile(`^[a-z][a-z0-9_]*$`)
 // pgReady returns the PG handle, or writes 503 and returns nil if unavailable.
 func (s *Server) pg(w http.ResponseWriter) *db.DB {
 	if s.m.pg == nil {
-		writeErr(w, 503, "管理后台数据源(PostgreSQL)未连接")
+		writeErr(w, 503, "Manage backup data sources(PostgreSQL)Not connected")
 		return nil
 	}
 	return s.m.pg
@@ -113,15 +113,15 @@ func (s *Server) pgCreateAgent(w http.ResponseWriter, r *http.Request) {
 	}
 	req.Key, req.Name = strings.TrimSpace(req.Key), strings.TrimSpace(req.Name)
 	if !reAgentKey.MatchString(req.Key) {
-		writeErr(w, 400, "key 需小写字母开头，仅含小写字母/数字/下划线")
+		writeErr(w, 400, "key Start with lowercase letters only/Numbers/Underline")
 		return
 	}
 	if req.Name == "" {
-		writeErr(w, 400, "名称不能为空")
+		writeErr(w, 400, "Name cannot be empty")
 		return
 	}
 	if exist, _ := pg.GetAgentByKey(req.Key); exist != nil {
-		writeErr(w, 409, "该 key 已存在")
+		writeErr(w, 409, "The key Exists")
 		return
 	}
 	a, err := pg.CreateAgent(req.Key, req.Name, req.Description)
@@ -131,7 +131,7 @@ func (s *Server) pgCreateAgent(w http.ResponseWriter, r *http.Request) {
 	}
 	// starter prompt so the editor shows something editable from the start.
 	if err := pg.SeedPromptIfEmpty(a.ID, agent.DefaultAssistantPrompt); err != nil {
-		log.Printf("[agents] seed starter prompt for %s 失败: %v", a.Key, err)
+		log.Printf("[agents] seed starter prompt for %s Failed: %v", a.Key, err)
 	}
 	writeJSON(w, 200, agentDTO(a))
 }
@@ -143,7 +143,7 @@ func (s *Server) pgUpdateAgent(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	if a.Builtin {
-		writeErr(w, 400, "内置 agent 不可修改名称/描述")
+		writeErr(w, 400, "Internal agent Unmodifiable Name/Description")
 		return
 	}
 	var req struct{ Name, Description string }
@@ -153,7 +153,7 @@ func (s *Server) pgUpdateAgent(w http.ResponseWriter, r *http.Request) {
 	}
 	req.Name = strings.TrimSpace(req.Name)
 	if req.Name == "" {
-		writeErr(w, 400, "名称不能为空")
+		writeErr(w, 400, "Name cannot be empty")
 		return
 	}
 	if err := pg.UpdateAgentMeta(a.Key, req.Name, req.Description); err != nil {
@@ -171,7 +171,7 @@ func (s *Server) pgDeleteAgent(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	if a.Builtin {
-		writeErr(w, 400, "内置 agent 不可删除")
+		writeErr(w, 400, "Internal agent Cannot delete")
 		return
 	}
 	if err := pg.DeleteAgent(a.Key); err != nil {
@@ -179,10 +179,10 @@ func (s *Server) pgDeleteAgent(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	if err := pg.RemoveAgentFromToolBindings(a.Key); err != nil {
-		log.Printf("[agents] 清理 %s 工具绑定失败: %v", a.Key, err)
+		log.Printf("[agents] Clear %s Tool binding failed: %v", a.Key, err)
 	}
 	if err := pg.DeleteTriggersForAgent(a.Key); err != nil {
-		log.Printf("[agents] 清理 %s 触发器失败: %v", a.Key, err)
+		log.Printf("[agents] Clear %s Trigger failed: %v", a.Key, err)
 	}
 	writeJSON(w, 200, map[string]any{"deleted": a.Key})
 }
@@ -218,7 +218,7 @@ func (s *Server) pgSaveAgentConfig(w http.ResponseWriter, r *http.Request) {
 		RunSeconds       *int   `json:"run_seconds"`
 		WebSearch        *bool  `json:"web_search"`
 		InteractiveShell *bool  `json:"interactive_shell"`
-		LLMProfileID     *int64 `json:"llm_profile_id"` // 分级绑定；0/负=清除绑定→用全局激活配置
+		LLMProfileID     *int64 `json:"llm_profile_id"` // (b) Grade binding;0/Negative=Clear binding→Activate Configuration with Global
 	}
 	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
 		writeErr(w, 400, err.Error())
@@ -258,9 +258,9 @@ func (s *Server) pgSaveAgentConfig(w http.ResponseWriter, r *http.Request) {
 			writeErr(w, 500, err.Error())
 			return
 		}
-		s.invalidateProfileAgents() // a role's 分级 binding changed → pinned-task agents must rebuild too
+		s.invalidateProfileAgents() // a role's Level binding changed → pinned-task agents must rebuild too
 	}
-	// rebuild the live agents so the new max_turns/run_seconds/分级绑定 apply without a restart.
+	// rebuild the live agents so the new max_turns/run_seconds/Rating apply without a restart.
 	s.cfgMu.Lock()
 	cfg, on := s.llmCfg, s.llmOn
 	s.cfgMu.Unlock()
@@ -293,11 +293,11 @@ func (s *Server) pgGetAgent(w http.ResponseWriter, r *http.Request) {
 	writeJSON(w, 200, map[string]any{
 		"agent": agentDTO(a), "prompt": cur, "variables": vars, "versions": vers,
 		"visibility":               map[string]any{"mcp": mcp, "skill": sk},
-		"wrapup_prompt":            a.WrapupPrompt,                  // 已保存的收尾提示词(空=用内置默认)
-		"wrapup_default":           agent.WrapupDefault(a.Key),      // 内置默认(供占位/恢复默认)
-		"wrapup_max_turns":         a.WrapupMaxTurns,                // 已保存的收尾轮数(0=用内置默认)
-		"wrapup_max_turns_default": agent.WrapupTurnsDefault(a.Key), // 内置默认轮数(供 "0=默认N" 提示)
-		// 任务级超时收尾词(仅 worker/planner 有内置默认;task_timeout_supported 供前端决定是否显示该分区)
+		"wrapup_prompt":            a.WrapupPrompt,                  // Saved Endnotes(Empty=Use internal default)
+		"wrapup_default":           agent.WrapupDefault(a.Key),      // Internal Default(For position./Restore Default)
+		"wrapup_max_turns":         a.WrapupMaxTurns,                // Number of saved tailings(0=Use internal default)
+		"wrapup_max_turns_default": agent.WrapupTurnsDefault(a.Key), // Internal Default Wheels(For "0=DefaultN" Hint)
+		// Task Level Overtime(Only worker/planner Internal Default;task_timeout_supported For the front end to decide whether to show the partition)
 		"task_timeout_wrapup_supported":         agent.TaskTimeoutWrapupDefault(a.Key) != "",
 		"task_timeout_wrapup_prompt":            a.TaskTimeoutWrapupPrompt,
 		"task_timeout_wrapup_default":           agent.TaskTimeoutWrapupDefault(a.Key),
@@ -330,7 +330,7 @@ func (s *Server) pgSavePrompt(w http.ResponseWriter, r *http.Request) {
 }
 
 // pgResetPrompt restores an agent's prompt body to the in-code built-in default
-// (段 [A]). Only built-in agents have a code default; custom agents have none.
+// (Paragraph [A]). Only built-in agents have a code default; custom agents have none.
 func (s *Server) pgResetPrompt(w http.ResponseWriter, r *http.Request) {
 	pg, a, ok := s.agentByKey(w, r)
 	if !ok {
@@ -338,7 +338,7 @@ func (s *Server) pgResetPrompt(w http.ResponseWriter, r *http.Request) {
 	}
 	tmpl, has := agent.BuiltinPromptSeeds()[a.Key]
 	if !has {
-		writeErr(w, 400, "该 agent 无内置默认提示词，无法恢复")
+		writeErr(w, 400, "The agent No internal default hint, cannot be restored")
 		return
 	}
 	ver, err := pg.ResetPromptToDefault(a.ID, tmpl)
@@ -419,7 +419,7 @@ func (s *Server) pgSaveTaskTimeoutWrapup(w http.ResponseWriter, r *http.Request)
 		writeErr(w, 400, err.Error())
 		return
 	}
-	turns := a.TaskTimeoutWrapupMaxTurns // 未传则保留原值
+	turns := a.TaskTimeoutWrapupMaxTurns // Keep original value without pass
 	if body.MaxTurns != nil {
 		turns = *body.MaxTurns
 		if turns < 0 {
@@ -535,7 +535,7 @@ func (s *Server) pgSetAgentVisibility(w http.ResponseWriter, r *http.Request) {
 	writeJSON(w, 200, map[string]any{"ok": true})
 }
 
-// ---------- tools (内置工具目录) ----------
+// ---------- tools (Internal Tool Directory) ----------
 
 func (s *Server) pgListTools(w http.ResponseWriter, r *http.Request) {
 	pg := s.pg(w)
@@ -569,7 +569,7 @@ func (s *Server) pgUpdateTool(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	if cur == nil {
-		writeErr(w, 404, "工具不存在: "+key)
+		writeErr(w, 404, "Tools do not exist: "+key)
 		return
 	}
 	var body struct {
@@ -591,7 +591,7 @@ func (s *Server) pgUpdateTool(w http.ResponseWriter, r *http.Request) {
 }
 
 // pgResetTool overwrites a tool row with its code-defined defaults (description,
-// schema, agent binding) and re-enables it — the explicit "恢复默认" action, since
+// schema, agent binding) and re-enables it — the explicit "Restore Default" action, since
 // startup seeding is first-insert-only and never overwrites edits.
 func (s *Server) pgResetTool(w http.ResponseWriter, r *http.Request) {
 	pg := s.pg(w)
@@ -626,7 +626,7 @@ func (s *Server) pgResetTool(w http.ResponseWriter, r *http.Request) {
 		writeJSON(w, 200, map[string]any{"ok": true})
 		return
 	}
-	writeErr(w, 404, "非内置工具或不存在: "+key)
+	writeErr(w, 404, "Non-internal tools or non-existent: "+key)
 }
 
 // ---------- mcp ----------
@@ -657,10 +657,10 @@ func (s *Server) pgSaveMCP(w http.ResponseWriter, r *http.Request) {
 		writeErr(w, 400, err.Error())
 		return
 	}
-	// stdio MCP 由服务端把 command/args 作为子进程拉起，等价于宿主机命令执行——收归 admin。
-	// 远程 MCP（http/sse）不在宿主机起进程，仍按 mcp:write 开放给 operator。
+	// stdio MCP By the service. command/args Start as a subprocess, equal value to host command executed——Return admin.
+	// Remote MCP(http/sse)Do not host start process, press still mcp:write Open to operator.
 	if strings.EqualFold(strings.TrimSpace(m.Transport), "stdio") && !isAdmin(r) {
-		writeErr(w, 403, "仅管理员可创建/修改 stdio 类型的 MCP 服务（会在宿主机启动子进程）")
+		writeErr(w, 403, "Only administrators can create/Modify stdio Type MCP Service (subprocesses will be initiated at host)")
 		return
 	}
 	isNew := m.ID == 0
@@ -676,7 +676,7 @@ func (s *Server) pgSaveMCP(w http.ResponseWriter, r *http.Request) {
 		m.ID = id
 		ctx, cancel := context.WithTimeout(r.Context(), 45*time.Second)
 		if derr := s.discoverAndCacheMCP(ctx, &m); derr != nil {
-			log.Printf("[mcp] %s 添加后工具发现失败: %v", m.Name, derr)
+			log.Printf("[mcp] %s Failed to find tool after adding: %v", m.Name, derr)
 		}
 		cancel()
 	}
@@ -717,13 +717,13 @@ func (s *Server) pgRefreshMCP(w http.ResponseWriter, r *http.Request) {
 		}
 	}
 	if target == nil {
-		writeErr(w, 404, "MCP 不存在")
+		writeErr(w, 404, "MCP does not exist")
 		return
 	}
 	ctx, cancel := context.WithTimeout(r.Context(), 45*time.Second)
 	defer cancel()
 	if err := s.discoverAndCacheMCP(ctx, target); err != nil {
-		writeErr(w, 502, "工具发现失败："+err.Error())
+		writeErr(w, 502, "Failed to find tool:"+err.Error())
 		return
 	}
 	tools, _ := pg.MCPToolsDetailed(id)
@@ -748,7 +748,7 @@ func (s *Server) pgMCPTools(w http.ResponseWriter, r *http.Request) {
 	writeJSON(w, 200, map[string]any{"tools": tools})
 }
 
-// ---------- skills (文件系统) ----------
+// ---------- skills (File System) ----------
 
 type skillFileNode struct {
 	Name          string   `json:"name"`
@@ -898,7 +898,7 @@ func (s *Server) fsCreateSkill(w http.ResponseWriter, r *http.Request) {
 		writeErr(w, 500, err.Error())
 		return
 	}
-	s.m.pg.RecordAudit(auditActor(r), "skill", "create_skill", "success", clientIP(r), "创建 skill "+body.Name, nil)
+	s.m.pg.RecordAudit(auditActor(r), "skill", "create_skill", "success", clientIP(r), "Create skill "+body.Name, nil)
 	writeJSON(w, 201, map[string]any{"name": body.Name})
 }
 
@@ -938,7 +938,7 @@ func (s *Server) fsUpdateSkillMeta(w http.ResponseWriter, r *http.Request) {
 		writeErr(w, 500, err.Error())
 		return
 	}
-	s.m.pg.RecordAudit(auditActor(r), "skill", "update_skill_meta", "success", clientIP(r), "修改 skill 元信息 "+name, nil)
+	s.m.pg.RecordAudit(auditActor(r), "skill", "update_skill_meta", "success", clientIP(r), "Modify skill MetaInfo "+name, nil)
 	writeJSON(w, 200, map[string]any{"ok": true})
 }
 
@@ -1058,7 +1058,7 @@ func (s *Server) fsUploadSkill(w http.ResponseWriter, r *http.Request) {
 	r.Body = http.MaxBytesReader(w, r.Body, maxSkillZipBytes)
 	file, hdr, err := r.FormFile("file")
 	if err != nil {
-		writeErr(w, 400, "缺少上传文件(表单字段 file)或超出大小限制")
+		writeErr(w, 400, "Missing upload file(Table Fields file)Or beyond the size limit")
 		return
 	}
 	defer file.Close()
@@ -1069,7 +1069,7 @@ func (s *Server) fsUploadSkill(w http.ResponseWriter, r *http.Request) {
 	}
 	zr, err := zip.NewReader(bytes.NewReader(buf), int64(len(buf)))
 	if err != nil {
-		writeErr(w, 400, "无法解析压缩包(需为 zip 格式)："+err.Error())
+		writeErr(w, 400, "Could not parse compression package(Required zip Format):"+err.Error())
 		return
 	}
 
@@ -1084,7 +1084,7 @@ func (s *Server) fsUploadSkill(w http.ResponseWriter, r *http.Request) {
 		}
 	}
 	if skillMD == "" {
-		writeErr(w, 400, "压缩包内未找到 SKILL.md")
+		writeErr(w, 400, "Not found in compression package SKILL.md")
 		return
 	}
 	root := path.Dir(skillMD) // "." when SKILL.md is at the zip root
@@ -1107,14 +1107,14 @@ func (s *Server) fsUploadSkill(w http.ResponseWriter, r *http.Request) {
 		name = strings.TrimSuffix(hdr.Filename, ".zip")
 	}
 	if !validSkillName(name) {
-		writeErr(w, 400, "skill 名称无效（取自 SKILL.md 的 name 字段）："+name)
+		writeErr(w, 400, "Invalid skill name (taken from the name field in SKILL.md): "+name)
 		return
 	}
 
 	skillPath := filepath.Join(s.skillDir, name)
 	overwrite := r.URL.Query().Get("overwrite") == "true"
 	if _, err := os.Stat(skillPath); err == nil && !overwrite {
-		writeErr(w, 409, "skill 已存在："+name+"（如需覆盖请确认后重试）")
+		writeErr(w, 409, "skill Exists:"+name+"(If you need to overwrite, try again after confirmation)")
 		return
 	}
 
@@ -1144,15 +1144,15 @@ func (s *Server) fsUploadSkill(w http.ResponseWriter, r *http.Request) {
 		}
 		clean, msg := skillRelPath(rel)
 		if msg != "" {
-			writeErr(w, 400, "压缩包含非法路径 "+f.Name+"："+msg)
+			writeErr(w, 400, "Compression contains illegal paths "+f.Name+":"+msg)
 			return
 		}
 		if entries++; entries > maxSkillEntries {
-			writeErr(w, 400, "压缩包文件过多")
+			writeErr(w, 400, "Overcompress package files")
 			return
 		}
 		if f.UncompressedSize64 > maxSkillFileBytes {
-			writeErr(w, 400, "文件过大："+rel)
+			writeErr(w, 400, "Oversized:"+rel)
 			return
 		}
 		dst := filepath.Join(tmp, clean)
@@ -1180,12 +1180,12 @@ func (s *Server) fsUploadSkill(w http.ResponseWriter, r *http.Request) {
 		}
 		total += n
 		if total > maxSkillTotalBytes {
-			writeErr(w, 400, "压缩包解压后过大")
+			writeErr(w, 400, "It's too big after compression.")
 			return
 		}
 	}
 	if _, err := os.Stat(filepath.Join(tmp, "SKILL.md")); err != nil {
-		writeErr(w, 400, "解压后缺少 SKILL.md")
+		writeErr(w, 400, "Missing after depressure SKILL.md")
 		return
 	}
 
@@ -1193,10 +1193,10 @@ func (s *Server) fsUploadSkill(w http.ResponseWriter, r *http.Request) {
 		_ = os.RemoveAll(skillPath)
 	}
 	if err := os.Rename(tmp, skillPath); err != nil {
-		writeErr(w, 500, "安装失败："+err.Error())
+		writeErr(w, 500, "Installation failed:"+err.Error())
 		return
 	}
-	s.m.pg.RecordAudit(auditActor(r), "skill", "upload_skill", "success", clientIP(r), "上传安装 skill "+name, nil)
+	s.m.pg.RecordAudit(auditActor(r), "skill", "upload_skill", "success", clientIP(r), "Upload installation skill "+name, nil)
 	writeJSON(w, 201, map[string]any{"name": name, "files": entries})
 }
 
@@ -1228,7 +1228,7 @@ func (s *Server) fsDeleteSkill(w http.ResponseWriter, r *http.Request) {
 		writeErr(w, 500, err.Error())
 		return
 	}
-	pg.RecordAudit(auditActor(r), "skill", "delete_skill", "success", clientIP(r), "删除 skill "+name, nil)
+	pg.RecordAudit(auditActor(r), "skill", "delete_skill", "success", clientIP(r), "Delete skill "+name, nil)
 	writeJSON(w, 200, map[string]any{"deleted": name})
 }
 
@@ -1372,7 +1372,7 @@ func (s *Server) fsWriteFile(w http.ResponseWriter, r *http.Request) {
 		writeErr(w, 500, err.Error())
 		return
 	}
-	s.m.pg.RecordAudit(auditActor(r), "skill", "edit_skill_file", "success", clientIP(r), "编辑 skill 文件 "+name+"/"+file, nil)
+	s.m.pg.RecordAudit(auditActor(r), "skill", "edit_skill_file", "success", clientIP(r), "Edit skill Documentation "+name+"/"+file, nil)
 	writeJSON(w, 200, map[string]any{"ok": true})
 }
 
@@ -1585,12 +1585,12 @@ func (s *Server) pgActivateProfile(w http.ResponseWriter, r *http.Request) {
 }
 
 // llmRoleKeys are the engine roles bound to an LLM profile via agents.llm_profile_id
-// (planner/worker/mainagent) — the "角色分工" (division of labor). "report" is separate
+// (planner/worker/mainagent) — the "Role division" (division of labor). "report" is separate
 // (settings-based, complete() path). goals/chat can join later.
 var llmRoleKeys = []string{"planner", "worker", "mainagent"}
 
 // pgLLMRoles returns each role's bound LLM profile id (0 = follow global active) — the
-// 角色分工 matrix. Lets the user route e.g. worker→cheap, 报告富化→strong (Claude).
+// Role division matrix. Lets the user route e.g. worker→cheap, Report enrichment→strong (Claude).
 func (s *Server) pgLLMRoles(w http.ResponseWriter, r *http.Request) {
 	pg := s.pg(w)
 	if pg == nil {
@@ -1643,7 +1643,7 @@ func (s *Server) pgSetLLMRole(w http.ResponseWriter, r *http.Request) {
 			return
 		}
 	default:
-		writeErr(w, 400, "未知角色")
+		writeErr(w, 400, "Unknown Role")
 		return
 	}
 	s.invalidateProfileAgents()
@@ -1681,7 +1681,7 @@ func (s *Server) pgSetLLMPool(w http.ResponseWriter, r *http.Request) {
 }
 
 // pgResetLLMPool clears a tripped profile's breaker (profile_id=0 → clear all) — the
-// UI's "立即恢复" action.
+// UI's "Restore now." action.
 func (s *Server) pgResetLLMPool(w http.ResponseWriter, r *http.Request) {
 	if s.pg(w) == nil {
 		return
@@ -1725,14 +1725,14 @@ func (s *Server) pgSetProfilePool(w http.ResponseWriter, r *http.Request) {
 	writeJSON(w, 200, map[string]any{"ok": true})
 }
 
-// --- prompt template helpers (Go text/template + catalog 白名单) ---
+// --- prompt template helpers (Go text/template + catalog White list.) ---
 
 // validateTemplate parses the template and rejects any {{.Var}} not in the catalog.
 // Returns "" if valid, otherwise an error message.
 func validateTemplate(tmpl string, catalog []db.PromptVar) string {
 	t, err := template.New("p").Option("missingkey=error").Parse(tmpl)
 	if err != nil {
-		return "模板语法错误: " + err.Error()
+		return "Template Syntax Error: " + err.Error()
 	}
 	allowed := map[string]bool{}
 	for _, v := range catalog {
@@ -1740,7 +1740,7 @@ func validateTemplate(tmpl string, catalog []db.PromptVar) string {
 	}
 	for _, name := range templateFields(t) {
 		if !allowed[name] {
-			return "变量 {{." + name + "}} 不在该 agent 允许列表"
+			return "Variables {{." + name + "}} It's not there. agent Allow List"
 		}
 	}
 	return ""

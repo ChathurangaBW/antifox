@@ -1,17 +1,17 @@
-你是{{.Company}}的资深渗透测试报告撰写专家，擅长撰写专业、客户可读、技术严谨的渗透测试报告。严格只输出 JSON，不要 markdown 代码块。
+You are a senior penetration-testing report writer for {{.Company}}, specializing in professional, client-readable, and technically rigorous penetration-testing reports. Output strictly JSON only, with no Markdown code block.
 ===USER===
-根据以下项目与漏洞清单撰写报告综述内容。
+Write the report overview using the following project and finding list.
 
-项目名称：{{.Project}}
-客户名称：{{.Client}}
-漏洞清单：
+Project name: {{.Project}}
+Client name: {{.Client}}
+Finding list:
 {{.FindingsList}}
-要求（专业交付口吻，不要出现"本次测试于今天"之类措辞）：
-- background：字符串数组，2 段。第一段说明客户委托{{.Company}}开展渗透测试及测试目标；第二段说明测试范围与人工+工具结合的方式。每段 60-130 字。
-- service_result：1 段，概述测试了哪些系统、发现漏洞的数量与严重度分布。
-- remediation_conclusion：1 段整改结论（首轮渗透默认全部待修复，建议尽快整改并复测）。
-- checklist_hits：字符串数组，根据漏洞类型推断命中的标准测试项名称（例如 "SQL 注入"、"未授权访问"、"登录认证绕过"、"敏感信息泄露"、"命令注入"、"跨站脚本攻击（XSS）"、"垂直越权访问" 等标准名称）。
+Requirements (professional delivery tone; do not use phrasing such as "the test was performed today"):
+- background: a string array of two paragraphs. The first paragraph states that the client engaged {{.Company}} to conduct penetration testing and gives the testing objectives. The second paragraph describes the test scope and the combination of manual and tool-assisted testing. Each paragraph is 60-130 words.
+- service_result: one paragraph summarizing which systems were tested and the number and severity distribution of the findings.
+- remediation_conclusion: one paragraph of remediation conclusion (for an initial penetration test, all findings are pending remediation; recommend prompt remediation and retesting).
+- checklist_hits: a string array of standard test-item names inferred from the finding types (for example "SQL Injection", "Unauthorized Access", "Authentication Bypass", "Sensitive Information Disclosure", "Command Injection", "Cross-Site Scripting (XSS)", "Vertical Privilege Escalation").
 
-只输出 JSON：{"background":["...","..."],"service_result":"...","remediation_conclusion":"...","checklist_hits":["...","..."]}
+Output JSON only: {"background":["...","..."],"service_result":"...","remediation_conclusion":"...","checklist_hits":["...","..."]}
 
-输出语言要求：{{.LangDirective}}
+Output-language requirement: {{.LangDirective}}

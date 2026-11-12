@@ -72,7 +72,7 @@ export default function KnowledgePage() {
   const [upCategory, setUpCategory] = React.useState("");
   const [uploading, setUploading] = React.useState(false);
   const fileRef = React.useRef<HTMLInputElement>(null);
-  // task list for the task-scope picker (so 任务知识 lands on the right task, not global)
+  // task list for the task-scope picker (so Mission knowledge lands on the right task, not global)
   const [tasks, setTasks] = React.useState<Task[]>([]);
   React.useEffect(() => { api.tasks().then((r) => setTasks(r.tasks)).catch(() => {}); }, []);
 

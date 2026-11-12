@@ -6,12 +6,12 @@ import (
 	"path/filepath"
 	"time"
 
+	"antifox/db"
 	"antifox/engine/agentcore"
 	"antifox/engine/llm"
 	"antifox/engine/permission"
 	actool "antifox/engine/tool"
 	"antifox/engine/transcript"
-	"antifox/db"
 	"antifox/guard"
 )
 
@@ -50,9 +50,9 @@ func (c *ChatAgent) SetGuard(g *guard.Guard) { c.guard = g }
 
 // chatWorkDirSpec returns a working-directory notice appended to every chat
 // agent's system prompt. Mirrors artifactSpec but without pentest-specific
-// wording ("payload", "抓响应体") that would be odd in a general assistant.
+// wording ("payload", "Capture Response") that would be odd in a general assistant.
 func chatWorkDirSpec(workDir string) string {
-	return "\n\n**文件输出规约**：需要写文件时，一律写到工作目录 " + workDir + "（这是默认 CWD，相对路径即落在这里，也可用该绝对路径）——不要写 /tmp 或其他绝对路径。"
+	return "\n\n**File Output Statute**:If you need to write a file, write to the work directory " + workDir + "(This is the default. CWD,This is where the relative path is, and it can be used.——Don't write. /tmp Or some other absolute path."
 }
 
 // chatSystem renders the DB-managed prompt body for agentKey. Custom agents have
@@ -102,27 +102,27 @@ func (c *ChatAgent) Chat(ctx context.Context, agentKey, sessionID, message strin
 		DeferredTools:   def.Deferred,
 		UnlockSet:       def.Unlock,
 		PermissionMode:  permission.ModeBypass,
-		EnableWebFetch:  true, // 走记录代理留痕；载入代理 CA 验证 MITM 重签的 HTTPS 证书
+		EnableWebFetch:  true, // Walking records agent marks;loading agent CA Authentication MITM Resigned HTTPS Certificate
 		WebFetchProxy:   c.proxyAddr,
 		WebFetchCACert:  c.proxyCACert,
-		// 联网搜索(可选)。ddgs 无需 key；brave-free 需 BraveKey；tavily 需 TavilyKey。
-		// WebSearchProxy 是独立出口代理(http/https/socks5)，与记录流量的 MITM 代理无关；空则直连。
+		// Network Search(Optional). ddgs No need. key;brave-free Yes BraveKey;tavily Yes TavilyKey.
+		// WebSearchProxy is an independent egress proxy (http/https/socks5), unrelated to the traffic-recording MITM proxy; empty means a direct connection.
 		EnableWebSearch:    ws.Enabled,
 		WebSearchBackend:   ws.Backend,
 		BraveSearchAPIKey:  ws.BraveKey,
 		TavilySearchAPIKey: ws.TavilyKey,
 		WebSearchProxy:     ws.Proxy,
-		BashEnv:           proxyEnv(c.proxyAddr, c.proxyCACert), // Bash 子命令默认走代理+信任 CA
-		WorkingDir:        sessionWorkDir,
-		MaxTurns:          maxTurns,
-		MaxDuration:       maxDuration,
-		Compaction:        compactionConfig(c.window),
-		Todos:             actool.NewTodoStore(),
+		BashEnv:            proxyEnv(c.proxyAddr, c.proxyCACert), // Bash Sub-order default proxy+Trust CA
+		WorkingDir:         sessionWorkDir,
+		MaxTurns:           maxTurns,
+		MaxDuration:        maxDuration,
+		Compaction:         compactionConfig(c.window),
+		Todos:              actool.NewTodoStore(),
 		// large tool output spills to cmd-output/ under the session dir.
-		// 截断上限用 SDK 默认(tool.Capture 的 30000 字符)。
+		// Truncation cap: the SDK default (tool.Capture is limited to 30000 characters).
 		ToolOutputDir: filepath.Join(sessionWorkDir, "cmd-output"),
-		// 命中预算(步数)→ SDK 跑收尾:输出一句总结。Prompt 与收尾轮数按本 agent key 后台可编辑
-		// (自定义 agent 各自一份;留空/0 用通用默认:5 轮)。
+		// When the step budget is exhausted the SDK ends the run: a summary sentence is produced, the prompt and the remaining turns are counted, and the per-agent key stays editable in the backend.
+		// (Custom agent One each.;Leave space./0 Use General Default:5 Wheel).
 		Settlement: wrapupSettlement(agentKey, nil),
 	}
 	if c.guard != nil {

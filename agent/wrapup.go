@@ -6,12 +6,12 @@ import (
 	"antifox/engine/harness"
 )
 
-// 收尾提示词(wrap-up / settlement prompt):当 agent 因【步数耗尽(MaxTurns)】或
-// 【超时(run_seconds/MaxDuration)】被终止时,SDK 的 settlement 阶段会注入这段提示,
-// 让 agent 先把已识别但未写回的内容落库、再输出一句总结,避免烂尾。
+// Endnote(wrap-up / settlement prompt):When? agent Because [steps run out](MaxTurns)]or
+// [Timeout(run_seconds/MaxDuration)] When terminated, the SDK settlement stage injects this hint.
+// Jean. agent First, put down the identified but not returned contents, then output a sentence.,Avoid rotting tails.
 //
-// 每个 agent 的收尾提示词可在后台按需覆盖(存 agents.wrapup_prompt),留空则用这里的
-// 内置默认。仅【提示词正文】可编辑;禁用哪些工具、收尾自身给几轮预算属代码固定策略。
+// Each agent Endnotes can be covered as required in the background(Save agents.wrapup_prompt),Leave it here.
+// contains the default. Editable only [the body of the message];Disables which tools and ends their own budget rounds as a fixed code strategy.
 
 // WrapupOverride, if set, returns the stored wrap-up prompt for an agent key and
 // whether a non-empty one exists. Wired by the server to the agents table (like
@@ -23,16 +23,16 @@ var WrapupOverride func(agentKey string) (string, bool)
 // table. nil / ≤0 → the built-in per-agent default (wrapupTurnDefaults) is used.
 var WrapupMaxTurnsOverride func(agentKey string) (int, bool)
 
-// 内置默认收尾提示词,按 agent key 索引。worker 复用历史上硬编码的 settleWrapUpPrompt
-// (定义在 worker.go),planner/mainagent 各有一版;未命中的(自定义 agent)走通用兜底。
+// Internal Default Endnote,Press agent key Index.worker Re-enact history hard code. settleWrapUpPrompt
+// (Define in worker.go),planner/mainagent One edition each.;Unsullied.(Custom agent)Go to the general pocket.
 var wrapupDefaults = map[string]string{
 	"worker":    settleWrapUpPrompt,
 	"planner":   plannerWrapUpDefault,
 	"mainagent": mainAgentWrapUpDefault,
 }
 
-// wrapupTurnDefaults: 各 agent 收尾阶段【自身】的轮数预算内置默认(可被后台 >0 覆盖)。
-// worker 写回可能占几轮(record_fact/insert_assets)故给 4;其余给 5。未命中走 genericWrapupTurns。
+// wrapupTurnDefaults: the per-agent default turn budget for the settlement stage (the backend value overrides it when greater than 0).
+// worker Could be a few rounds.(record_fact/insert_assets)Here. 4;The rest. 5. It didn't hit him. genericWrapupTurns.
 var wrapupTurnDefaults = map[string]int{
 	"worker":    4,
 	"planner":   5,
@@ -41,11 +41,11 @@ var wrapupTurnDefaults = map[string]int{
 
 const genericWrapupTurns = 5
 
-const plannerWrapUpDefault = "你本轮规划的步数即将用尽——注意只是【这一轮】结束,系统之后仍会随态势变化再次唤醒你继续规划,并非任务终止,你无需在此收束整个规划。请把本轮已经想清楚的结论落地、别让这一轮白跑,但也【不要为了收尾硬凑意图】(本轮 0 个意图仍是完全正常的结果)：(1) 若已判断出【当前就该派发】的探索方向,用一次 add_intent 批量提交(想好的别憋着不发);(2) 对已被某发现/事实证明达成的目标,调 prove_goal 标记 met(别漏判);(3) 若识别出需要分步的串行利用链,用 TodoWrite 记下,便于下次唤醒接着派。做完直接结束本轮,无需输出总结文本。"
+const plannerWrapUpDefault = "This planning round is almost out of steps. This ends only the current round: the system will wake you again when the state changes, so do not try to close the entire task. Persist conclusions already reached without inventing filler intents; zero intents remains valid. (1) If you identified exploration directions that should be assigned now, submit them in one add_intent batch. (2) For goals proven by a finding or fact, call prove_goal to mark them met. (3) If you identified a serial exploitation chain, record its steps with TodoWrite for the next wake-up. Then end this round without a summary message."
 
-const mainAgentWrapUpDefault = "你的步数即将用尽,本次交互就要结束。不要再发起新的探索/操作。请**单独用一句话纯文本**向用户总结当前进展、关键结论,以及建议的下一步。"
+const mainAgentWrapUpDefault = "This interaction is almost out of steps. Do not start any new exploration or operation. In one standalone plain-text sentence, summarize current progress, key conclusions, and the recommended next step for the user."
 
-const genericWrapUpDefault = "你即将因预算耗尽被终止。请先把已完成但未落库的结果写回,再**单独用一句话纯文本**总结你做了什么、得到哪些关键结论(这句会作为本次运行的结果展示)。"
+const genericWrapUpDefault = "This run is about to stop because its budget is exhausted. First persist every completed result that has not yet been recorded. Then provide one standalone plain-text sentence summarizing what you did and the key conclusions; that sentence will be displayed as this run's result."
 
 // WrapupDefault returns the built-in default wrap-up prompt for an agent key —
 // used by the admin UI as the "restore default" value and empty-field placeholder.
@@ -99,14 +99,14 @@ func wrapupSettlement(agentKey string, disabledTools []string) *harness.Settleme
 	}
 }
 
-// ---------- 任务级超时收尾词（见 docs/任务级超时与收尾设计.md）----------
+// ---------- Task-level overtime (see docs/Task-level overtime and end-of-service design.md)----------
 //
-// 与 per-run 收尾词是【两套】：per-run 是"你这一次 run 的预算用完了"；任务超时是
-// "整个任务到点、即将结束"。语义常相反（尤其 planner：per-run 说"别停继续规划"，
-// 任务超时说"到点停止规划、做最后判定"）。只给 worker/planner 配置。
+// and per-run The last words are:per-run Yes."This time run I've run out of budgets.";Mission timed out.
+// "The whole mission is at point. It's coming to an end.". Semantics are often the opposite (particularly) planner:per-run Say it."Keep planning.",
+// The mission is overrated."Stop planning and make a final decision at point."). Only for worker/planner Configure.
 
-// WrapupTaskTimeoutOverride / …TurnsOverride：任务超时收尾词与轮数的 DB 覆盖
-// （wire 到 agents.task_timeout_wrapup_prompt / _max_turns，仅 worker/planner）。
+// WrapupTaskTimeoutOverride / ...TurnsOverride:Task timeout end words and wheel numbers DB Overwrite
+// (wire Present. agents.task_timeout_wrapup_prompt / _max_turns,Only worker/planner).
 var (
 	WrapupTaskTimeoutOverride      func(agentKey string) (string, bool)
 	WrapupTaskTimeoutTurnsOverride func(agentKey string) (int, bool)
@@ -117,17 +117,17 @@ var taskTimeoutWrapupDefaults = map[string]string{
 	"planner": plannerTaskTimeoutDefault,
 }
 
-const workerTaskTimeoutDefault = "**整个任务已到达超时上限，即将结束**（不是你这次 run 的预算，是整场探索到点了）。这是最后机会：(1) 把你已识别但还没写回的内容【全部】落库——新资产 insert_assets、探索结论/事实 record_fact、确认漏洞 report_finding；(2) 不要再启动任何新命令/探测；(3) **最后单独用一句话纯文本**总结你在本意图上的关键结论。"
+const workerTaskTimeoutDefault = "**The entire task has reached its time limit and is ending.** This is the deadline for the whole assessment, not merely this run's budget. This is your final opportunity to: (1) persist everything already identified but not yet recorded—new assets through insert_assets, exploration conclusions/facts through record_fact, and confirmed vulnerabilities through report_finding; (2) start no new commands or probes; and (3) provide one final standalone plain-text sentence summarizing the key conclusions for this intent."
 
-const plannerTaskTimeoutDefault = "**整个任务已到达超时上限，即将结束**（不是本轮，是整个任务终止）。请基于当前【全部】事实与发现，做最后一次目标判定：对已被证据证明达成的目标调 prove_goal 标记 met（别漏判）。**不要再生成任何新意图**（此时派意图也不会再被执行）。判定完即收束，无需输出总结文本。"
+const plannerTaskTimeoutDefault = "**The entire task has reached its time limit and is ending.** This is the final task deadline, not the end of one planning round. Make one final goal assessment from all current facts and findings. For each goal proven by evidence, call prove_goal to mark it met. **Do not generate any new intent**, because no new work will be executed. End immediately after the assessment without a summary message."
 
-// TaskTimeoutWrapupDefault 返回某 agent 的任务超时内置默认收尾词（供后台占位/恢复默认）。
+// TaskTimeoutWrapupDefault returns an agent's default task-timeout wrap-up text (used as the placeholder and for restoring the default).
 func TaskTimeoutWrapupDefault(agentKey string) string {
-	return taskTimeoutWrapupDefaults[agentKey] // 未配置(mainagent/chat)返回空串
+	return taskTimeoutWrapupDefaults[agentKey] // Not configured(mainagent/chat)Return empty string
 }
 
-// resolveTaskTimeoutWrapup：DB 覆盖(非空) > 内置默认。空串表示该 agent 无任务超时词
-// （非 worker/planner），此时调用方应回退 per-run 词。
+// resolveTaskTimeoutWrapup:DB Overwrite(Non-empty) > contains the default. Empty string indicates the agent No task timeout
+// (Not worker/planner),The caller should turn back now. per-run Words.
 func resolveTaskTimeoutWrapup(agentKey string) string {
 	if WrapupTaskTimeoutOverride != nil {
 		if t, ok := WrapupTaskTimeoutOverride(agentKey); ok && strings.TrimSpace(t) != "" {
@@ -143,28 +143,28 @@ func resolveTaskTimeoutTurns(agentKey string) int {
 			return v
 		}
 	}
-	return resolveWrapupTurns(agentKey) // 默认沿用 per-run 轮数
+	return resolveWrapupTurns(agentKey) // Default Follow per-run Rounds
 }
 
 // wrapupSettlementForTask builds settlement for a worker/planner run that is aware
 // of the task deadline. See §5 of the design doc:
-//   - clamped=true  → 本次 run 被任务 deadline 夹逼：因 Timeout 收尾=任务到点→任务超时词；
-//     因 MaxTurns 收尾=夹逼窗口内步数先耗尽、任务还剩几分钟→回落 per-run 词。
-//   - clamped=false → 任务还早：两种 reason 都用 per-run 词（即退化为 wrapupSettlement）。
+//   - clamped=true  → This time. run Tasked deadline Snatch: 'Cause Timeout End=Mission to Point→Task timeout;
+//     Because MaxTurns End=We've got a few minutes left to run out of steps in the trap window.→Fall Back per-run Words.
+//   - clamped=false → Early mission: two reason Both. per-run Word (i.e. degraded to wrapupSettlement).
 //
-// 交给 harness 的 PromptByReason 在收尾时按【实际】reason 现场挑，无 build 时错配。
+// Here the harness prompt is built by reason; the actual reason is used when closing, so there is no build mismatch.
 func wrapupSettlementForTask(agentKey string, disabledTools []string, clamped bool) *harness.Settlement {
 	perRun := resolveWrapup(agentKey)
 	st := &harness.Settlement{
-		Prompt:        perRun, // 兜底(也是非 clamped 时两种 reason 的取值)
+		Prompt:        perRun, // Body (the reason is clamped to two occurrences per reason)
 		DisabledTools: disabledTools,
 		MaxTurns:      resolveWrapupTurns(agentKey),
 	}
 	if clamped {
 		if tt := resolveTaskTimeoutWrapup(agentKey); tt != "" {
 			st.PromptByReason = map[harness.TerminalReason]string{
-				harness.ReasonTimeout:  tt,     // 任务到点
-				harness.ReasonMaxTurns: perRun, // 步数先耗尽、任务还剩时间
+				harness.ReasonTimeout:  tt,     // Mission to Point
+				harness.ReasonMaxTurns: perRun, // We're running out of steps, we're running out of time.
 			}
 			st.MaxTurns = resolveTaskTimeoutTurns(agentKey)
 		}

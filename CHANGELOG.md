@@ -1,28 +1,28 @@
-# 更新日志 · Changelog
+# Update Log · Changelog
 
-本项目的版本更新摘要。格式参考 [Keep a Changelog](https://keepachangelog.com/)，版本遵循 [SemVer](https://semver.org/)。
+Updated summary of version of the project. Format Reference [Keep a Changelog](https://keepachangelog.com/),Version follows [SemVer](https://semver.org/).
 
 ## v2.0.3
 
-- **LLM 自定义会话头**：每个 LLM 配置可设一个 HTTP 头，头值自动为当前会话 session id —— 适配 opencode 等按 session 做提示缓存 / 粘性路由的网关。
-- **全局出口代理**：所有 Agent 的目标流量可经一个出口代理（http/https/socks5）出网，隐藏源 IP / 走跳板；带「测试可用性」（经代理回显出口 IP）。
-- **按任务选出口**：新建任务时可选该任务走全局代理还是直连。
-- **确认即富化**：人工确认漏洞后自动富化成结构化数据，确认即可交付。
-- **报告管理**：新建报告默认只列已确认漏洞（显示状态 / CVSS）；正文复用已富化数据。
-- **证据图注自动填充**：证据截图图注按复现步骤文案自动生成，可编辑。
-- **漏洞详情打磨**：状态下拉、分区标题、一键复制。
-- **流量任务筛选修复**：按任务筛选叠加任务活动时间窗，同一目标多次测试不再串流量。
-- 系统配置页改为双列自适应布局。
+- **LLM Custom Session Header**:Each LLM Configure One HTTP Head, header automatically for the current session session id —— Fit opencode Hold on. session Do hint caches / Sticky route through the gateway.
+- **Global Export Agent**:All Agent Target traffic can be channelled through an export agent (http/https/socks5)Offline, hide source IP / Stepping board; with "test usability" IP).
+- **Export by Task**:When a new task is created, the task may be selected as a global agent or a direct company.
+- **Affection is confirmation.**:Artificial identification of loopholes is automatically enriched into structured data and can be delivered.
+- **Reporting management**:New report default only confirmed bugs (show status) / CVSS);The text reproduces the already enriched data.
+- **Autofill Evidence Diagram**:Annotation of the evidence is automatically generated as a copy of the statement of steps and can be edited.
+- **We're going to have to fix the details.**:states down, partition title, one key copy.
+- **Flow Job Screening Repair**:The task-screening superimposed task activity window and multiple tests of the same target do not lead to traffic.
+- Change the system configuration page to two columns to fit the layout.
 
 ## v2.0.2
 
-- **一键更新**：从系统配置页检查并安装 GitHub 新版本（SHA256 校验 / 原子换装 / 失败自动回滚），数据不受影响。
-- 发布产物内附 `start.sh` 守护脚本与 systemd 模板。
+- **One Key Update**:Check and install from the system configuration page GitHub New versionSHA256 Verify / Atom replacement / Failed to roll back automatically) and data is not affected.
+- Publication of products attached `start.sh` Protect Scripts with systemd template.
 
 ## v2.0.1
 
-- 复现步骤落库时自动关联真实流量包。
+- Auto-link real flow packages when the step is dropped.
 
 ## v2.0.0
 
-- 证据驱动交付：复现过程就地落库、发现页按利用链分步、每步关联真实流量包；人工级三语报告。
+- Evidence-driven delivery: recurrence process in-situ storage, discovery pages step by step, real flow packages per step; manual trilingual reporting.

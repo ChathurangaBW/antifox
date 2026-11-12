@@ -1,37 +1,37 @@
 {
-  "intro": "滲透測試服務流程依循國際公認的滲透測試執行標準 PTES（Penetration Testing Execution Standard），確保每次服務標準化、高品質地進行。流程包含以下 8 個階段：",
+  "intro": "The penetration testing service workflow follows the internationally recognized Penetration Testing Execution Standard (PTES), ensuring that every engagement is delivered in a standardized, high-quality manner. The workflow comprises the following 8 phases:",
   "phases": [
     {
-      "name": "前期溝通",
-      "desc": "立項準備，雙方協商測試範圍與具體測試項目，完成授權確認及人員、工具準備。"
+      "name": "Pre-engagement Interactions",
+      "desc": "Project initiation and preparation: both parties agree on the testing scope and specific test items, and authorization confirmation, personnel, and tooling are finalized."
     },
     {
-      "name": "資訊收集",
-      "desc": "圍繞授權資產進行公開資訊收集、資產測繪與站台結構分析，制定滲透測試實施方案。"
+      "name": "Intelligence Gathering",
+      "desc": "Open-source information collection, asset mapping, and site structure analysis around the authorized assets, culminating in the penetration testing implementation plan."
     },
     {
-      "name": "威脅建模",
-      "desc": "分析業務資產與流程，評估威脅對象與能力，識別主要攻擊面與風險路徑。"
+      "name": "Threat Modeling",
+      "desc": "Analysis of business assets and processes, assessment of threat actors and their capabilities, and identification of the primary attack surface and risk paths."
     },
     {
-      "name": "漏洞分析",
-      "desc": "結合工具掃描結果進行關聯分析與人工驗證，於受控環境中重現，得出分析結論。"
+      "name": "Vulnerability Analysis",
+      "desc": "Correlation analysis of scanner results combined with manual verification, reproduction in a controlled environment, and derivation of analytical conclusions."
     },
     {
-      "name": "滲透攻擊",
-      "desc": "依據分析結果選擇最佳攻擊路徑，進行低影響的精準驗證，確認風險真實性。"
+      "name": "Exploitation",
+      "desc": "Based on the analysis results, the optimal attack path is selected to perform low-impact, precise verification and confirm the authenticity of each risk."
     },
     {
-      "name": "後滲透攻擊",
-      "desc": "在授權範圍內評估漏洞遭利用後的橫向移動、權限提升與敏感資料可達性。"
+      "name": "Post-Exploitation",
+      "desc": "Within the authorized scope, assessment of lateral movement, privilege escalation, and reachability of sensitive data following successful exploitation."
     },
     {
-      "name": "提交報告",
-      "desc": "彙整漏洞詳情、證據、CVSS 評分與風險定級，輸出可交付的滲透測試報告。"
+      "name": "Reporting",
+      "desc": "Consolidation of vulnerability details, evidence, CVSS scoring, and risk ratings into a deliverable penetration test report."
     },
     {
-      "name": "加固防護",
-      "desc": "在報告基礎上配合客戶完成整改，並於需要時開展複測以確認漏洞閉環。"
+      "name": "Remediation Support",
+      "desc": "Working with the client to complete remediation based on the report, and conducting retesting where required to confirm that vulnerabilities are fully closed."
     }
   ]
 }

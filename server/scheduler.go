@@ -25,9 +25,9 @@ type Scheduler struct {
 }
 
 const (
-	schedKeyLastFinding = "last_finding_id"  // watermark: max finding node id fired for
-	schedKeyFiredGoals  = "fired_goals"      // JSON array of goal node ids already fired
-	schedKeyLastTimeout = "last_timeout_id"  // watermark: max task id fired for task timeout
+	schedKeyLastFinding = "last_finding_id" // watermark: max finding node id fired for
+	schedKeyFiredGoals  = "fired_goals"     // JSON array of goal node ids already fired
+	schedKeyLastTimeout = "last_timeout_id" // watermark: max task id fired for task timeout
 )
 
 func newScheduler(s *Server) *Scheduler {
@@ -114,8 +114,8 @@ func (sc *Scheduler) fireIntervals(triggers []*db.AgentTrigger) {
 			continue
 		}
 		_ = sc.pg.TouchTriggerFire(tr.ID)
-		ctx := "\n\n【本次为定时触发】" + now.Format(" 2006-01-02 15:04:05 MST")
-		sc.s.StartTriggeredRun(tr.AgentKey, fmt.Sprintf("定时触发 · %s", now.Format("15:04")), tr.IntervalMessage+ctx, 0, false)
+		ctx := "\n\n[This time trigger" + now.Format(" 2006-01-02 15:04:05 MST")
+		sc.s.StartTriggeredRun(tr.AgentKey, fmt.Sprintf("Time trigger · %s", now.Format("15:04")), tr.IntervalMessage+ctx, 0, false)
 	}
 }
 
@@ -141,10 +141,10 @@ func (sc *Scheduler) fireFindings(triggers []*db.AgentTrigger) {
 		if e.NodeID > maxID {
 			maxID = e.NodeID
 		}
-		msgCtx := fmt.Sprintf("\n\n【本次由任务发现 finding 触发】\n任务: #%d %s（目标：%s）\n发现: [%s/%s] %s",
+		msgCtx := fmt.Sprintf("\n\n[This mission found out. finding Trigger\nTasks: #%d %s(Objectives:%s)\nFound: [%s/%s] %s",
 			e.TaskID, e.TaskDesc, e.TaskGoal, e.VulnClass, e.Severity, e.Summary)
 		for _, tr := range want {
-			sc.s.StartTriggeredRun(tr.AgentKey, fmt.Sprintf("finding 触发 · task#%d", e.TaskID), tr.FindingMessage+msgCtx, e.TaskID, true)
+			sc.s.StartTriggeredRun(tr.AgentKey, fmt.Sprintf("finding Trigger · task#%d", e.TaskID), tr.FindingMessage+msgCtx, e.TaskID, true)
 		}
 	}
 	_ = sc.pg.SetSchedState(schedKeyLastFinding, strconv.FormatInt(maxID, 10))
@@ -173,10 +173,10 @@ func (sc *Scheduler) fireGoals(triggers []*db.AgentTrigger) {
 		}
 		fired[e.NodeID] = true
 		changed = true
-		msgCtx := fmt.Sprintf("\n\n【本次由任务完成目标触发】\n任务: #%d %s（目标：%s）\n达成目标: %s",
+		msgCtx := fmt.Sprintf("\n\n[This is a mission-completed trigger.\nTasks: #%d %s(Objectives:%s)\nGoal achieved: %s",
 			e.TaskID, e.TaskDesc, e.TaskGoal, e.Summary)
 		for _, tr := range want {
-			sc.s.StartTriggeredRun(tr.AgentKey, fmt.Sprintf("目标触发 · task#%d", e.TaskID), tr.GoalMessage+msgCtx, e.TaskID, true)
+			sc.s.StartTriggeredRun(tr.AgentKey, fmt.Sprintf("Target trigger. · task#%d", e.TaskID), tr.GoalMessage+msgCtx, e.TaskID, true)
 		}
 	}
 	if changed {
@@ -206,10 +206,10 @@ func (sc *Scheduler) fireTaskTimeouts(triggers []*db.AgentTrigger) {
 		if e.NodeID > maxID {
 			maxID = e.NodeID
 		}
-		msgCtx := fmt.Sprintf("\n\n【本次由任务超时触发】\n任务: #%d %s（目标：%s）",
+		msgCtx := fmt.Sprintf("\n\n[This time it's timed out.\nTasks: #%d %s(Objectives:%s)",
 			e.TaskID, e.TaskDesc, e.TaskGoal)
 		for _, tr := range want {
-			sc.s.StartTriggeredRun(tr.AgentKey, fmt.Sprintf("超时触发 · task#%d", e.TaskID), tr.TaskTimeoutMessage+msgCtx, e.TaskID, true)
+			sc.s.StartTriggeredRun(tr.AgentKey, fmt.Sprintf("Timetime trigger · task#%d", e.TaskID), tr.TaskTimeoutMessage+msgCtx, e.TaskID, true)
 		}
 	}
 	_ = sc.pg.SetSchedState(schedKeyLastTimeout, strconv.FormatInt(maxID, 10))

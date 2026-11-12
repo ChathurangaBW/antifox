@@ -28,28 +28,28 @@ var reportBuilderPy string
 func GenerateDocx(ctx context.Context, pg *db.DB, in *GenInput, workDir, taskID string) (string, error) {
 	py := findPython()
 	if py == "" {
-		return "", fmt.Errorf("未找到可用的 python3（报告 docx 渲染需要 python3 + python-docx）")
+		return "", fmt.Errorf("No available found python3(Report docx Rendering needs python3 + python-docx)")
 	}
 	if err := os.MkdirAll(workDir, 0o755); err != nil {
-		return "", fmt.Errorf("创建报告目录失败: %w", err)
+		return "", fmt.Errorf("Failed to create report directory: %w", err)
 	}
 
 	doc := BuildDoc(ctx, pg, in)
 	data, err := json.MarshalIndent(doc, "", "  ")
 	if err != nil {
-		return "", fmt.Errorf("组装报告 JSON 失败: %w", err)
+		return "", fmt.Errorf("assembly report JSON Failed: %w", err)
 	}
 
 	// write the embedded renderer + the input JSON to disk
 	builderPath := filepath.Join(workDir, "report_builder.py")
 	if err := os.WriteFile(builderPath, []byte(reportBuilderPy), 0o644); err != nil {
-		return "", fmt.Errorf("写入渲染器失败: %w", err)
+		return "", fmt.Errorf("Writing renderer failed: %w", err)
 	}
 	stamp := nowStamp(ctx)
 	inPath := filepath.Join(workDir, fmt.Sprintf("task-%s-%s.json", safeName(taskID), stamp))
 	outPath := filepath.Join(workDir, fmt.Sprintf("task-%s-%s.docx", safeName(taskID), stamp))
 	if err := os.WriteFile(inPath, data, 0o644); err != nil {
-		return "", fmt.Errorf("写入报告 JSON 失败: %w", err)
+		return "", fmt.Errorf("Writing Report JSON Failed: %w", err)
 	}
 	defer os.Remove(inPath)
 
@@ -57,10 +57,10 @@ func GenerateDocx(ctx context.Context, pg *db.DB, in *GenInput, workDir, taskID 
 	defer cancel()
 	cmd := exec.CommandContext(cctx, py, builderPath, inPath, outPath)
 	if out, err := cmd.CombinedOutput(); err != nil {
-		return "", fmt.Errorf("python 渲染失败: %v: %s", err, strings.TrimSpace(string(out)))
+		return "", fmt.Errorf("python Rendering failed: %v: %s", err, strings.TrimSpace(string(out)))
 	}
 	if _, err := os.Stat(outPath); err != nil {
-		return "", fmt.Errorf("渲染完成但未找到输出文件: %w", err)
+		return "", fmt.Errorf("Render completed but output file not found: %w", err)
 	}
 	return outPath, nil
 }

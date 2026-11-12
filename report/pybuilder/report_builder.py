@@ -1,16 +1,18 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 """
-AntiFox 渗透测试报告构建器（JSON 驱动，自包含）。
+AntiFox penetration-testing report builder (JSON-driven, self-contained).
 
-基于 python-docx 的交付级排版能力，通用化为命令行工具：
+Uses python-docx to produce a delivery-grade layout. Usable from the command line:
     python3 report_builder.py <input.json> <output.docx>
 
-输入 JSON 由平台（Go 侧）组装：确定性骨架 + AI 生成的专业叙述。
-产出与人工交付一致的 .docx：封面(logo+橙线)、自动目录、页码域、
-每漏洞 3 行属性表 + 7 子项、代码块底色、表格浅蓝表头、宋体 10.5/1.5 倍行距首行缩进。
+The input JSON is assembled by the platform (Go side): a deterministic skeleton plus AI-generated professional narrative.
+The output matches a manually delivered .docx: cover (logo + accent line), auto-generated
+table of contents, page numbering, a three-row property table per finding plus seven
+sub-sections, shaded code blocks, light-blue table headers, and 10.5pt body text with
+1.5-line spacing and a first-line indent.
 
-无第三方品牌硬编码——公司名/logo 全部来自 JSON。
+No third-party branding is hard-coded - the company name and logo all come from the JSON.
 """
 import sys
 import json
@@ -32,10 +34,10 @@ HEADER_SHADE = "D9E2F3"                    # table header light blue
 CODE_BG = "F5F5F5"                         # code block background
 GRAY_BORDER = "808080"
 CAPTION_GRAY = RGBColor(0x40, 0x40, 0x40)
-HIT_RED = RGBColor(0xC0, 0x39, 0x2B)       # checklist "不通过"
+HIT_RED = RGBColor(0xC0, 0x39, 0x2B)       # checklist "fail"
 
-BODY_FONT = "宋体"
-UI_FONT = "微软雅黑"
+BODY_FONT = "SimSun"
+UI_FONT = "Microsoft YaHei"
 CODE_FONT = "Consolas"
 
 # ---------------------------------------------------------------------------
@@ -43,96 +45,96 @@ CODE_FONT = "Consolas"
 # ---------------------------------------------------------------------------
 LABELS = {
     "zh-CN": {
-        "toc": "目  录",
-        "toc_hint": "请在 Word 中按 F9 更新目录",
-        "ch1": "第1章 综述", "s11": "1.1 项目背景", "s12": "1.2 服务成果", "s13": "1.3 整改结论",
-        "ch2": "第2章 测试信息", "s21": "2.1 人员信息", "s22": "2.2 测试流程",
-        "s23": "2.3 测试清单", "s24": "2.4 测试工具", "s25": "2.5 参考规范",
-        "ch3": "第3章 测试详情", "ch4": "第4章 漏洞等级评定", "ch5": "第5章 系统等级评定",
-        "tbl_service": "表 1-1 服务内容及成果", "tbl_remediation": "表 1-2 整改结论",
-        "tbl_personnel": "表 2-1 测试人员信息", "tbl_checklist": "表 2-2 测试清单",
-        "tbl_tools": "表 2-3 测试工具", "tbl_vulnlist": "表 3-1 漏洞列表",
-        "tbl_rating_res_cap": "表 5-1 系统等级评定结果",
-        "hdr_service": ["系统名称", "域名/地址", "严重", "高危", "中危", "低危", "系统等级"],
-        "hdr_remediation": ["序号", "修复对象", "整改结论", "备注"],
-        "hdr_personnel": ["姓名", "角色", "联系方式"],
-        "hdr_checklist": ["漏洞类型", "漏洞名称", "描述", "测试结果"],
-        "hdr_tools": ["工具名称", "描述"],
-        "hdr_vulnlist": ["漏洞等级", "漏洞名称", "描述", "修复情况"],
-        "hdr_cvss": ["评分项", "取值", "说明"],
-        "hdr_rating_def": ["系统等级", "判定标准", "说明"],
-        "hdr_rating_res": ["系统名称", "严重/高危/中危/低危", "系统等级"],
-        "info_target": "影响目标", "info_severity": "风险等级", "info_found": "发现时间",
-        "sub_desc": "1. 漏洞描述", "sub_url": "2. URL", "sub_module": "3. 所属模块",
-        "sub_process": "4. 测试过程", "sub_risk": "5. 风险分析",
-        "sub_fix": "6. 修复建议", "sub_status": "7. 修复情况",
-        "chk_pass": "通过", "chk_fail": "不通过",
-        "kv_sep": "：", "lparen": "（", "rparen": "）", "cvss_sep": "/", "cvss_word": "CVSS分值",
-        "cvss_vector_row": "CVSS 向量", "cvss_overall": "综合评分 {c}",
-        "cvss_metric_names": [["AV", "攻击向量"], ["AC", "攻击复杂度"], ["PR", "权限要求"], ["UI", "用户交互"],
-                              ["S", "影响范围"], ["C", "机密性"], ["I", "完整性"], ["A", "可用性"]],
-        "page_pre": "第 ", "page_mid": " 页 / 共 ", "page_suf": " 页",
-        "client": "客户名称：", "project": "项目名称：", "version": "报告版本：", "date": "报告日期：",
-        "report_word": "渗透测试报告",
-        "cvss_intro": "本次渗透测试依据通用漏洞评分系统 CVSS {v} 对每个漏洞进行量化评分。评分综合考虑攻击向量（AV）、攻击复杂度（AC）、权限要求（PR）、用户交互（UI）、影响范围（S）、机密性（C）、完整性（I）、可用性（A）八项指标，据此确定漏洞的严重程度等级。",
-        "sev_criteria": "严重程度划分标准",
-        "hdr_sev": ["等级", "CVSS 分值范围", "说明"],
-        "sev_rows": [["严重", "9.0 – 10.0", "可直接导致系统完全失陷或大规模数据泄露"],
-                     ["高危", "7.0 – 8.9", "可获取重要数据或服务控制权"],
-                     ["中危", "4.0 – 6.9", "可导致信息泄露或受限操作"],
-                     ["低危", "0.1 – 3.9", "影响有限的配置或信息类问题"]],
-        "rating_intro": "系统安全等级依据该系统中发现的最高严重度漏洞确定，等级定义如下：",
-        "rating_def_rows": [["严重", "存在严重漏洞", "可直接利用导致系统完全失陷"],
-                            ["高危", "存在高危漏洞", "攻击者可获取重要数据或服务控制权"],
-                            ["中危", "存在中危漏洞", "可能导致信息泄露或受限操作"],
-                            ["低危", "存在低危漏洞", "影响有限"],
-                            ["安全", "未发现漏洞", "本次未发现安全漏洞"]],
+        "toc": "Table of Contents",
+        "toc_hint": "Press F9 in Word to update the table of contents",
+        "ch1": "1  Executive Summary", "s11": "1.1  Project Background", "s12": "1.2  Service Deliverables", "s13": "1.3  Remediation Summary",
+        "ch2": "2  Test Information", "s21": "2.1  Personnel", "s22": "2.2  Testing Methodology",
+        "s23": "2.3  Test Checklist", "s24": "2.4  Testing Tools", "s25": "2.5  Reference Standards",
+        "ch3": "3  Detailed Findings", "ch4": "4  Vulnerability Severity Rating", "ch5": "5  System Security Rating",
+        "tbl_service": "Table 1-1  Service Scope and Results", "tbl_remediation": "Table 1-2  Remediation Summary",
+        "tbl_personnel": "Table 2-1  Testing Personnel", "tbl_checklist": "Table 2-2  Test Checklist",
+        "tbl_tools": "Table 2-3  Testing Tools", "tbl_vulnlist": "Table 3-1  Vulnerability List",
+        "tbl_rating_res_cap": "Table 5-1  System Rating Results",
+        "hdr_service": ["System Name", "Domain / Address", "Crit", "High", "Med", "Low", "Rating"],
+        "hdr_remediation": ["No.", "Remediation Item", "Conclusion", "Remark"],
+        "hdr_personnel": ["Name", "Role", "Contact"],
+        "hdr_checklist": ["Category", "Vulnerability", "Description", "Result"],
+        "hdr_tools": ["Tool", "Description"],
+        "hdr_vulnlist": ["Severity", "Vulnerability Name", "Description", "Status"],
+        "hdr_cvss": ["Metric", "Value", "Description"],
+        "hdr_rating_def": ["Rating", "Criteria", "Description"],
+        "hdr_rating_res": ["System Name", "Crit / High / Med / Low", "Rating"],
+        "info_target": "Target", "info_severity": "Severity", "info_found": "Date Found",
+        "sub_desc": "1. Description", "sub_url": "2. URL", "sub_module": "3. Affected Module",
+        "sub_process": "4. Test Process", "sub_risk": "5. Risk Analysis",
+        "sub_fix": "6. Remediation", "sub_status": "7. Remediation Status",
+        "chk_pass": "Pass", "chk_fail": "Fail",
+        "kv_sep": ": ", "lparen": " (", "rparen": ")", "cvss_sep": " / ", "cvss_word": "CVSS ",
+        "cvss_vector_row": "CVSS Vector", "cvss_overall": "Overall score {c}",
+        "cvss_metric_names": [["AV", "Attack Vector"], ["AC", "Attack Complexity"], ["PR", "Privileges Required"], ["UI", "User Interaction"],
+                              ["S", "Scope"], ["C", "Confidentiality"], ["I", "Integrity"], ["A", "Availability"]],
+        "page_pre": "Page ", "page_mid": " of ", "page_suf": "",
+        "client": "Client: ", "project": "Project: ", "version": "Version: ", "date": "Date: ",
+        "report_word": "Penetration Test Report",
+        "cvss_intro": "This assessment scores each vulnerability using the Common Vulnerability Scoring System (CVSS {v}). Scoring accounts for Attack Vector (AV), Attack Complexity (AC), Privileges Required (PR), User Interaction (UI), Scope (S), Confidentiality (C), Integrity (I), and Availability (A) to determine the severity rating.",
+        "sev_criteria": "Severity Rating Criteria",
+        "hdr_sev": ["Rating", "CVSS Range", "Description"],
+        "sev_rows": [["Critical", "9.0 – 10.0", "May directly lead to full system compromise or large-scale data breach"],
+                     ["High", "7.0 – 8.9", "May obtain critical data or control of services"],
+                     ["Medium", "4.0 – 6.9", "May lead to information disclosure or restricted operations"],
+                     ["Low", "0.1 – 3.9", "Limited-impact configuration or informational issues"]],
+        "rating_intro": "The security rating of each system is determined by the highest-severity vulnerability it contains, defined as follows:",
+        "rating_def_rows": [["Critical", "Contains a critical vulnerability", "Directly exploitable to fully compromise the system"],
+                            ["High", "Contains a high-severity vulnerability", "Attacker may obtain critical data or control of services"],
+                            ["Medium", "Contains a medium-severity vulnerability", "May lead to information disclosure or restricted operations"],
+                            ["Low", "Contains a low-severity vulnerability", "Limited impact"],
+                            ["Secure", "No vulnerabilities found", "No security vulnerabilities identified in this assessment"]],
     },
     "zh-TW": {
-        "toc": "目  錄",
-        "toc_hint": "請在 Word 中按 F9 更新目錄",
-        "ch1": "第1章 綜述", "s11": "1.1 專案背景", "s12": "1.2 服務成果", "s13": "1.3 整改結論",
-        "ch2": "第2章 測試資訊", "s21": "2.1 人員資訊", "s22": "2.2 測試流程",
-        "s23": "2.3 測試清單", "s24": "2.4 測試工具", "s25": "2.5 參考規範",
-        "ch3": "第3章 測試詳情", "ch4": "第4章 漏洞等級評定", "ch5": "第5章 系統等級評定",
-        "tbl_service": "表 1-1 服務內容及成果", "tbl_remediation": "表 1-2 整改結論",
-        "tbl_personnel": "表 2-1 測試人員資訊", "tbl_checklist": "表 2-2 測試清單",
-        "tbl_tools": "表 2-3 測試工具", "tbl_vulnlist": "表 3-1 漏洞列表",
-        "tbl_rating_res_cap": "表 5-1 系統等級評定結果",
-        "hdr_service": ["系統名稱", "網域/位址", "嚴重", "高危", "中危", "低危", "系統等級"],
-        "hdr_remediation": ["序號", "修復對象", "整改結論", "備註"],
-        "hdr_personnel": ["姓名", "角色", "聯絡方式"],
-        "hdr_checklist": ["漏洞類型", "漏洞名稱", "描述", "測試結果"],
-        "hdr_tools": ["工具名稱", "描述"],
-        "hdr_vulnlist": ["漏洞等級", "漏洞名稱", "描述", "修復情況"],
-        "hdr_cvss": ["評分項", "取值", "說明"],
-        "hdr_rating_def": ["系統等級", "判定標準", "說明"],
-        "hdr_rating_res": ["系統名稱", "嚴重/高危/中危/低危", "系統等級"],
-        "info_target": "影響目標", "info_severity": "風險等級", "info_found": "發現時間",
-        "sub_desc": "1. 漏洞描述", "sub_url": "2. URL", "sub_module": "3. 所屬模組",
-        "sub_process": "4. 測試過程", "sub_risk": "5. 風險分析",
-        "sub_fix": "6. 修復建議", "sub_status": "7. 修復情況",
-        "chk_pass": "通過", "chk_fail": "不通過",
-        "kv_sep": "：", "lparen": "（", "rparen": "）", "cvss_sep": "/", "cvss_word": "CVSS分值",
-        "cvss_vector_row": "CVSS 向量", "cvss_overall": "綜合評分 {c}",
-        "cvss_metric_names": [["AV", "攻擊向量"], ["AC", "攻擊複雜度"], ["PR", "權限要求"], ["UI", "使用者互動"],
-                              ["S", "影響範圍"], ["C", "機密性"], ["I", "完整性"], ["A", "可用性"]],
-        "page_pre": "第 ", "page_mid": " 頁 / 共 ", "page_suf": " 頁",
-        "client": "客戶名稱：", "project": "專案名稱：", "version": "報告版本：", "date": "報告日期：",
-        "report_word": "滲透測試報告",
-        "cvss_intro": "本次滲透測試依據通用漏洞評分系統 CVSS {v} 對每個漏洞進行量化評分。評分綜合考慮攻擊向量（AV）、攻擊複雜度（AC）、權限要求（PR）、使用者互動（UI）、影響範圍（S）、機密性（C）、完整性（I）、可用性（A）八項指標，據此確定漏洞的嚴重程度等級。",
-        "sev_criteria": "嚴重程度劃分標準",
-        "hdr_sev": ["等級", "CVSS 分值範圍", "說明"],
-        "sev_rows": [["嚴重", "9.0 – 10.0", "可直接導致系統完全失陷或大規模資料洩漏"],
-                     ["高危", "7.0 – 8.9", "可取得重要資料或服務控制權"],
-                     ["中危", "4.0 – 6.9", "可導致資訊洩漏或受限操作"],
-                     ["低危", "0.1 – 3.9", "影響有限的設定或資訊類問題"]],
-        "rating_intro": "系統安全等級依據該系統中發現的最高嚴重度漏洞確定，等級定義如下：",
-        "rating_def_rows": [["嚴重", "存在嚴重漏洞", "可直接利用導致系統完全失陷"],
-                            ["高危", "存在高危漏洞", "攻擊者可取得重要資料或服務控制權"],
-                            ["中危", "存在中危漏洞", "可能導致資訊洩漏或受限操作"],
-                            ["低危", "存在低危漏洞", "影響有限"],
-                            ["安全", "未發現漏洞", "本次未發現安全漏洞"]],
+        "toc": "Table of Contents",
+        "toc_hint": "Press F9 in Word to update the table of contents",
+        "ch1": "1  Executive Summary", "s11": "1.1  Project Background", "s12": "1.2  Service Deliverables", "s13": "1.3  Remediation Summary",
+        "ch2": "2  Test Information", "s21": "2.1  Personnel", "s22": "2.2  Testing Methodology",
+        "s23": "2.3  Test Checklist", "s24": "2.4  Testing Tools", "s25": "2.5  Reference Standards",
+        "ch3": "3  Detailed Findings", "ch4": "4  Vulnerability Severity Rating", "ch5": "5  System Security Rating",
+        "tbl_service": "Table 1-1  Service Scope and Results", "tbl_remediation": "Table 1-2  Remediation Summary",
+        "tbl_personnel": "Table 2-1  Testing Personnel", "tbl_checklist": "Table 2-2  Test Checklist",
+        "tbl_tools": "Table 2-3  Testing Tools", "tbl_vulnlist": "Table 3-1  Vulnerability List",
+        "tbl_rating_res_cap": "Table 5-1  System Rating Results",
+        "hdr_service": ["System Name", "Domain / Address", "Crit", "High", "Med", "Low", "Rating"],
+        "hdr_remediation": ["No.", "Remediation Item", "Conclusion", "Remark"],
+        "hdr_personnel": ["Name", "Role", "Contact"],
+        "hdr_checklist": ["Category", "Vulnerability", "Description", "Result"],
+        "hdr_tools": ["Tool", "Description"],
+        "hdr_vulnlist": ["Severity", "Vulnerability Name", "Description", "Status"],
+        "hdr_cvss": ["Metric", "Value", "Description"],
+        "hdr_rating_def": ["Rating", "Criteria", "Description"],
+        "hdr_rating_res": ["System Name", "Crit / High / Med / Low", "Rating"],
+        "info_target": "Target", "info_severity": "Severity", "info_found": "Date Found",
+        "sub_desc": "1. Description", "sub_url": "2. URL", "sub_module": "3. Affected Module",
+        "sub_process": "4. Test Process", "sub_risk": "5. Risk Analysis",
+        "sub_fix": "6. Remediation", "sub_status": "7. Remediation Status",
+        "chk_pass": "Pass", "chk_fail": "Fail",
+        "kv_sep": ": ", "lparen": " (", "rparen": ")", "cvss_sep": " / ", "cvss_word": "CVSS ",
+        "cvss_vector_row": "CVSS Vector", "cvss_overall": "Overall score {c}",
+        "cvss_metric_names": [["AV", "Attack Vector"], ["AC", "Attack Complexity"], ["PR", "Privileges Required"], ["UI", "User Interaction"],
+                              ["S", "Scope"], ["C", "Confidentiality"], ["I", "Integrity"], ["A", "Availability"]],
+        "page_pre": "Page ", "page_mid": " of ", "page_suf": "",
+        "client": "Client: ", "project": "Project: ", "version": "Version: ", "date": "Date: ",
+        "report_word": "Penetration Test Report",
+        "cvss_intro": "This assessment scores each vulnerability using the Common Vulnerability Scoring System (CVSS {v}). Scoring accounts for Attack Vector (AV), Attack Complexity (AC), Privileges Required (PR), User Interaction (UI), Scope (S), Confidentiality (C), Integrity (I), and Availability (A) to determine the severity rating.",
+        "sev_criteria": "Severity Rating Criteria",
+        "hdr_sev": ["Rating", "CVSS Range", "Description"],
+        "sev_rows": [["Critical", "9.0 – 10.0", "May directly lead to full system compromise or large-scale data breach"],
+                     ["High", "7.0 – 8.9", "May obtain critical data or control of services"],
+                     ["Medium", "4.0 – 6.9", "May lead to information disclosure or restricted operations"],
+                     ["Low", "0.1 – 3.9", "Limited-impact configuration or informational issues"]],
+        "rating_intro": "The security rating of each system is determined by the highest-severity vulnerability it contains, defined as follows:",
+        "rating_def_rows": [["Critical", "Contains a critical vulnerability", "Directly exploitable to fully compromise the system"],
+                            ["High", "Contains a high-severity vulnerability", "Attacker may obtain critical data or control of services"],
+                            ["Medium", "Contains a medium-severity vulnerability", "May lead to information disclosure or restricted operations"],
+                            ["Low", "Contains a low-severity vulnerability", "Limited impact"],
+                            ["Secure", "No vulnerabilities found", "No security vulnerabilities identified in this assessment"]],
     },
     "en-US": {
         "toc": "Table of Contents",
@@ -184,8 +186,12 @@ LABELS = {
 
 
 def L(meta, key):
-    loc = meta.get("locale", "zh-CN")
-    return LABELS.get(loc, LABELS["zh-CN"]).get(key, LABELS["zh-CN"].get(key, key))
+    """Return the label for the requested locale.
+
+    All locale variants currently carry the English label set; the locale keys
+    are kept so stored report settings still resolve."""
+    loc = meta.get("locale", "en-US")
+    return LABELS.get(loc, LABELS["en-US"]).get(key, LABELS["en-US"].get(key, key))
 
 
 def as_list(v):
@@ -276,7 +282,7 @@ def add_heading(doc, text, level):
 def add_body_text(doc, text, size_pt=10.5):
     p = doc.add_paragraph()
     pf = p.paragraph_format
-    pf.first_line_indent = Pt(size_pt * 2)   # 首行缩进 2 字
+    pf.first_line_indent = Pt(size_pt * 2)   # first-line indent of two characters
     pf.line_spacing = 1.5
     pf.space_after = Pt(3)
     r = p.add_run(text)
@@ -291,7 +297,7 @@ def add_list_item(doc, text, number=None, size_pt=10.5):
     pf.first_line_indent = Cm(-0.74)
     pf.line_spacing = 1.5
     pf.space_after = Pt(2)
-    prefix = f"{number}）" if number else "• "
+    prefix = f"{number})" if number else "• "
     r = p.add_run(prefix)
     set_cn_font(r, font=BODY_FONT, size_pt=size_pt)
     r2 = p.add_run(text)
@@ -324,7 +330,7 @@ def add_code_block(doc, code):
         if i > 0:
             p.add_run().add_break()
         r = p.add_run(line if line else ' ')
-        # ASCII monospace, CJK falls back to 宋体
+        # ASCII monospace; non-ASCII falls back to SimSun
         set_cn_font(r, font=CODE_FONT, size_pt=9)
         r._element.get_or_add_rPr().find(qn('w:rFonts')).set(qn('w:eastAsia'), BODY_FONT)
 
@@ -574,7 +580,7 @@ def build_cover(doc, meta):
         add_paragraph(doc)
 
     title = meta.get('report_title') or (meta.get('client_name', '') + L(meta, "report_word"))
-    # split into subject / "渗透测试报告" if it ends with the report word
+    # split into subject / "Penetration Test Report" if the title ends with the report word
     rw = L(meta, "report_word")
     if title.endswith(rw) and len(title) > len(rw):
         subject = title[:-len(rw)]
@@ -651,7 +657,7 @@ def build_ch1(doc, data, meta):
     items = data.get('summary', {}).get('remediation_items', [])
     if items:
         add_caption(doc, L(meta, "tbl_remediation"))
-        rows = [[str(it.get('idx', i + 1)), it.get('object', ''), it.get('conclusion', '待修复'),
+        rows = [[str(it.get('idx', i + 1)), it.get('object', ''), it.get('conclusion', 'Pending'),
                  it.get('remark', '')] for i, it in enumerate(items)]
         C = WD_ALIGN_PARAGRAPH.CENTER
         build_table(doc, L(meta, "hdr_remediation"), rows, [1.2, 8.0, 2.5, 3.0],
@@ -678,7 +684,8 @@ def build_ch2(doc, data, meta):
     add_heading(doc, L(meta, "s23"), 2)
     add_caption(doc, L(meta, "tbl_checklist"))
     build_checklist(doc, data.get('checklist', []), meta)
-    # 2.4 测试工具 / 2.5 参考规范 已按交付规范精简，不再输出。
+    # Sections 2.4 (testing tools) and 2.5 (reference standards) were trimmed to match the
+    # delivery standard and are no longer emitted.
     add_page_break(doc)
 
 
@@ -710,7 +717,7 @@ def build_ch3(doc, data, meta):
     vl = data.get('vuln_list', [])
     if vl:
         add_caption(doc, L(meta, "tbl_vulnlist"))
-        rows = [[v.get('severity', ''), v.get('name', ''), v.get('desc', ''), v.get('status', '待修复')] for v in vl]
+        rows = [[v.get('severity', ''), v.get('name', ''), v.get('desc', ''), v.get('status', 'Pending')] for v in vl]
         C = WD_ALIGN_PARAGRAPH.CENTER
         build_table(doc, L(meta, "hdr_vulnlist"), rows, [1.6, 4.6, 8.0, 1.3],
                     col_aligns=[C, WD_ALIGN_PARAGRAPH.LEFT, WD_ALIGN_PARAGRAPH.LEFT, C])
@@ -723,7 +730,8 @@ def build_ch3(doc, data, meta):
 
 
 def fmt_cvss(cvss):
-    """CVSS score as a clean 1-decimal string ('9.8')—float32→float64 存储噪声(9.800000190734863)归一。"""
+    """CVSS score as a clean 1-decimal string ('9.8') - normalizes the float32->float64
+    storage noise (9.800000190734863)."""
     try:
         return f"{round(float(cvss), 1)}"
     except (TypeError, ValueError):
@@ -745,17 +753,17 @@ def build_vuln(doc, v, meta):
     add_heading(doc, vuln_heading_text(meta, v.get('sec_no', ''), v.get('title', ''), sev, cvss), 3)
     add_vuln_info_table(doc, meta, v.get('target', ''), sev, v.get('found_date', ''))
 
-    # 1. 漏洞描述
+    # 1. finding description
     add_paragraph(doc, L(meta, "sub_desc"), font=UI_FONT, size_pt=11, bold=True, space_before=6, space_after=2)
     for para in as_list(v.get('description')):
         add_body_text(doc, para)
     # 2. URL
     add_paragraph(doc, L(meta, "sub_url"), font=UI_FONT, size_pt=11, bold=True, space_before=6, space_after=2)
     add_body_text(doc, v.get('url') or v.get('target') or '')
-    # 3. 所属模块
+    # 3. affected module
     add_paragraph(doc, L(meta, "sub_module"), font=UI_FONT, size_pt=11, bold=True, space_before=6, space_after=2)
     add_body_text(doc, v.get('module') or '—')
-    # 4. 测试过程
+    # 4. test process
     add_paragraph(doc, L(meta, "sub_process"), font=UI_FONT, size_pt=11, bold=True, space_before=6, space_after=2)
     for block in as_list(v.get('test_process')):
         if not isinstance(block, dict):
@@ -768,15 +776,15 @@ def build_vuln(doc, v, meta):
             add_picture(doc, block.get('path', ''), caption=block.get('caption'))
         else:
             add_body_text(doc, block.get('content', ''))
-    # 5. 风险分析
+    # 5. risk analysis
     add_paragraph(doc, L(meta, "sub_risk"), font=UI_FONT, size_pt=11, bold=True, space_before=6, space_after=2)
     for i, item in enumerate(as_list(v.get('risk_analysis')), 1):
         add_list_item(doc, item, number=i)
-    # 6. 修复建议
+    # 6. remediation recommendations
     add_paragraph(doc, L(meta, "sub_fix"), font=UI_FONT, size_pt=11, bold=True, space_before=6, space_after=2)
     for i, item in enumerate(as_list(v.get('remediation')), 1):
         add_list_item(doc, item, number=i)
-    # 7. 修复情况
+    # 7. remediation status
     add_paragraph(doc, L(meta, "sub_status"), font=UI_FONT, size_pt=11, bold=True, space_before=6, space_after=2)
     add_body_text(doc, v.get('fix_status') or '—')
 
@@ -842,7 +850,7 @@ def _all_vulns(data):
 def build(data, output_path):
     meta = data.get('meta', {})
     if not meta.get('date'):
-        meta['date'] = datetime.date.today().strftime('%Y年%m月%d日')
+        meta['date'] = datetime.date.today().strftime('%Y-%m-%d')
     doc = Document()
     # A4
     sec = doc.sections[0]

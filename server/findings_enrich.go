@@ -1,6 +1,6 @@
 package server
 
-// Finding enrichment (漏洞管理深化): an AI-generated / human-edited structured
+// Finding enrichment (Gap management deepening): an AI-generated / human-edited structured
 // overlay on a raw finding node, keyed by exploration node id. Shared by the
 // findings page, the task-detail tab, and the report pipeline. The node payload
 // (what agent tools see) is never mutated — enrichment is a management layer.
@@ -86,11 +86,11 @@ func reportEnrichmentFromDB(e *db.FindingEnrichment) *report.Enrichment {
 	obj := map[string]json.RawMessage{
 		"title": mj(e.Name), "target": mj(e.Target), "module": mj(e.Module),
 		"cvss_score": mj(e.CVSSScore), "cvss_vector": mj(e.CVSSVector),
-		"cvss_metrics": rawOrRM(e.CVSSMetrics, "{}"),
-		"description":  rawOrRM(e.Description, "[]"),
-		"test_process": rawOrRM(e.TestProcess, "[]"),
+		"cvss_metrics":  rawOrRM(e.CVSSMetrics, "{}"),
+		"description":   rawOrRM(e.Description, "[]"),
+		"test_process":  rawOrRM(e.TestProcess, "[]"),
 		"risk_analysis": rawOrRM(e.RiskAnalysis, "[]"),
-		"remediation":  rawOrRM(e.Remediation, "[]"),
+		"remediation":   rawOrRM(e.Remediation, "[]"),
 	}
 	b, _ := json.Marshal(obj)
 	var enr report.Enrichment
@@ -114,28 +114,28 @@ func nodeIDFromPath(r *http.Request) (int64, bool) {
 func (s *Server) findingDetail(w http.ResponseWriter, r *http.Request) {
 	id, ok := nodeIDFromPath(r)
 	if !ok {
-		writeErr(w, 400, "无效的 finding id")
+		writeErr(w, 400, "Invalid finding id")
 		return
 	}
 	f, err := s.m.pg.GetFindingByNodeID(id)
 	if err != nil || f == nil {
-		writeErr(w, 404, "未找到漏洞")
+		writeErr(w, 404, "Finding not found")
 		return
 	}
 	enr, _ := s.m.pg.GetFindingEnrichment(id)
-	// 结构化复现过程（agent 就地记录的 入口/前置/有序步骤/来源）直通前端，供"显式分步"渲染 +
-	// 每步证据挂载。空则前端回退到 enrichment.test_process 平铺展示。
+	// Structured recurrence processagent Locally recorded, entrance./Prefix/Order steps/From the source) to the front end for"Visible Step"Render +
+	// Each step of evidence is mounted. Empty frontend back to enrichment.test_process Flatten the show.
 	var repro any
 	if len(f.Reproduction) > 2 {
 		// Resolve each step's verbatim request back to the exact recorded traffic
-		// exchange (stateless, via the body index), so每步 gets a jump-to-traffic link.
+		// exchange (stateless, via the body index), soEvery step gets a jump-to-traffic link.
 		// Done here (view time) so it works for findings recorded before this feature,
 		// no agent re-run needed. The traffic store may be nil (capture off) → steps
 		// just carry no exchange_id and the UI shows no jump.
 		var rp report.Reproduction
 		if json.Unmarshal(f.Reproduction, &rp) == nil {
-			// 若落库时已解析(任一步带 exchange_id)则直接读存储;否则 view-time 用任务时间窗口兜底
-			// 解析(与 report_finding 落库时的 resolver 同逻辑),让存量 finding 也补上跳转链接。
+			// If parsed when dropped(Any step exchange_id)directly read storage;Otherwise... view-time Go to the bottom of the task time window
+			// Parsing(and report_finding From the library. resolver Same logic.),Make stock finding Add jump links.
 			hasResolved := false
 			for _, st := range rp.Steps {
 				if st.ExchangeID != "" {
@@ -217,12 +217,12 @@ func clipUTF8(s string, n int) string {
 	if len(s) <= n {
 		return s
 	}
-	return strings.ToValidUTF8(s[:n], "") + "…"
+	return strings.ToValidUTF8(s[:n], "") + "..."
 }
 
 // findingSetupTraffic pulls the target's REAL account-registration / login / OTP /
 // captcha request packets from recorded traffic (bounded), so the reproduction recipe's
-// 前置条件 can spell out how to register a test account + log in with VERBATIM packets —
+// Precondition can spell out how to register a test account + log in with VERBATIM packets —
 // the platform's edge over AI-reconstructed PoC (which errs). Empty when no traffic.
 func (s *Server) findingSetupTraffic(taskID int64) string {
 	if s.m == nil || s.m.traffic == nil {
@@ -252,13 +252,13 @@ func (s *Server) findingSetupTraffic(taskID int64) string {
 			if e != nil {
 				continue
 			}
-			fmt.Fprintf(&b, "\n### %s %s (HTTP %d)\n[请求]\n%s\n[响应]\n%s\n", ex.Method, ex.URL, ex.Status, clipUTF8(req, 1400), clipUTF8(resp, 900))
+			fmt.Fprintf(&b, "\n### %s %s (HTTP %d)\n[Request]\n%s\n[Response]\n%s\n", ex.Method, ex.URL, ex.Status, clipUTF8(req, 1400), clipUTF8(resp, 900))
 		}
 	}
 	return b.String()
 }
 
-// enrichJob is the in-memory state of one async 「AI 分析」 run for a finding node.
+// enrichJob is the in-memory state of one async "AI Analysis." run for a finding node.
 type enrichJob struct {
 	Status    string         `json:"status"` // analyzing | done | failed
 	Error     string         `json:"error,omitempty"`
@@ -273,12 +273,12 @@ type enrichJob struct {
 func (s *Server) findingEnrich(w http.ResponseWriter, r *http.Request) {
 	id, ok := nodeIDFromPath(r)
 	if !ok {
-		writeErr(w, 400, "无效的 finding id")
+		writeErr(w, 400, "Invalid finding id")
 		return
 	}
 	f, err := s.m.pg.GetFindingByNodeID(id)
 	if err != nil || f == nil {
-		writeErr(w, 404, "未找到漏洞")
+		writeErr(w, 404, "Finding not found")
 		return
 	}
 	company := strings.TrimSpace(r.URL.Query().Get("company"))
@@ -306,7 +306,7 @@ func (s *Server) findingEnrich(w http.ResponseWriter, r *http.Request) {
 func (s *Server) findingEnrichStatus(w http.ResponseWriter, r *http.Request) {
 	id, ok := nodeIDFromPath(r)
 	if !ok {
-		writeErr(w, 400, "无效的 finding id")
+		writeErr(w, 400, "Invalid finding id")
 		return
 	}
 	s.enrichMu.Lock()
@@ -336,20 +336,20 @@ func (s *Server) runEnrich(id int64, f *db.DBFinding, locale, company string) {
 	}
 	defer func() {
 		if rec := recover(); rec != nil {
-			fail(fmt.Sprintf("AI 分析异常：%v", rec))
+			fail(fmt.Sprintf("AI Analyzing anomalies:%v", rec))
 		}
 	}()
 	in := report.FindingInput{VulnClass: f.VulnClass, Severity: f.Severity, Summary: f.Summary, PoC: f.Evidence, CreatedAt: f.CreatedAt, Reproduction: f.Reproduction}
 	// Ground the AI PROSE (description/risk/remediation) in the finding's real work
 	// transcript (the intent that yielded it), so enrichment reflects what actually
 	// happened instead of expanding the one-line summary. Enrichment is prose-only
-	// (test_process comes deterministically from the captured 复现过程 or raw PoC), so we
-	// no longer pull SetupContext traffic to have the AI rebuild 前置条件.
-	// 只喂"请求(全)+响应(截断)+小结"、去掉思考噪音——更小、更省、且带真实响应(更准)。
+	// (test_process comes deterministically from the captured Recurrence process or raw PoC), so we
+	// no longer pull SetupContext traffic to have the AI rebuild Precondition.
+	// Hello?"Request(All)+Response(Cut)+Summary", Get off the noise.——Smaller, more economical, with real responses.(Better.).
 	in.Transcript = s.m.pg.FindingReproTranscript(id, 22000)
 	enr := report.EnrichFinding(s.ctx, s.m.pg, s.skillDir, locale, in, company)
 	if strings.TrimSpace(enr.Title) == "" && len(enr.Description) == 0 {
-		fail("AI 分析失败（未配置 LLM 或模型未返回内容，可能超时）")
+		fail("AI Analysis failed (not configured) LLM or the model does not return content, possibly overtime)")
 		return
 	}
 	row := dbEnrichmentFromReport(id, enr)
@@ -358,7 +358,7 @@ func (s *Server) runEnrich(id int64, f *db.DBFinding, locale, company string) {
 		row.Status = prev.Status
 	}
 	if err := s.m.pg.UpsertFindingEnrichment(row); err != nil {
-		fail("保存失败: " + err.Error())
+		fail("Save Failed: " + err.Error())
 		return
 	}
 	saved, _ := s.m.pg.GetFindingEnrichment(id)
@@ -371,7 +371,7 @@ func (s *Server) runEnrich(id int64, f *db.DBFinding, locale, company string) {
 
 // enrichmentHasProse reports whether an enrichment already carries AI-generated
 // narrative (description / risk / remediation). A freshly-triaged row that only
-// has name/target/severity/status set has none — that's what triggers 确认即富化.
+// has name/target/severity/status set has none — that's what triggers Affection is confirmation..
 func enrichmentHasProse(e *db.FindingEnrichment) bool {
 	if e == nil {
 		return false
@@ -384,14 +384,14 @@ func enrichmentHasProse(e *db.FindingEnrichment) bool {
 }
 
 // PUT /api/findings/{id} — patch human-editable fields (name/target/severity/status).
-// 确认即富化（无感）：当状态被置为 confirmed 且该漏洞尚无富化正文时，直接在后台起一次
-// AI 富化（复用 runEnrich / enrichJob 机制），前端用现成的 enrich/status 轮询无感衔接。
-// 这样"人工确认"这一步就自带了报告所需的结构化正文，报告管理只收录已确认漏洞即全部可交付，
-// 导出时不再依赖脆弱的临场大生成。
+// Enrichment is idempotent (a no-op when the finding is already confirmed and has already been enriched); if the finding has not been enriched yet, it starts in the background.
+// AI Affluence (reuse) runEnrich / enrichJob A mechanism for the front end. enrich/status There's no connection.
+// Here."Manual confirmation"This step brought the structural text required for the report, and the management of the report only recorded the identified gaps, i.e., the total deliverables.
+// The export is no longer dependent on vulnerable ad hoc generation.
 func (s *Server) findingUpdate(w http.ResponseWriter, r *http.Request) {
 	id, ok := nodeIDFromPath(r)
 	if !ok {
-		writeErr(w, 400, "无效的 finding id")
+		writeErr(w, 400, "Invalid finding id")
 		return
 	}
 	var body struct {
@@ -399,15 +399,15 @@ func (s *Server) findingUpdate(w http.ResponseWriter, r *http.Request) {
 		Target   string `json:"target"`
 		Severity string `json:"severity"`
 		Status   string `json:"status"`
-		Locale   string `json:"locale"` // 自动富化用的报告语言（可选，前端传 i18n.language）
+		Locale   string `json:"locale"` // Automatically evaporate the reporting language (optional, forward) i18n.language)
 	}
 	if err := decode(r, &body); err != nil {
-		writeErr(w, 400, "请求格式错误")
+		writeErr(w, 400, "Request format error")
 		return
 	}
 	if err := s.m.pg.UpdateFindingEnrichmentFields(id, strings.TrimSpace(body.Name),
 		strings.TrimSpace(body.Target), strings.TrimSpace(body.Severity), strings.TrimSpace(body.Status)); err != nil {
-		writeErr(w, 500, "保存失败: "+err.Error())
+		writeErr(w, 500, "Save Failed: "+err.Error())
 		return
 	}
 	saved, _ := s.m.pg.GetFindingEnrichment(id)

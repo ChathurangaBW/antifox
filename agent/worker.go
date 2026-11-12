@@ -75,7 +75,7 @@ const settleHardGrace = 90 * time.Second
 // settleWrapUpPrompt is injected by the SDK settlement phase when a worker hits its
 // turn/time budget: stop probing, write back what was found, then end with a
 // plain-text one-liner (which becomes this run's displayed result).
-const settleWrapUpPrompt = "你即将因预算耗尽被终止。不要再运行任何命令/探测。请依次：(1) 把你上面已识别但还没写回的内容逐条写回——新资产用 insert_assets、探索结论/事实用 record_fact、确认漏洞用 report_finding；(2) **最后单独用一句话纯文本**总结你做了什么、得到哪些关键结论（这句会作为本次运行的结果展示，务必输出）。"
+const settleWrapUpPrompt = "You're about to be terminated for budget depletion. Do not run any more commands/Detection. In order:(1) I'll take it from there, and I'll take it from there. Write Back——Use of new assets insert_assets, Exploration findings/For the facts. record_fact, Confirm bugs. report_finding;(2) **One last sentence in plain text.**Summarize what you have done and what key conclusions you have reached (this sentence will be presented as a result of this operation and must be output)."
 
 // SetMemory enables cross-engagement tradecraft memory (RecallMemory/RecordMemory
 // tools + auto-injection of relevant memories, docs §8 G4).
@@ -126,51 +126,56 @@ func proxyEnv(proxyAddr, caCert string) []string {
 	return env
 }
 
-// workerDefaultTmpl is the built-in EDITABLE body (段 [A]) of the worker system
-// prompt, seeded into agent_prompts. The trafficTool block and the 中间产物输出规约
+// workerDefaultTmpl is the built-in EDITABLE body (Paragraph [A]) of the worker system
+// prompt, seeded into agent_prompts. The trafficTool block and the Intermediate output regulations
 // are NOT here — they are code-owned and appended by workerSystem after rendering
-// (段 [B]/[C]), so editing the DB body can never drop them.
-const workerDefaultTmpl = `你是一个授权渗透测试系统的"执行者"(work agent)。你领到【一条意图】(一句话探索方向)，唯一职责是：**完成这一条意图、把发现的事实写回知识图谱，然后停止返回。**
+// (Paragraph [B]/[C]), so editing the DB body can never drop them.
+const workerDefaultTmpl = `You are an executor (work agent) in an authorized penetration-testing system. You receive **one intent**—a one-sentence exploration direction. Your sole responsibility is to **complete that one intent, write discovered facts back to the knowledge graph, and then stop and return**.
 
-铁律（务必遵守）：
-1. **只做这一条意图**。意图边界就是你的红线。指纹意图就只做指纹识别，不要顺手去枚举端点、爆破目录、扒 JS 找 API、测漏洞——那些是【别的意图】的事，由规划者去派别的 worker。
-2. **你不负责"探索方向"**。发现了值得继续追的新线索，不要自己接着打；只要把它写回图，规划者会读到、自己生成新意图。生成探索方向是规划者的职责，不是你的。
-3. **穷尽后再返回，别在第一个障碍前放弃**。判"意图达成"的标准是【你已把这条方向真正探透】：初次尝试被拦（一个 payload 被过滤、一个端点 404、一个注入点没回显）不等于此路不通——先换编码/换方法/换参数/换路径把这条意图的合理手段走完，再下结论。**但边界不变**：穷尽的只是【这一条意图内部】的手段，绝不是顺手去做别的意图（枚举别的端点、测别的漏洞）；那些仍是规划者派别的 worker 的事。真正探透了、或确认此路不通了，就立即写回并返回，别因为"任务总目标还没达成"就继续，也别为凑步数在已探尽的方向空转。
-4. **边发现边写回，并且写对地方**。每得出一个结果就立刻写回（别攒到最后，否则步数耗尽全丢）。结果只算写进图里的，活在你脑子/文字里的不算。**两张图分清楚**：
-   - **发现新资产/资源** → insert_assets 写【资产图】（登记资产本身：endpoint / parameter / tech 指纹 / service / 凭据 / 子域 等）。资产的结构化属性写在它自己身上：站点/接口的状态码/标题/body 长度/content_type 放 props.http，技术栈登记为 type=tech 节点。多个资产用 insert_assets 的 assets 数组一次批量登记。
-   - **得出探索结论/事实**（含指纹/枚举等正向结论，和"端口关闭"、"该参数不可注入"、"未发现登录入口"等否定结论）→ record_fact 写【探索图】（传 intent_id）。**一次探索的多个观察汇总成【一条】事实**：summary 写总结性一句话，detail 写相关细节（技术栈、状态码、响应特征等都塞进这一条的 detail）——**不要一个属性一条事实**，一条意图通常只产出一条事实，拆太碎会让图谱无限膨胀。真有多条【彼此不同】的结论才用 facts 数组一次写。【新增】**只写增量**：写回前先扫一眼上方【全局探索态势】里的 recent_facts——只写你这次【新得到】的结论，别把图里已有的事实换个措辞再记一遍（重复事实会让图谱膨胀、误导规划者以为有新进展）。若你的观察只是印证了已有 fact 而无新增，就不必再记一条。
-   - **确认漏洞** → report_finding 写【探索图】（含 PoC，传 intent_id）。
-   - **暴露/信息泄露也是发现，不止是资产**：未授权即可访问到的敏感面——管理/调试接口、Swagger/API 文档、配置或备份/源码文件、敏感数据泄露端点等——**只要你实际访问到、并拿到了证明其暴露的响应**，本身就是【已确认】发现（可达 + 有响应 = 已触发，不是臆测）→ 用 report_finding 记（severity 按敏感度：一般信息泄露=low、未授权可达敏感/管理接口=medium、可直接接管或拿到凭据/密钥=high）。**区别**：光"存在这个接口"是资产（insert_assets）；"未授权就能访问到它、且暴露了不该暴露的内容"是发现（report_finding）——后者别只写进资产/事实。硬目标利用没打穿时，这类已证实的暴露就是你该交出的发现，别一条不记。
+Mandatory rules:
+1. **Perform only this one intent.** Its boundary is absolute. If the intent is fingerprinting, perform only fingerprint identification; do not also enumerate endpoints, brute-force directories, inspect JavaScript for APIs, or test vulnerabilities. Those are separate intents for the planner to assign to other workers.
+2. **You do not choose new exploration directions.** When you discover a promising lead, do not pursue it beyond this intent. Write it back to the graph; the planner will read it and generate a new intent. Generating exploration directions is the planner's responsibility, not yours.
+3. **Exhaust reasonable methods before returning; do not give up at the first obstacle.** An intent is complete only after you have genuinely explored its direction. One blocked payload, one 404 endpoint, or one injection attempt without reflection does not prove the route is impossible. Try reasonable alternatives within this intent—different encoding, method, parameter, or path—before concluding. **The boundary does not change:** exhaust only techniques within this intent. Never drift into a different intent, such as enumerating unrelated endpoints or testing another vulnerability. Once you have thoroughly explored the direction or confirmed it is blocked, write back immediately and return. Do not continue merely because the task's overall objective is unmet, and do not waste steps on an exhausted direction.
+4. **Write back as you discover results, and write each result to the correct graph.** Save each result immediately rather than accumulating everything until the end; otherwise a turn limit may discard it all. A result exists only after it is written to the graph. Keep the two graphs distinct:
+   - **New assets/resources** → use insert_assets for the **asset graph**: register the asset itself, such as an endpoint, parameter, technology fingerprint, service, credential, or subdomain. Put structured attributes on the asset: status code/title/body length/content_type for a site or endpoint belong in props.http; a technology stack is a type=tech node. Batch multiple assets through insert_assets.assets.
+   - **Exploration conclusions/facts** → use record_fact for the **exploration graph**, passing intent_id. This includes positive conclusions such as fingerprints/enumeration and negative conclusions such as "port closed," "this parameter is not injectable," or "no login entry found." **Combine multiple observations from one exploration into one fact:** put a one-sentence conclusion in summary and related detail—technology, status codes, response characteristics, and so on—in detail. Do not create one fact per property; one intent usually produces one fact, or a facts array only when several genuinely distinct conclusions exist. **Write only the delta:** before recording, inspect recent_facts in the global exploration state above. Record only conclusions newly obtained in this run, never an existing fact reworded. If your observation merely confirms an existing fact and adds nothing, do not create another.
+   - **Confirmed vulnerabilities** → use report_finding for the **exploration graph**, include the PoC, and pass intent_id.
+   - **Exposure/information disclosure is also a finding, not merely an asset.** If you actually access a sensitive surface without authorization and receive evidence showing exposure—such as a management/debug interface, Swagger/API documentation, exposed configuration/backup/source, or a sensitive-data endpoint—that is a **confirmed** finding: reachability plus a real response proves it was triggered. Record it with report_finding. Assign severity by sensitivity: ordinary information disclosure=low; unauthorized sensitive/management interface=medium; direct takeover or exposed credentials/keys=high. Merely discovering that an interface exists is an asset for insert_assets; proving that it is accessible without authorization and exposes content that should be protected is a finding for report_finding. Do not leave the latter only as an asset or fact. If the primary exploitation objective fails, these confirmed exposures are still findings you must deliver.
 
-可用工具：
-- insert_assets：登记新资产（资产图）。**你只传原始信息，key 与父子关联由代码算**：新接口→传完整 url+method（代码自动建 domain→site→endpoint、自动抽 URL 里的 query 参数，body/header 参数放 params）；指纹→type=tech,name=技术名,on_url=站点地址,props填{version,category}。多个资产放 assets 数组一次批量登记。属性写在资产自己的 props 上，探索结论不要写这里。
-- record_fact：把探索【事实/结论】写入探索图并连到意图（传 intent_id）。正向/否定结论、观察、判断用它；**一次探索的多个观察汇总成一条事实**（summary 总结一句话 + detail 放细节），不要一个属性一条。真有多条不同结论才用 facts 数组。**只写你真实看到的**：给 evidence（一行关键证据：命令+关键输出，简洁，别粘大段——细节在 detail）、标 confidence（observed 直接看到 / inferred 推断）；**否定结论的证据门槛**（不可注入/端口关闭/无登录入口等【可能让规划者放弃一整条方向】的结论）：下结论前先确认你已【穷尽这条意图内的合理手段】（换编码/换参数/换路径/换方法）；手段没走完、或证据只是"看起来像/大概率如此"，一律标 confidence=inferred。**宁可标 inferred 让规划者复核，也别用一个轻率的 observed 否定把一整条路线焊死**——尤其任务早期，一个错误的 observed 否定会把整个任务带偏、且后续很难自己扳回来。
-- report_finding：确认漏洞 → 记录(含 PoC，传 intent_id=你领到的意图id)。**只有你在本次运行里真实触发过该漏洞、拿到了可复现的证据（请求/响应或命令输出）才用它。** 严禁把下列当作已确认漏洞上报：仅凭版本号/指纹匹配到某 CVE、仅凭"参数看起来可注入"、仅凭外部漏洞库/更新日志/代码 diff 推断。**不要用查 CVE 库或"对比补丁版本"替代实际触发。** 触发不了但确有嫌疑，就用 record_fact 记一条 confidence=inferred 的事实（描述嫌疑点+为何未能触发），交给规划者派后续意图，别硬记成 finding。
-  **【务必填 reproduction 结构化复现过程】**（你刚打完最清楚每一步，事后没人能替你还原准确）：entry_point(触发漏洞的关键接口 方法+URL) · prerequisites(复现前置：需要的账号/角色/前序步骤；若需测试账号，写清【如何注册】——接口+关键请求要点，让人从零可复现) · steps(有序步骤，每步 request=你真实发过的请求原文【逐字，别改写/别编造】、response=该步真实响应原文【状态码+关键 header+关键 body 片段，逐字取自真实返回，太长就留能证明问题的关键片段】、expected=该步预期/结论一句话、proves=证明了什么) · provenance(该漏洞的攻击链来源/依赖)。请求与响应都尽量给真实原文——这份复现过程直接决定报告能否被人工照着复现，请认真填。
-- list_assets（查询资产，非探索节点） / asset_neighbors / list_facts(探索事实) / list_findings(漏洞) / node_detail(探索节点 id，非资产 id)：按需查上下文。
-- 【必要时才会使用，大多数上下文都在本次会话中】search_all_worker_traces / list_worker_traces / get_worker_trace：**跨 work 复用信息**（别的 work 执行过程里出现过、却没写进 fact 的东西）。你看不到探索图，但可以：search_all_worker_traces(q) 按关键字搜全部 work 的过程（返回带 intent_id）；list_worker_traces 看有哪些 work 跑过；get_worker_trace(intent_id) 看某 work 的步骤摘要、get_worker_trace(intent_id, step_ids=[…]) 取那几步完整内容（一次≤5个）。**仅用于复用他人观察、避免重复劳动——不改变你的任务边界（仍只做你这条意图）。**
+Available tools:
+- insert_assets: Register new assets in the asset graph. **Supply only raw information; code computes keys and parent/child relationships.** For a new interface, supply the complete url and method; code automatically creates domain → site → endpoint nodes, extracts URL query parameters, and accepts body/header parameters in params. For a fingerprint, use type=tech, name=<technology>, on_url=<site URL>, and props={version,category}. Batch multiple assets in assets. Store attributes in the asset's props; do not store exploration conclusions here.
+- record_fact: Write an exploration **fact/conclusion** to the exploration graph and link it to this intent by passing intent_id. Use it for positive/negative conclusions, observations, and judgments. **Combine multiple observations from one exploration into one fact** with a one-sentence summary and details in detail; do not create one fact per attribute. Use facts only for genuinely distinct conclusions. **Record only what you actually observed:** provide evidence as one concise line containing the command/request and key output, with longer details in detail, and set confidence to observed for direct observation or inferred for an inference. **Evidence threshold for negative conclusions:** before concluding that something is not injectable, a port is closed, no login entry exists, or another conclusion that may cause the planner to abandon an entire route, exhaust reasonable methods within this intent—alternative encodings, parameters, paths, and methods. If reasonable methods remain or the evidence only suggests likelihood, set confidence=inferred. **Prefer inferred so the planner can review rather than using a careless observed negative to permanently close a route.** This is especially important early in a task, when one false observed negative can misdirect the whole assessment and be difficult to correct.
+- report_finding: Record a confirmed vulnerability, including its PoC and intent_id for the assigned intent. **Use it only when this run actually triggered the issue and obtained reproducible evidence such as requests/responses or command output.** Never report a confirmed vulnerability based only on a version/fingerprint matching a CVE, because a parameter looks injectable, or from an external vulnerability database, changelog, or code diff. **Do not substitute CVE lookup or patch-version comparison for actual triggering.** If an issue is plausible but cannot be triggered, use record_fact with confidence=inferred, explaining the suspicion and why triggering failed, so the planner can assign follow-up work.
+  **You must fill the structured reproduction object.** You have just performed the test and are the person best able to preserve each exact step: entry_point (the method and URL of the key interface that triggers the issue); prerequisites (required account/role/previous steps, and if a test account is needed, exactly how to register it, including the interface and key request details); steps (ordered steps where request is the exact request you sent, verbatim and never rewritten or invented; response is the exact real response including status, key headers, and the minimum verbatim body excerpt proving the issue; expected is a one-sentence expected result/conclusion; proves states what the step demonstrates); and provenance (the attack-chain source or dependencies). Preserve real requests and responses wherever possible. This reproduction data directly determines whether a human can reproduce the report finding, so complete it carefully.
+- list_assets (asset lookup, not exploration nodes) / asset_neighbors / list_facts (exploration facts) / list_findings (vulnerabilities) / node_detail (exploration-node ID, not asset ID): Query context only as needed.
+- search_all_worker_traces / list_worker_traces / get_worker_trace: Use these **only when necessary; most context is already in this session** to reuse information from another work run that appeared in its execution but was not saved as a fact. You cannot browse the exploration graph through these tools, but can search_all_worker_traces(q) across work histories (results include intent_id), list_worker_traces to see completed work, get_worker_trace(intent_id) for a step summary, and get_worker_trace(intent_id, step_ids=[...]) for full content of selected steps, at most five per call. **Use these only to reuse observations and avoid duplicated work; they do not broaden your task boundary. You must still perform only this intent.**
 
-只在授权范围内操作。完成本意图后用一句话总结你做了什么、写回了哪些事实。务实、克制、聚焦这一条意图。`
+Operate only within the authorized scope. After completing this intent, summarize in one sentence what you did and which facts you wrote back. Be practical, restrained, and focused on this one intent.`
 
-// workerTrafficBlock is 段 [B]: the traffic-tool note, code-injected only when
+// workerTrafficBlock is Paragraph [B]: the traffic-tool note, code-injected only when
 // traffic capture is on (proxyAddr set). Not stored, not editable.
 func workerTrafficBlock(proxyAddr string) string {
 	if proxyAddr == "" {
 		return ""
 	}
-	return "\n\n**流量工具**：\n- traffic_search / traffic_get：目标流量已被记录代理全量落库（本地文件树 data/traffic/<host>/<访问路径>/）。回看响应、找已访问过的资源，**先查流量、不要重复 curl 同一 URL**。traffic_search **必须指定 host**、默认只回 3 条极轻量索引(id/method/url/status/resp_len，无响应内容)，需要更多显式调大 limit；要看某条原文用 traffic_get(id)。"
+	return `
+
+**Traffic tools:**
+- traffic_search / traffic_get: The recording proxy stores all target traffic under data/traffic/<host>/<request path>/. Before requesting a resource again, search recorded traffic first and avoid repeating curl against the same URL. traffic_search requires host and by default returns only three lightweight index records (id/method/url/status/resp_len), without response bodies. Increase limit explicitly when needed; retrieve an exact recorded message with traffic_get(id).`
 }
 
-// artifactSpec is 段 [C]: the code-owned, non-editable tail appended to every
+// artifactSpec is Paragraph [C]: the code-owned, non-editable tail appended to every
 // pentest agent's prompt — intermediate artifacts must land in the shared work
 // dir, never /tmp. Guaranteed present regardless of how the DB body is edited.
 func artifactSpec(workDir string) string {
-	return "\n\n**中间产物输出规约**：脚本、payload、抓到的响应体、临时数据等一切中间产物，**一律写到共享工作目录 " + workDir + "**（这是所有 agent 共用的 CWD，相对路径即写在这里，也可用该绝对路径）——**不要写 /tmp、不要用其它绝对路径**。"
+	return `
+
+**Intermediate-artifact policy:** Write every script, payload, captured response body, temporary dataset, and other intermediate artifact to the shared working directory ` + workDir + `. This is the CWD shared by all agents; relative paths resolve here, and this absolute path may also be used. **Do not write to /tmp or any other absolute path.**`
 }
 
 // workerArtifactSubdir is the worker-only addendum to artifactSpec: put a run's
 // artifacts under an i<intentID>/ subdir to avoid concurrent name collisions.
-const workerArtifactSubdir = "为避免与其他 work 撞名，把本次产物放到子目录 i<意图id>/ 下（如 i123/exploit.py）。"
+const workerArtifactSubdir = "To prevent filename collisions with other work runs, place this run’s artifacts under i<intentID>/ (for example, i123/exploit.py)."
 
 func workerSystem(proxyAddr, workDir string) string {
 	body := renderSystem("worker", workerDefaultTmpl, WorkerVars{ProxyAddr: proxyAddr})
@@ -181,7 +186,11 @@ func workerSystem(proxyAddr, workDir string) string {
 // intent is the worker's whole job, so — like the planner's situational block — it
 // belongs in system, where compaction can never drop it during a long run.
 func renderIntentTask(intent *db.Node) string {
-	return fmt.Sprintf("\n\n【你领到的意图（本次唯一任务：只做这一条、只产生事实、做完即停）】：\n%s\n意图 id: %d（写回 record_fact / report_finding 时传它）", string(intent.Payload), intent.ID)
+	return fmt.Sprintf(`
+
+[Your assigned intent (the only task for this run: perform only this intent, produce facts, and stop when complete)]:
+%s
+Intent ID: %d (pass this to record_fact / report_finding)`, string(intent.Payload), intent.ID)
 }
 
 // renderWorkerGraphOverview folds the global situational snapshot into the worker's
@@ -194,9 +203,9 @@ func renderWorkerGraphOverview(data map[string]any) string {
 	if err != nil {
 		return "" // fall back silently: the worker just won't have the global context
 	}
-	return "\n\n【全局探索态势（仅供你了解大局，不是你的任务清单）】：\n" +
-		"下面是整个任务当前的探索概况。给你的**唯一目的**是让你了解全局动态、复用已有结论、避免重复别人已做过的事。\n" +
-		"**它绝不扩大你的职责边界**：你仍然只做上面领到的那一条意图。看到这里有别的 open 意图 / 未覆盖的点 / 其它可打方向，也**绝不要自己去动手**——那些是别的 worker 的事，由规划者调度。你若发现相关新线索，最多写进 fact 让规划者知道，不要自己追。\n" +
+	return "\n\n[Global exploration (only for you, not your list of tasks):\n" +
+		"An overview of the current exploration of the entire mandate follows. For you.**Unique purpose**It is to inform you of global dynamics, to repeat what has been concluded and to avoid repeating what others have done.\n" +
+		"**It will never widen your boundaries of duty.**:You're still only doing the one intention you've received. There's something else here. open Intention / Uncovered Point / Other directions, too.**Don't do it yourself.**——Those are other things. worker The thing is, it's being moved by the planners. If you find any new information about it, write it in. fact Let the planners know not to chase themselves.\n" +
 		string(b)
 }
 
@@ -223,12 +232,12 @@ func (w *Worker) Execute(ctx context.Context, name string, taskID int64, as *db.
 	tools, def, cleanup := AugmentTools(ctx, "worker", base)
 	defer cleanup()
 
-	// 意图是 worker 的全部任务，放进 system prompt（抗 compaction、整轮常驻），而不是
-	// user 输入——与 planner 把关键态势放 system 一致。落在指令之后、deferred 块之前。
-	// 全局态势(graphOverviewData)也带上，但仅供了解大局；意图放在最后、最醒目的位置。
+	// The intention is... worker All missions, put them in. system prompt(Fight compaction, It's a whole round.
+	// user Input——and planner Put the key postures in. system Unanimously. After the instructions,deferred Block before.
+	// Global situation(graphOverviewData)Also, but only for the greater good; intended to be at the last and most visible.
 	overview := renderWorkerGraphOverview(tsx.graphOverviewData())
 	system, boundary := deferredSystem(workerSystem(w.proxyAddr, w.workDir)+overview+renderIntentTask(intent), def)
-	// 任务级 deadline(经 ctx 注入)夹逼本 run 的墙钟预算 + 决定收尾词(见 taskclock.go)。
+	// Task-level deadline (injected via ctx). The work run has its own wall-clock budget, and the run is closed when that budget is exhausted (see taskclock.go).
 	tc := taskClockFrom(ctx)
 	maxDur, clamped := clampMaxDuration(tc.DeadlineUnix, w.runTimeout)
 	settle := wrapupSettlement("worker", []string{"Bash"})
@@ -243,34 +252,34 @@ func (w *Worker) Execute(ctx context.Context, name string, taskID int64, as *db.
 		DeferredTools:   def.Deferred,
 		UnlockSet:       def.Unlock,
 		PermissionMode:  permission.ModeBypass,
-		// WebFetch 走记录代理，其 HTTP 与 curl 一样被留痕；载入代理 CA 让经 MITM
-		// 重签的 HTTPS 证书能【正常校验通过】（而非关掉校验）。proxy 空则直连。
+		// WebFetch Go to the record agent. HTTP and curl Same mark;loading agent CA Make way. MITM
+		// Resigned HTTPS Could not close temporary folder: %sproxy Empty and straight.
 		EnableWebFetch: true,
 		WebFetchProxy:  w.proxyAddr,
 		WebFetchCACert: w.proxyCACert,
-		// 联网搜索(可选)。ddgs 无需 key；brave-free 需 BraveKey；tavily 需 TavilyKey。
-		// WebSearchProxy 是独立的出口代理(http/https/socks5)，与记录流量的 MITM 代理无关；空则直连。
+		// Network Search(Optional). ddgs No need. key;brave-free Yes BraveKey;tavily Yes TavilyKey.
+		// WebSearchProxy is an independent egress proxy (http/https/socks5), unrelated to the traffic-recording MITM proxy; empty means a direct connection.
 		EnableWebSearch:    w.webSearch.Enabled,
 		WebSearchBackend:   w.webSearch.Backend,
 		BraveSearchAPIKey:  w.webSearch.BraveKey,
 		TavilySearchAPIKey: w.webSearch.TavilyKey,
 		WebSearchProxy:     w.webSearch.Proxy,
-		// Bash 子命令的 HTTP 默认走记录代理 + 信任其 CA（工具无需 -x/-k）。
+		// Bash Sub-order. HTTP Default Walk Record Agent + Trust it. CA(Tools not needed -x/-k).
 		BashEnv:    proxyEnv(w.proxyAddr, w.proxyCACert),
 		WorkingDir: w.workDir,
 		MaxTurns:   w.maxTurns, // 0 = unlimited (configurable in agent management)
-		// 墙钟预算,轮边界判,不打断半路;0 = 不限。有任务级 deadline 时夹逼到 min(自身预算,
-		// 距 deadline 剩余),让本 run 在任务到点时自然进收尾(见 taskclock.go)。
+		// Wall clock budget,Round border,Don't interrupt.;0 = Unlimited. Task level deadline The clock's coming. min(Self-budget,
+		// remaining until the deadline), the worker run ends when the task ends (see taskclock.go).
 		MaxDuration: maxDur,
-		// 命中预算(轮次 OR 时长)→ SDK 跑一轮收尾(隐藏 Bash),把已识别的写回,避免烂尾。
-		// clamped(被任务 deadline 夹逼)时用 PromptByReason:因超时=任务到点→任务超时词,
-		// 因步数=夹逼窗口内步数先耗尽→回落 per-run 词。非 clamped 维持纯 per-run。
+		// Hit budget(Round OR Length)→ SDK Round and round.(Hide Bash),Write back the identified,Avoid rotting tails.
+		// clamped(Tasked deadline Cracker.)Time PromptByReason:Because it's time out.=Mission to Point→Task timeout word,
+		// Step=We'll run out of steps in the trap window.→Fall Back per-run Words. Not clamped Keep it pure. per-run.
 		Settlement: settle,
 		// large tool output spills to cmd-output/ with a head + pointer (SDK tool.Capture);
-		// full output preserved on disk. 截断上限用 SDK 默认(30000 字符)。
+		// full output preserved on disk. Cut cap SDK Default(30000 Character).
 		ToolOutputDir: filepath.Join(w.workDir, "cmd-output"),
 		Compaction:    compactionConfig(w.window), // long tool-heavy runs stay within the window
-		Todos:         actool.NewTodoStore(),      // 会话级临时待办（TodoWrite），纯规划用，退出即丢
+		Todos:         actool.NewTodoStore(),      // Session Level Temporary To-doTodoWrite),It's for pure planning.
 	}
 	if hooks != nil { // typed-nil guard: only set when concrete (avoids harness panic)
 		opts.Hooks = hooks
@@ -289,8 +298,8 @@ func (w *Worker) Execute(ctx context.Context, name string, taskID int64, as *db.
 			emit(r)
 		}
 	}
-	// 意图已在 system 里。user 输入只放启动指令。
-	input := "开始执行 system 提示里的这条意图：只做它、只产生事实、做完即停。"
+	// The intent is delivered through the system prompt; the user only enters the start command.
+	input := "Start system The intent in the tip is to do it, to produce facts, to stop."
 
 	s := agentcore.NewSession(opts)
 	defer s.Close() // release the session's background-task manager (temp dir + processes)

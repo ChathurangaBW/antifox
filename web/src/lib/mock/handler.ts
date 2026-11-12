@@ -1,6 +1,6 @@
-// Mock 路由：把 (method, path) 映射到 lib/mock/data 的静态数据。
-// 未命中的一律返回安全默认（[] / {} / {ok:true}），保证任何页面都不崩。
-// 只在 NEXT_PUBLIC_MOCK=1 时经由 api.ts 的 http() 短路进入这里。
+// Mock Route: Put (method, path) Map to lib/mock/data .
+// All undecided returns to the security default.[] / {} / {ok:true}),Make sure no page breaks down.
+// Only active when NEXT_PUBLIC_MOCK=1: intercepts the api.ts http() calls and short-circuits them here.
 
 import * as D from "./data";
 
@@ -28,7 +28,7 @@ export async function mockHandle<T>(method: string, rawPath: string, body?: Body
 function route(m: string, path: string, seg: string[], q: URLSearchParams, b: Record<string, unknown>): unknown {
   const task = q.get("task") ?? undefined;
 
-  // ── auth：让 demo 直接进主界面 ──
+  // ── auth:Jean. demo Go directly to main interface ──
   if (path === "/auth/status") return { initialized: true };
   if (path === "/auth/login" || path === "/auth/init") return { token: "mock-demo" };
   if (path === "/auth/change-password") return { ok: true };
@@ -36,7 +36,7 @@ function route(m: string, path: string, seg: string[], q: URLSearchParams, b: Re
   // ── tasks ──
   if (path === "/tasks" && m === "GET") return { tasks: D.tasks, active: D.ACTIVE_TASK };
   if (path === "/tasks" && m === "POST")
-    return { ...D.tasks[0], id: "t-new", description: String(b.description ?? "新任务"), goal: String(b.goal ?? ""), status: "created" };
+    return { ...D.tasks[0], id: "t-new", description: String(b.description ?? "New Task"), goal: String(b.goal ?? ""), status: "created" };
   if (seg[0] === "tasks" && seg.length === 2 && m === "DELETE") return { deleted: 1 };
   if (seg[0] === "tasks" && seg[2] === "control") return { id: seg[1], paused: b.action === "pause" };
   if (seg[0] === "tasks" && seg[2] === "chat" && seg[3] === "stop") return { status: "stopped" };
@@ -87,7 +87,7 @@ function route(m: string, path: string, seg: string[], q: URLSearchParams, b: Re
   if (path === "/settings" && m === "PUT") return { ...D.settings, ...b };
   if (path === "/settings/web-search/test") return { ok: true, count: 5, backend: D.settings.web_search_backend };
   if (path === "/settings/python/detect") return { python_interpreter: "/usr/bin/python3" };
-  if (path === "/chat") return { reply: "（demo）我已把该建议注入为一条高优意图，work agent 会尽快执行。", mode: "hint" };
+  if (path === "/chat") return { reply: "(demo)I've injected this proposal into a high-quality intent.work agent It will be implemented as soon as possible.", mode: "hint" };
   if (path === "/gc") return { removed: 0 };
 
   // ── LLM ──
@@ -112,7 +112,7 @@ function route(m: string, path: string, seg: string[], q: URLSearchParams, b: Re
 
   // ── conversations ──
   if (path === "/conversations" && m === "GET") return { conversations: D.conversations };
-  if (path === "/conversations" && m === "POST") return { id: 3, agent_key: String(b.agent_key ?? "mainagent"), title: String(b.title ?? "新会话"), created_at: "2026-07-26T04:00:00Z", updated_at: "2026-07-26T04:00:00Z" };
+  if (path === "/conversations" && m === "POST") return { id: 3, agent_key: String(b.agent_key ?? "mainagent"), title: String(b.title ?? "New Session"), created_at: "2026-07-26T04:00:00Z", updated_at: "2026-07-26T04:00:00Z" };
   if (seg[0] === "conversations" && seg[2] === "messages" && seg.length === 3 && m === "GET") {
     const items = D.conversationMessages[Number(seg[1])] ?? [];
     return { items, cursor: items.length ? items[items.length - 1].seq : 0, running: false };
@@ -128,7 +128,7 @@ function route(m: string, path: string, seg: string[], q: URLSearchParams, b: Re
   // ── tools ──
   if (path === "/tools" && m === "GET") return { tools: D.tools };
   if (path === "/tools/custom" && m === "POST") return { key: String(b.key ?? "custom-tool") };
-  if (path === "/tools/custom/test") return { output: "（demo）工具执行输出示例。", is_error: false };
+  if (path === "/tools/custom/test") return { output: "(demo)Example of the tool execution output.", is_error: false };
 
   // ── mcp ──
   if (path === "/mcp" && m === "GET") return { servers: D.mcpServers };
@@ -137,7 +137,7 @@ function route(m: string, path: string, seg: string[], q: URLSearchParams, b: Re
   if (seg[0] === "mcp" && seg[2] === "refresh") return { tools: D.mcpToolsById[Number(seg[1])] ?? [] };
   if (seg[0] === "mcp" && seg.length === 2 && m === "DELETE") return { deleted: Number(seg[1]) };
 
-  // ── scopesentry（demo：未配置）──
+  // ── scopesentry(demo:Unconfigured)──
   if (path === "/sync/scopesentry/status") return { exists: false, configured: false, enabled: false, reachable: false, tools: [] };
   if (path === "/sync/scopesentry/projects") return { projects: [], tag: {} };
   if (path === "/sync/scopesentry/tasks") return { tasks: [] };
@@ -148,7 +148,7 @@ function route(m: string, path: string, seg: string[], q: URLSearchParams, b: Re
   if (path === "/skills" && m === "POST") return { name: String(b.name ?? "new-skill") };
   if (seg[0] === "skills" && seg[2] === "files" && seg.length === 3) return { files: ["SKILL.md"] };
   if (seg[0] === "skills" && seg[2] === "files" && seg.length >= 4)
-    return { content: "# SKILL.md\n\n（demo）这是该 skill 的说明文件示例。", file: seg.slice(3).join("/") };
+    return { content: "# SKILL.md\n\n(demo)It's time. skill for example.", file: seg.slice(3).join("/") };
 
   // ── visibility ──
   if (seg[0] === "visibility" && m === "GET") return { agents: [] };
@@ -165,9 +165,9 @@ function route(m: string, path: string, seg: string[], q: URLSearchParams, b: Re
     return { items: D.interceptHistory.filter((r) => r.task_id === seg[2]) };
   if (path === "/intercept/tool-config") return { enabled_tools: ["bash"] };
 
-  // ── 写操作兜底：成功但不落库 ──
+  // ── Writing operation bottom: Success without a library ──
   if (["POST", "PUT", "PATCH", "DELETE"].includes(m)) return { ok: true };
 
-  // ── 读兜底：集合类给 []，其余 {} ──
+  // ── Read the bottom: Group to [],Other {} ──
   return /(\/(tasks|profiles|conversations|rules|history|projects|tokens|agents|servers|skills|tools|findings|intents)s?$)|s$/.test(path) ? [] : {};
 }

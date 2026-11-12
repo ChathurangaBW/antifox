@@ -6,10 +6,10 @@ import (
 	"antifox/traffic"
 )
 
-// 漏洞↔流量关联接口。关联在 PG，报文元数据从流量库(SQLite)按 id 解析。
-// 手动关联走这里(source=manual)；任务引擎将来可直接调 pg.LinkFindingTraffic(..., "auto") 自动记录。
+// Hole↔Traffic-related interface. Association in PG,Message metadata from flow library(SQLite)Press id Parsing.
+// We're moving here manually.(source=manual);Mission engines can be switched directly in the future. pg.LinkFindingTraffic(..., "auto") Automatically records.
 
-// POST /api/findings/{id}/traffic — body {exchange_ids:[]} 关联流量到漏洞。
+// POST /api/findings/{id}/traffic — body {exchange_ids:[]} Link traffic to loopholes.
 func (s *Server) linkFindingTraffic(w http.ResponseWriter, r *http.Request) {
 	pg := s.pg(w)
 	if pg == nil {
@@ -17,24 +17,24 @@ func (s *Server) linkFindingTraffic(w http.ResponseWriter, r *http.Request) {
 	}
 	nodeID, ok := pathInt(r, "id")
 	if !ok {
-		writeErr(w, 400, "无效的漏洞 id")
+		writeErr(w, 400, "Invalid Hole id")
 		return
 	}
 	var req struct {
 		ExchangeIDs []string `json:"exchange_ids"`
 	}
 	if err := decode(r, &req); err != nil {
-		writeErr(w, 400, "请求格式错误")
+		writeErr(w, 400, "Request format error")
 		return
 	}
 	if err := pg.LinkFindingTraffic(nodeID, req.ExchangeIDs, "manual"); err != nil {
-		writeErr(w, 500, "关联失败: "+err.Error())
+		writeErr(w, 500, "Association failed: "+err.Error())
 		return
 	}
 	writeJSON(w, 200, map[string]any{"ok": true, "linked": len(req.ExchangeIDs)})
 }
 
-// GET /api/findings/{id}/traffic — 列出该漏洞关联的流量（带元数据；报文正文按需另取）。
+// GET /api/findings/{id}/traffic — lists the traffic associated with the finding (with metadata; the body text is fetched separately when needed).
 func (s *Server) listFindingTraffic(w http.ResponseWriter, r *http.Request) {
 	pg := s.pg(w)
 	if pg == nil {
@@ -42,12 +42,12 @@ func (s *Server) listFindingTraffic(w http.ResponseWriter, r *http.Request) {
 	}
 	nodeID, ok := pathInt(r, "id")
 	if !ok {
-		writeErr(w, 400, "无效的漏洞 id")
+		writeErr(w, 400, "Invalid Hole id")
 		return
 	}
 	ids, err := pg.ListFindingTrafficIDs(nodeID)
 	if err != nil {
-		writeErr(w, 500, "获取失败")
+		writeErr(w, 500, "Failed to fetch")
 		return
 	}
 	var metas []traffic.ExchangeMeta
@@ -57,7 +57,7 @@ func (s *Server) listFindingTraffic(w http.ResponseWriter, r *http.Request) {
 	writeJSON(w, 200, map[string]any{"exchanges": trafficDTOs(metas)})
 }
 
-// DELETE /api/findings/{id}/traffic/{eid} — 解除关联。
+// DELETE /api/findings/{id}/traffic/{eid} — Disconnect.
 func (s *Server) unlinkFindingTraffic(w http.ResponseWriter, r *http.Request) {
 	pg := s.pg(w)
 	if pg == nil {
@@ -65,11 +65,11 @@ func (s *Server) unlinkFindingTraffic(w http.ResponseWriter, r *http.Request) {
 	}
 	nodeID, ok := pathInt(r, "id")
 	if !ok {
-		writeErr(w, 400, "无效的漏洞 id")
+		writeErr(w, 400, "Invalid Hole id")
 		return
 	}
 	if err := pg.UnlinkFindingTraffic(nodeID, r.PathValue("eid")); err != nil {
-		writeErr(w, 500, "解除失败: "+err.Error())
+		writeErr(w, 500, "Undo Failed: "+err.Error())
 		return
 	}
 	writeJSON(w, 200, map[string]any{"ok": true})

@@ -8,9 +8,9 @@ import (
 	"strconv"
 	"time"
 
+	"antifox/db"
 	"antifox/engine/mcp"
 	actool "antifox/engine/tool"
-	"antifox/db"
 	"antifox/mcphttp"
 )
 
@@ -27,16 +27,16 @@ func connectMCP(ctx context.Context, m *db.MCPServer) (mcpClient, error) {
 	switch m.Transport {
 	case "stdio":
 		if m.Command == "" {
-			return nil, fmt.Errorf("stdio 传输缺少命令")
+			return nil, fmt.Errorf("stdio Transfer missing command")
 		}
 		return mcp.NewStdioClient(ctx, m.Name, m.Command, jsonStrMap(m.Env), jsonStrSlice(m.Args)...)
 	case "http":
 		if m.URL == "" {
-			return nil, fmt.Errorf("http 传输缺少 URL")
+			return nil, fmt.Errorf("http Transfer Missing URL")
 		}
 		return mcphttp.New(ctx, m.Name, m.URL, jsonStrMap(m.Headers))
 	default:
-		return nil, fmt.Errorf("未知传输方式 %q", m.Transport)
+		return nil, fmt.Errorf("Unknown Transfer %q", m.Transport)
 	}
 }
 
@@ -75,7 +75,7 @@ func (s *Server) discoverAndCacheMCP(ctx context.Context, m *db.MCPServer) error
 		return err
 	}
 	s.m.pg.SaveMCPHealth(m.ID, "ok", "")
-	log.Printf("[mcp] %s 发现 %d 个工具并已缓存", m.Name, len(tools))
+	log.Printf("[mcp] %s Found %d A tool already cached", m.Name, len(tools))
 	return nil
 }
 
@@ -137,8 +137,8 @@ func (s *Server) mcpStats(w http.ResponseWriter, r *http.Request) {
 		}
 	}
 	writeJSON(w, 200, map[string]any{
-		"servers":      stats,
-		"total_calls":  totalCalls,
+		"servers":       stats,
+		"total_calls":   totalCalls,
 		"enabled_count": enabled,
 		"total_count":   len(servers),
 	})
@@ -151,7 +151,7 @@ func (s *Server) mcpStats(w http.ResponseWriter, r *http.Request) {
 func (s *Server) discoverEmptyMCPsOnStartup() {
 	servers, err := s.m.pg.ListMCP()
 	if err != nil {
-		log.Printf("[mcp] 启动自动发现: 读取列表失败: %v", err)
+		log.Printf("[mcp] Start Autodiscovery: Reading list failed: %v", err)
 		return
 	}
 	for _, m := range servers {
@@ -160,7 +160,7 @@ func (s *Server) discoverEmptyMCPsOnStartup() {
 		}
 		ctx, cancel := context.WithTimeout(s.ctx, 90*time.Second)
 		if err := s.discoverAndCacheMCP(ctx, m); err != nil {
-			log.Printf("[mcp] 启动自动发现 %s 失败: %v", m.Name, err)
+			log.Printf("[mcp] Start Autodiscovery %s Failed: %v", m.Name, err)
 		}
 		cancel()
 	}

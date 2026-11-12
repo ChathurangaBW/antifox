@@ -62,7 +62,7 @@ func TestBodySearch(t *testing.T) {
 	insertExchange(t, tr, "1-0002", "POST", "https://h/api/users/authenticate",
 		`{"username":"taiman","loginMethod":"E"}`, `{"body":"N"}`)
 	insertExchange(t, tr, "1-0003", "GET", "https://h/other",
-		`nothing here`, `账号不存在 account not found`)
+		`nothing here`, `Account does not exist account not found`)
 
 	// Body keyword in REQUEST pins the exact enum request.
 	if got := pageIDs(t, tr, TrafficFilter{Body: "qqwwzz124"}); len(got) != 1 || got[0] != "1-0001" {
@@ -73,7 +73,7 @@ func TestBodySearch(t *testing.T) {
 		t.Fatalf("resp body search: want [1-0001], got %v", got)
 	}
 	// CJK substring search (trigram).
-	if got := pageIDs(t, tr, TrafficFilter{Body: "不存在"}); len(got) != 1 || got[0] != "1-0003" {
+	if got := pageIDs(t, tr, TrafficFilter{Body: "does not exist"}); len(got) != 1 || got[0] != "1-0003" {
 		t.Fatalf("cjk body search: want [1-0003], got %v", got)
 	}
 	// < 3 chars: body filter is skipped (not applicable) → all rows returned.
@@ -158,7 +158,7 @@ func TestResolveStepByResponse(t *testing.T) {
 		t.Fatalf("response tie-break: want 3-0001/true, got %q/%v", id, ok)
 	}
 	// Ambiguous request + a prose response that matches neither → abstain (no guess).
-	if id, ok := tr.ResolveStepExchange(cmd, "HTTP 200 ... 成功 ..."); ok {
+	if id, ok := tr.ResolveStepExchange(cmd, "HTTP 200 ... Success ..."); ok {
 		t.Fatalf("ambiguous + non-matching response should abstain, got %q", id)
 	}
 }
@@ -183,13 +183,13 @@ func TestResolveSteps(t *testing.T) {
 	ins("g2", 120, "GET", "http://h/upload.php", "", "<form action=/upload.php enctype=multipart/form-data>")
 	ins("g3", 130, "GET", "http://h/upload.php", "", "<form action=/upload.php enctype=multipart/form-data>")
 	// step2: the distinct POST upload (filename discriminator), ts 140.
-	ins("p1", 140, "POST", "http://h/upload.php", "Content-Disposition: form-data; name=\"avatar\"; filename=\"avatar.png\"", "<div>头像上传成功</div>")
+	ins("p1", 140, "POST", "http://h/upload.php", "Content-Disposition: form-data; name=\"avatar\"; filename=\"avatar.png\"", "<div>Image upload successful</div>")
 	// step3: exec GET, ts 150.
 	ins("e1", 150, "GET", "http://h/uploads/avatar.png", "", "OK")
 
 	steps := []StepRef{
 		{Request: "GET /upload.php HTTP/1.1\nHost: h\n\n", Response: "HTTP/1.1 200 OK\n\n<form action=/upload.php enctype=multipart/form-data>"},
-		{Request: "POST /upload.php HTTP/1.1\nContent-Type: multipart/form-data; boundary=----B\n\n------B\nContent-Disposition: form-data; name=\"avatar\"; filename=\"avatar.png\"\n\nAAA\n------B--\n", Response: "HTTP/1.1 200 OK\n\n<div>头像上传成功</div>"},
+		{Request: "POST /upload.php HTTP/1.1\nContent-Type: multipart/form-data; boundary=----B\n\n------B\nContent-Disposition: form-data; name=\"avatar\"; filename=\"avatar.png\"\n\nAAA\n------B--\n", Response: "HTTP/1.1 200 OK\n\n<div>Image upload successful</div>"},
 		{Request: "GET /uploads/avatar.png HTTP/1.1\nHost: h\n\n", Response: "HTTP/1.1 200 OK\n\nOK"},
 	}
 	ids := tr.ResolveSteps(100, 200, steps)
