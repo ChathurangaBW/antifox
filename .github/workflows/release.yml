@@ -144,7 +144,7 @@ jobs:
       - uses: docker/metadata-action@v5
         id: meta
         with:
-          images: ghcr.io/antifox-ai/antifox
+          images: ghcr.io/chathurangabw/antifox
           tags: |
             type=ref,event=tag
             type=raw,value=latest

@@ -2,6 +2,14 @@
 
 This project's version update summary. The format follows [Keep a Changelog](https://keepachangelog.com/), and versions follow [SemVer](https://semver.org/).
 
+## v2.0.4
+
+- **Severity normalization restored**: `Serious`, `High risk`, `Low risk.`, and `Information` map to their correct canonical levels again. The English conversion left the alias keys capitalized while the input was lower-cased, so those aliases never matched and findings were downgraded.
+- **Legacy title cleanup restored**: Chinese severity prefixes, full-width parentheses, and `U+3000` in target names are normalized again, so data created before the conversion still produces clean report titles.
+- **Log levels fixed**: `failed`, `drop`, `reject`, `refused`, `retry`, and `disabled` raise the intended level; the lower-cased message was previously compared against capitalized keywords.
+- **Ellipsis restored**: truncated output, the API-key hint, and traffic snippet markers use `U+2026` again instead of three ASCII dots.
+- **Tests**: regression coverage added for severity aliases, title prefixes, name normalization, and log levels; the `db` test package compiles again after a pre-existing `CreateTask` signature mismatch.
+
 ## v2.0.3
 
 - **Custom LLM session headers**: Each LLM configuration can set an HTTP header whose value is automatically the current session ID, supporting gateways such as OpenCode that use sessions for prompt caching or sticky routing.
