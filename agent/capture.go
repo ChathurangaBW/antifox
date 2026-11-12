@@ -172,7 +172,7 @@ func firstLine(s string, max int) string {
 		s = s[:i]
 	}
 	if len(s) > max {
-		s = s[:max] + "..."
+		s = s[:max] + "…"
 	}
 	return s
 }

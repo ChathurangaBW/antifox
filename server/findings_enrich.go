@@ -217,7 +217,7 @@ func clipUTF8(s string, n int) string {
 	if len(s) <= n {
 		return s
 	}
-	return strings.ToValidUTF8(s[:n], "") + "..."
+	return strings.ToValidUTF8(s[:n], "") + "…"
 }
 
 // findingSetupTraffic pulls the target's REAL account-registration / login / OTP /

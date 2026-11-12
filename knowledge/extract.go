@@ -78,7 +78,7 @@ func pythonExtract(path, script, requireMod string, raw []byte) (string, error) 
 	if err != nil {
 		detail := strings.TrimSpace(errb.String())
 		if len(detail) > 400 {
-			detail = "..." + detail[len(detail)-400:]
+			detail = "…" + detail[len(detail)-400:]
 		}
 		return "", fmt.Errorf("parsing failed (python=%s; if dependencies are missing, run: pip install python-docx pdfplumber): %v: %s",
 			filepath.Base(py), err, detail)

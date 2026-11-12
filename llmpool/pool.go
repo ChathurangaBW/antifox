@@ -263,7 +263,7 @@ func isHardFailure(err error) bool {
 func trimErr(err error) string {
 	s := strings.TrimSpace(strings.ReplaceAll(err.Error(), "\n", " "))
 	if len(s) > 300 {
-		s = s[:300] + "..."
+		s = s[:300] + "…"
 	}
 	return s
 }

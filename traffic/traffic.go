@@ -467,7 +467,7 @@ func (t *Traffic) BodyMatchSnippets(ids []string, keyword string) map[string]str
 	args = append(args, fts5Quote(kw))
 	// snippet(tbl, -1, open, close, ellipsis, maxTokens): -1 picks the best-matching
 	// column (req or resp), so the excerpt comes from wherever the hit is.
-	q := `SELECT id, snippet(bodies, -1, char(1), char(2), '...', 12) FROM bodies WHERE id IN (` +
+	q := `SELECT id, snippet(bodies, -1, char(1), char(2), '…', 12) FROM bodies WHERE id IN (` +
 		strings.Join(ph, ",") + `) AND bodies MATCH ?`
 	rows, err := t.db.Query(q, args...)
 	if err != nil {

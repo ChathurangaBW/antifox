@@ -457,7 +457,7 @@ func truncateRune(s string, n int) string {
 	if len(r) <= n {
 		return string(r)
 	}
-	return string(r[:n]) + "..."
+	return string(r[:n]) + "…"
 }
 func normalizeName(s string) string {
 	s = strings.TrimSpace(s)

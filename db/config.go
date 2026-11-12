@@ -120,7 +120,7 @@ func (d *DB) ProfileByID(id int64) (*LLMProfile, error) {
 func (d *DB) SaveProfile(p *LLMProfile) (int64, error) {
 	hint := p.APIKeyHint
 	if len(p.APIKey) >= 4 {
-		hint = "..." + p.APIKey[len(p.APIKey)-4:]
+		hint = "…" + p.APIKey[len(p.APIKey)-4:]
 	}
 	if p.ID == 0 {
 		var id int64

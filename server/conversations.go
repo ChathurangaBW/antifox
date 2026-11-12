@@ -444,7 +444,7 @@ func firstLine(s string, max int) string {
 		s = s[:i]
 	}
 	if len([]rune(s)) > max {
-		s = string([]rune(s)[:max]) + "..."
+		s = string([]rune(s)[:max]) + "…"
 	}
 	return s
 }
