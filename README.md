@@ -23,7 +23,7 @@ From recon to report delivery — multi-agent, autonomous · fully observable ·
 
 AntiFox is an AI-driven autonomous penetration testing platform. Given an authorized target, a planner / worker / main-agent multi-agent system runs the full engagement over a **dual-graph** core (a global asset graph + a per-task exploration graph) — **recon → attack-surface discovery → exploitation → finding capture → report delivery** — fully observable, interactive, and deliverable.
 
-Unlike most automated pentest tools that are "great at discovery, but stop at discovery," AntiFox puts its weight on **delivery** — turning what the AI finds into a report that an engineer can understand, reproduce, back with evidence, and hand straight to the client.
+Unlike most automated pentest tools that are "great at discovery, but stop at discovery," AntiFox puts its weight on **delivery** — turning what the AI finds into a report that an engineer can understand, reproduce, support with evidence, and hand straight to the client.
 
 ## ✨ What's New in v2.0: Evidence-Driven Delivery
 
