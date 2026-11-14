@@ -480,7 +480,11 @@ function AnswerBlock({ step, getDetail }: { step: Activity; getDetail: (seq: num
   else if (cancelled) tone = "border border-dashed text-muted-foreground text-sm italic";
   return (
     <div className="mb-2 mt-1 flex">
-      <div className={`min-w-0 flex-1 break-words rounded-lg bg-muted px-3 py-2 ${tone}`}>
+      <div
+        className={`min-w-0 flex-1 break-words rounded-lg bg-muted px-3 py-2 ${tone}`}
+        data-outcome={step.outcome || undefined}
+        data-cancel-cause={step.cancel_cause || undefined}
+      >
         {step.is_error || cancelled ? (
           <span className="whitespace-pre-wrap">{full ?? step.summary}</span>
         ) : (

@@ -75,13 +75,14 @@ func TestCancellationOutcomeNamesCause(t *testing.T) {
 		name  string
 		cause error
 		want  string
+		code  string
 	}{
-		{"new message", ErrReplacedByMessage, "replaced by a newer message"},
-		{"operator stop", ErrStoppedByOperator, "stopped by the operator"},
-		{"pause", ErrTaskPaused, "task paused"},
-		{"kill", ErrWorkKilled, "work stopped by the planner"},
-		{"shutdown", ErrShutdown, "server shutting down"},
-		{"unrecorded", nil, "cause unknown"},
+		{"new message", ErrReplacedByMessage, "replaced by a newer message", "replaced_by_message"},
+		{"operator stop", ErrStoppedByOperator, "stopped by the operator", "operator_stop"},
+		{"pause", ErrTaskPaused, "task paused", "task_paused"},
+		{"kill", ErrWorkKilled, "work stopped by the planner", "work_killed"},
+		{"shutdown", ErrShutdown, "server shutting down", "shutdown"},
+		{"unrecorded", nil, "cause unknown", "unknown"},
 	}
 	for _, c := range cases {
 		t.Run(c.name, func(t *testing.T) {
@@ -95,6 +96,9 @@ func TestCancellationOutcomeNamesCause(t *testing.T) {
 			if r.Outcome != OutcomeCancelled || r.IsError {
 				t.Fatalf("outcome=%q is_error=%v, want cancelled and not an error", r.Outcome, r.IsError)
 			}
+			if r.CancelCause != c.code {
+				t.Fatalf("cancel_cause=%q, want %q", r.CancelCause, c.code)
+			}
 			if !strings.Contains(r.Summary, c.want) {
 				t.Fatalf("summary %q does not name the cause %q", r.Summary, c.want)
 			}
@@ -105,14 +109,14 @@ func TestCancellationOutcomeNamesCause(t *testing.T) {
 		ctx, cancel := context.WithTimeout(context.Background(), 50*time.Millisecond)
 		defer cancel()
 		r := runAndCollect(t, ctx, blockingProvider{})
-		if r.Outcome != OutcomeCancelled || !strings.Contains(r.Summary, "run time limit reached") {
+		if r.Outcome != OutcomeCancelled || !strings.Contains(r.Summary, "run time limit reached") || r.CancelCause != "run_deadline" {
 			t.Fatalf("deadline: outcome=%q summary=%q", r.Outcome, r.Summary)
 		}
 	})
 
 	t.Run("genuine failure stays a failure", func(t *testing.T) {
 		r := runAndCollect(t, context.Background(), blockingProvider{fail: errors.New("upstream 500")})
-		if r.Outcome != OutcomeFailed || !r.IsError {
+		if r.Outcome != OutcomeFailed || !r.IsError || r.CancelCause != "" {
 			t.Fatalf("failure: outcome=%q is_error=%v summary=%q", r.Outcome, r.IsError, r.Summary)
 		}
 	})

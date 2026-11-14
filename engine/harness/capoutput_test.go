@@ -165,3 +165,39 @@ func TestCapOutputSpillsLargeBlock(t *testing.T) {
 		t.Fatalf("large output not spilled: %q", res.Content[0].Text[:80])
 	}
 }
+
+// TestCapOutputKeepsLargeImages: the non-text size limit is not the text budget.
+// A screenshot-sized block (1 MB serialized) passes unchanged with the default
+// 30000-character text budget.
+func TestCapOutputKeepsLargeImages(t *testing.T) {
+	shot := llm.ContentBlock{Type: "image", Thinking: strings.Repeat("A", 1<<20)}
+	res := capOutput(&tool.ToolContext{}, tool.Result{Content: []llm.ContentBlock{shot, shot}})
+	if len(res.Content) != 2 || len(res.Content[0].Thinking) != 1<<20 || len(res.Content[1].Thinking) != 1<<20 {
+		t.Fatalf("large non-text blocks were not kept: %d blocks", len(res.Content))
+	}
+}
+
+// TestCapOutputNonTextSizeBudget: non-text blocks are bounded by size as well as
+// count, so a few huge blocks cannot make a result unbounded.
+func TestCapOutputNonTextSizeBudget(t *testing.T) {
+	old := maxNonTextBytes
+	maxNonTextBytes = 2000
+	t.Cleanup(func() { maxNonTextBytes = old })
+	tc := &tool.ToolContext{MaxOutputChars: 2000}
+	huge := llm.ContentBlock{Type: "thinking", Thinking: strings.Repeat("x", 5000)}
+	small := llm.ContentBlock{Type: "image"}
+	res := capOutput(tc, tool.Result{Content: []llm.ContentBlock{small, huge, small}})
+	total := 0
+	for _, b := range res.Content {
+		if b.Type != llm.BlockText {
+			total += blockSize(b)
+		}
+	}
+	if total > 2000 {
+		t.Fatalf("non-text blocks total %d bytes, over the 2000 budget", total)
+	}
+	last := res.Content[len(res.Content)-1].Text
+	if !strings.Contains(last, "1 further non-text block(s) omitted") || !strings.Contains(last, "not saved") {
+		t.Fatalf("size-based omission not reported clearly: %q", last)
+	}
+}

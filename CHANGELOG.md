@@ -2,25 +2,62 @@
 
 This project's version update summary. The format follows [Keep a Changelog](https://keepachangelog.com/), and versions follow [SemVer](https://semver.org/).
 
+## v2.1.4 "Corsac"
+
+Closes the follow-ups from the v2.1.3 review: task references are now enforced by the database itself, non-text tool output has a size limit, cancellations record a stable cause code, and the runbook and audit actually ship. An upgrade and rollback rehearsal on a copy of production data found one more gap, fixed here: after rolling back, the older version's task deletion left dangling references.
+
+### Fixed
+
+- **Task references are enforced in the database**: v2.1.3 checked task ids at the tool and API before writing, which could not stop a task being deleted while an asset write referencing it was in flight, and did nothing when a task was deleted. The database now refuses any new asset reference to a task that does not exist (trigger `trg_assets_task_ids`, which also locks the referenced task until the write commits), and deleting a task removes its id from every asset (trigger `trg_tasks_remove_asset_refs`). Both are in the database, so they hold for direct SQL and for an older application version run after a rollback. Rows that already hold an old dangling id can still be updated; only ids being added are checked.
+- **Non-text tool output has a size limit**: v2.1.3 limited non-text blocks (such as images) only by count (8 per result). They now also have a total size limit of 10 MiB, measured as the serialized blocks; blocks past either limit are omitted and the notice states both limits. The size limit is deliberately far above the text budget so that full-size screenshots pass unchanged (a test keeps two 1 MB blocks under the default settings); it only stops pathological results. Today's tools return text only (MCP results are converted to text), so this protects future image-returning tools rather than changing current output.
+
+### Added
+
+- **Cancellation cause codes**: a cancelled run's result row stores `cancel_cause` alongside the readable reason: `replaced_by_message`, `operator_stop`, `task_paused`, `work_killed`, `task_completed`, `task_deadline`, `shutdown`, `run_deadline` or `unknown`. The activity APIs return it, so interruptions can be filtered and counted without parsing text. The transcript marks each result with `data-outcome` and `data-cancel-cause`.
+- **Prepared repair for the task-75 references**: [the repair](scripts/repairs/2026-11-14-task-75/README.md) records why six production assets reference a task that never existed (one `insert_assets` call from task 2), with guarded apply and rollback scripts. The upgrade does not apply it; applying it is a separate operator step.
+
+### Release process and documentation
+
+- [The release runbook](docs/release-runbook.md) and [the read-only task-reference audit](scripts/audit-task-references.sql) are now committed. Neither was in the v2.1.3 tag. The runbook records the v2.1.4 rollback rehearsal.
+- **Documentation link check**: the test workflow fails if any repository-relative link in `CHANGELOG.md`, `README*.md` or `docs/` does not resolve in a clean checkout (`scripts/check-doc-links.py`), so release and publish are gated on it too.
+
+### Verified
+
+- `go vet`, and the full suite against PostgreSQL 16 + pgvector: 202 passing tests (including subtests) on two consecutive runs and under the race detector, with no failures and no skipped tests. Frontend type check and static export passed.
+- **Upgrade and rollback rehearsal** on a copy of the production database (restored from backup to a disposable database on an internal Docker network with no internet access, tasks paused): the new build upgraded it; the v2.1.2 image then ran against the upgraded copy (every read endpoint checked returned 200, it wrote an asset, deleted a task and stopped cleanly) and the database still refused a missing task id and cleaned the deleted task's references; the new build re-upgraded it. The operator's `list_assets` definition was unchanged throughout. Agent runs were not part of the rehearsal.
+- **Browser check** in Chromium against the embedded UI and the same data copy: a cancelled result renders muted (grey, dashed border, italic) with its cause code, a failure renders red, a completed answer renders normally, with no console errors.
+- The task-75 repair was rehearsed on copies at both the v2.1.2 and the v2.1.4 schema: apply, refused repeat, exact rollback, refused repeat rollback, re-apply.
+
+### Upgrade notes
+
+- Schema changes are additive: a `cancel_cause` column on both activity tables and two triggers. Creating the triggers does not touch existing rows.
+- Production still holds six references to the nonexistent task 75 until the prepared repair is applied.
+
 ## v2.1.3 "Arctic"
 
-Fixes every gap found in the v2.1.2 release review (D1–D6, R1–R2, E1–E3). Each fix has tests written against the intended behavior first; the full suite runs on PostgreSQL 16 + pgvector with no skipped tests and passes under the race detector.
+Addresses the reviewed migration, ingestion-validation, cancellation-reporting, output-budget, startup and release-gate defects. Independent checks of the tagged source on PostgreSQL 16 + pgvector passed 196 tests and 196 race-detector tests with no failures or skips. These results do not establish deployment, historical-data repair, or upgrade/rollback compatibility on production data.
 
 ### Fixed
 
 - **Tool upgrades no longer overwrite operator edits (D1)**: the `list_assets` upgrade decided "stock or customized" by the first words of the description and then replaced the whole definition, so an edited description that kept the stock opening, or an edit to a parameter, was lost. It now compares against every definition the tool actually shipped with (recorded from each release tag and upstream) and decides per part: the description and each parameter are replaced only if they exactly match a shipped version, and operator-added parameters are kept. The write applies only if the row is unchanged since it was read.
 - **Upgrades are recorded only when they happened (D2)**: a current description with an old schema was marked done without an upgrade, and a missing tool row was marked done too. Completion is now recorded only after re-reading the row and confirming every current parameter is present; a missing row retries on the next start. Every migration now logs a failed completion write instead of discarding it. Databases re-check once under a new flag.
-- **Assets can no longer reference tasks that do not exist (D3)**: `insert_assets` outside a task and `POST /api/assets` wrote any task id into `task_ids` (an array with no foreign key). A missing or negative task id is now refused before anything is written; omitting it inserts the asset unlinked.
-- **Interrupted runs say why (D4)**: a turn replaced by your next chat message, an operator stop, a pause, the planner killing a work, a task deadline, a completed task and a server shutdown all showed the same "suspended / termination / restart" text. Each now records its cause and the result names it ("Interrupted: replaced by a newer message"). Result rows carry an `outcome` (completed, cancelled, failed, budget reached); a cancellation is no longer marked as an error, and the transcript shows it in a muted style instead of error red.
-- **Tool output is bounded as a whole (R1)**: the output cap applied per text block, so a tool returning many small blocks could exceed it. The budget now covers the whole result, non-text blocks are limited separately, and anything over the budget is saved through the same spill-to-file path and reported.
+- **Invalid task references are rejected at the reviewed ingestion entry points (D3)**: `insert_assets` outside a task and `POST /api/assets` now reject supplied negative or nonexistent task ids; omitting the id inserts the asset unlinked. This pre-write lookup does not repair historical references or prevent a later/concurrent task deletion from leaving an orphan in the `task_ids` array, which has no foreign key.
+- **Interrupted runs say why (D4)**: a turn replaced by your next chat message, an operator stop, a pause, the planner killing a work, a task deadline, a completed task and a server shutdown all showed the same "suspended / termination / restart" text. Gracefully cancelled runs now name the cause in result text ("Interrupted: replaced by a newer message"). Result rows carry an `outcome` (completed, cancelled, failed, budget reached); the cause is not a separate persisted code, and historical rows remain nullable. A cancellation is no longer marked as an error, and the transcript shows it in a muted style instead of error red. Abrupt process termination cannot guarantee a final persisted result.
+- **Text output has an aggregate budget (R1)**: the cap now covers text across the result, with additional omission-notice overhead. Excess text uses spill-to-file storage when available, otherwise head/tail truncation. Non-text blocks have a separate count limit; excess non-text blocks are reported and omitted, not saved. This is not an overall byte limit on image payloads.
 - **Startup cannot hang on the secret handoff (R2)**: the handoff wrote up to 32 KiB into a pipe before the reader existed; Linux shrinks pipes to 4 KiB under pipe-memory pressure, which could block startup. The payload limit is now 4 KiB and the write is non-blocking and single-shot: anything that does not fit falls back to the previous behavior and logs it, without the secret.
 
 ### Release process
 
 - **Publishing is gated on tests (D5)**: a new `test` workflow runs on every push and pull request, and both `release` and `publish package` require it. It runs `go vet`, the full suite against PostgreSQL 16 + pgvector (any skipped test fails the gate), and the race detector, and keeps the JSON results and the tested commit as an artifact.
 - **Image platform stated correctly (D6)**: the published container image is linux/amd64 only. Release binaries also cover linux/arm64, macOS and Windows. Unused arm64 steps were removed from the image job.
-- **Release runbook (E1)**: `docs/release-runbook.md` covers the local gate, rehearsing the upgrade on a copy of production, collation and pgvector checks, verifying the published image's revision, deploying and rolling back.
+- **Release runbook (E1), documentation correction after the tag**: the original `v2.1.3` source archive did not include the locally ignored runbook. The working-tree correction makes [the runbook](docs/release-runbook.md) eligible for tracking and fixes validation, backup and rollback guidance; it is not retroactively part of the published tag. The [read-only task-reference audit](scripts/audit-task-references.sql) supports separate historical-data review.
 - `docker-compose.yml` now points at this fork's image, `ghcr.io/chathurangabw/antifox`.
+
+### Outstanding operational evidence
+
+- Confirm the actual running image/revision, health version and migration state independently of release publication.
+- Rehearse restoration, upgrade and rollback on an isolated production-data copy, and check cancellation rendering in a browser.
+- Review provenance before repairing historical orphan task associations. New input validation is not a historical-data repair.
 
 ### Changed
 

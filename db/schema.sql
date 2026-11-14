@@ -795,3 +795,62 @@ INSERT INTO knowledge_config (id) VALUES (1) ON CONFLICT (id) DO NOTHING;
 -- written before this column existed.
 ALTER TABLE activity ADD COLUMN IF NOT EXISTS outcome TEXT;
 ALTER TABLE conversation_activities ADD COLUMN IF NOT EXISTS outcome TEXT;
+
+-- Asset task references must name existing tasks. assets.task_ids is an array,
+-- so it cannot carry a foreign key; this trigger is the database-level check.
+-- Only ids being ADDED are checked, so rows that already hold an old dangling
+-- id can still be updated until that id is repaired. The referenced task rows
+-- are locked FOR KEY SHARE until the writing transaction ends, so a concurrent
+-- task deletion either waits for it (and then removes the new reference, see
+-- trg_tasks_remove_asset_refs) or has already removed the task (and this write
+-- is refused).
+CREATE OR REPLACE FUNCTION assets_check_task_ids() RETURNS trigger AS $$
+DECLARE
+  added   bigint[];
+  missing bigint;
+BEGIN
+  SELECT array_agg(x) INTO added
+    FROM unnest(NEW.task_ids) AS x
+   WHERE TG_OP = 'INSERT' OR x IS NULL OR NOT (x = ANY (COALESCE(OLD.task_ids, '{}')));
+  IF added IS NULL THEN
+    RETURN NEW;
+  END IF;
+  PERFORM 1 FROM tasks WHERE id = ANY (added) FOR KEY SHARE;
+  SELECT x INTO missing
+    FROM unnest(added) AS x
+   WHERE x IS NULL OR NOT EXISTS (SELECT 1 FROM tasks t WHERE t.id = x)
+   LIMIT 1;
+  IF FOUND THEN
+    RAISE EXCEPTION 'asset references task % which does not exist', COALESCE(missing::text, 'NULL')
+      USING ERRCODE = 'foreign_key_violation';
+  END IF;
+  RETURN NEW;
+END
+$$ LANGUAGE plpgsql;
+DROP TRIGGER IF EXISTS trg_assets_task_ids ON assets;
+CREATE TRIGGER trg_assets_task_ids BEFORE INSERT OR UPDATE OF task_ids ON assets
+  FOR EACH ROW EXECUTE FUNCTION assets_check_task_ids();
+
+-- Deleting a task removes its id from every asset that referenced it, in the
+-- database, so it holds for every path that deletes a task: DeleteTask, direct
+-- SQL, and an older application version run after a rollback (whose DeleteTask
+-- does not clean task_ids). Each statement in the function takes a fresh
+-- snapshot, so a reference added by an asset write that the DELETE waited for
+-- (see assets_check_task_ids) is visible here and removed. Removing an id adds
+-- none, so the asset check above passes without a lookup.
+CREATE OR REPLACE FUNCTION tasks_remove_asset_refs() RETURNS trigger AS $$
+BEGIN
+  UPDATE assets SET task_ids = array_remove(task_ids, OLD.id)
+   WHERE OLD.id = ANY (task_ids);
+  RETURN OLD;
+END
+$$ LANGUAGE plpgsql;
+DROP TRIGGER IF EXISTS trg_tasks_remove_asset_refs ON tasks;
+CREATE TRIGGER trg_tasks_remove_asset_refs AFTER DELETE ON tasks
+  FOR EACH ROW EXECUTE FUNCTION tasks_remove_asset_refs();
+
+-- Stable code for why a cancelled run stopped (replaced_by_message,
+-- operator_stop, task_paused, work_killed, task_completed, task_deadline,
+-- shutdown, run_deadline, unknown). Set only on cancelled 'result' rows.
+ALTER TABLE activity ADD COLUMN IF NOT EXISTS cancel_cause TEXT;
+ALTER TABLE conversation_activities ADD COLUMN IF NOT EXISTS cancel_cause TEXT;

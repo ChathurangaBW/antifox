@@ -1,6 +1,8 @@
 package db
 
 import (
+	"fmt"
+	"sync"
 	"testing"
 )
 
@@ -27,7 +29,7 @@ func TestUpsertRootDomain(t *testing.T) {
 	d, av2, _ := testSetup(t)
 	defer d.Close()
 
-	id1, err := av2.UpsertRootDomain(UpsertRootDomainReq{Domain: "roottest.io", ICP: "A12345", TaskID: 1})
+	id1, err := av2.UpsertRootDomain(UpsertRootDomainReq{Domain: "roottest.io", ICP: "A12345", TaskID: testTask(t, d, 1)})
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -37,7 +39,7 @@ func TestUpsertRootDomain(t *testing.T) {
 	}
 
 	// upsert again — same id (dedup), ICP preserved
-	id2, err := av2.UpsertRootDomain(UpsertRootDomainReq{Domain: "roottest.io", TaskID: 2})
+	id2, err := av2.UpsertRootDomain(UpsertRootDomainReq{Domain: "roottest.io", TaskID: testTask(t, d, 2)})
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -78,7 +80,7 @@ func TestUpsertIP(t *testing.T) {
 	id1, err := av2.UpsertIP(UpsertIPReq{
 		IP:        "192.168.10.5",
 		OpenPorts: []PortService{{Port: 22, Service: "ssh"}, {Port: 80, Service: "http"}},
-		TaskID:    1,
+		TaskID:    testTask(t, d, 1),
 	})
 	if err != nil {
 		t.Fatal(err)
@@ -96,7 +98,7 @@ func TestUpsertIP(t *testing.T) {
 	id2, err := av2.UpsertIP(UpsertIPReq{
 		IP:        "192.168.10.5",
 		OpenPorts: []PortService{{Port: 443, Service: "https"}},
-		TaskID:    2,
+		TaskID:    testTask(t, d, 2),
 	})
 	if err != nil {
 		t.Fatal(err)
@@ -182,7 +184,7 @@ func TestUpsertSubdomain(t *testing.T) {
 		RecordType:  "A",
 		RecordValue: []string{"1.2.3.4"},
 		ICP:         "B99",
-		TaskID:      1,
+		TaskID:      testTask(t, d, 1),
 	})
 	if err != nil {
 		t.Fatal(err)
@@ -288,12 +290,12 @@ func TestUpsertHTTPService(t *testing.T) {
 	sc := 200
 	cl := int64(1024)
 	id1, err := av2.UpsertHTTPService(UpsertHTTPServiceReq{
-		URL:          "https://www.httptest.example.com/",
-		Technologies: []string{"nginx", "vue"},
-		StatusCode:   &sc,
+		URL:           "https://www.httptest.example.com/",
+		Technologies:  []string{"nginx", "vue"},
+		StatusCode:    &sc,
 		ContentLength: &cl,
-		PageTitle:    "Test Site",
-		TaskID:       1,
+		PageTitle:     "Test Site",
+		TaskID:        testTask(t, d, 1),
 	})
 	if err != nil {
 		t.Fatal(err)
@@ -315,7 +317,7 @@ func TestUpsertHTTPService(t *testing.T) {
 	id2, err := av2.UpsertHTTPService(UpsertHTTPServiceReq{
 		URL:          "https://www.httptest.example.com/",
 		Technologies: []string{"react", "webpack"},
-		TaskID:       2,
+		TaskID:       testTask(t, d, 2),
 	})
 	if err != nil {
 		t.Fatal(err)
@@ -338,7 +340,7 @@ func TestUpsertHTTPServiceAuthAppend(t *testing.T) {
 	id1, err := av2.UpsertHTTPService(UpsertHTTPServiceReq{
 		URL:    "http://authtest.example.org/",
 		Auth:   auth1,
-		TaskID: 1,
+		TaskID: testTask(t, d, 1),
 	})
 	if err != nil {
 		t.Fatal(err)
@@ -349,7 +351,7 @@ func TestUpsertHTTPServiceAuthAppend(t *testing.T) {
 	id2, err := av2.UpsertHTTPService(UpsertHTTPServiceReq{
 		URL:    "http://authtest.example.org/",
 		Auth:   auth2,
-		TaskID: 2,
+		TaskID: testTask(t, d, 2),
 	})
 	if err != nil {
 		t.Fatal(err)
@@ -378,7 +380,7 @@ func TestUpsertOtherService(t *testing.T) {
 		IP:          "172.16.0.1",
 		Port:        22,
 		ServiceName: "ssh",
-		TaskID:      1,
+		TaskID:      testTask(t, d, 1),
 	})
 	if err != nil {
 		t.Fatal(err)
@@ -457,7 +459,7 @@ func TestUpsertEndpoint(t *testing.T) {
 		URL:    "https://api.eptest.com/users?id=1",
 		Method: "GET",
 		Params: params1,
-		TaskID: 1,
+		TaskID: testTask(t, d, 1),
 	})
 	if err != nil {
 		t.Fatal(err)
@@ -473,7 +475,7 @@ func TestUpsertEndpoint(t *testing.T) {
 		URL:    "https://api.eptest.com/users?id=1",
 		Method: "GET",
 		Params: []map[string]any{{"location": "query", "name": "filter", "value": "active"}},
-		TaskID: 2,
+		TaskID: testTask(t, d, 2),
 	})
 	if err != nil {
 		t.Fatal(err)
@@ -538,7 +540,7 @@ func TestQueryByTask(t *testing.T) {
 	d, av2, _ := testSetup(t)
 	defer d.Close()
 
-	const taskID = int64(99999)
+	taskID := testTask(t, d, 1)
 	id, err := av2.UpsertRootDomain(UpsertRootDomainReq{Domain: "taskquery.net", TaskID: taskID})
 	if err != nil {
 		t.Fatal(err)
@@ -703,3 +705,28 @@ func TestNormalizeURL(t *testing.T) {
 		}
 	}
 }
+
+// testTask returns a real task id for test number n of t, creating the task on
+// first use and deleting it when the test ends. Assets may only reference
+// existing tasks (assets_check_task_ids), so tests cannot use made-up ids.
+func testTask(t *testing.T, d *DB, n int) int64 {
+	t.Helper()
+	key := fmt.Sprintf("%s/%d", t.Name(), n)
+	testTaskMu.Lock()
+	defer testTaskMu.Unlock()
+	if id, ok := testTaskIDs[key]; ok {
+		return id
+	}
+	task, err := d.CreateTask(fmt.Sprintf("asset-test-%d", n), "d", "g", "", nil, 0)
+	if err != nil {
+		t.Fatal(err)
+	}
+	testTaskIDs[key] = task.ID
+	t.Cleanup(func() { _ = d.DeleteTask(task.ID) })
+	return task.ID
+}
+
+var (
+	testTaskMu  sync.Mutex
+	testTaskIDs = map[string]int64{}
+)

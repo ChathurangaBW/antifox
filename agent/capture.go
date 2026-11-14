@@ -71,7 +71,7 @@ func captureRunSession(ctx context.Context, s *agentcore.Session, input string, 
 			flush()
 			if ctx.Err() != nil { // cancelled: say why, and do not record it as a failure
 				sum := cancelSummary(ctx)
-				rec(db.Activity{Kind: "result", Outcome: OutcomeCancelled, Summary: sum, Detail: sum})
+				rec(db.Activity{Kind: "result", Outcome: OutcomeCancelled, CancelCause: cancelCode(ctx), Summary: sum, Detail: sum})
 				return finalText, reason, ctx.Err()
 			}
 			rec(db.Activity{Kind: "result", Outcome: OutcomeFailed, IsError: true, Summary: "Error executing: " + err.Error(), Detail: err.Error()})
@@ -122,14 +122,14 @@ func captureRunSession(ctx context.Context, s *agentcore.Session, input string, 
 				}
 				flush() // flush any trailing thinking / non-final text
 				sum := ev.Terminal.Text
-				outcome := OutcomeCompleted
+				outcome, cause := OutcomeCompleted, ""
 				isErr := ev.Terminal.Err != nil
 				switch ev.Terminal.Reason {
 				case harness.ReasonAbortedTools, harness.ReasonAbortedStreaming:
 					// Cancelled, not failed: the intent is re-queued (open) or stopped.
 					// The text names the recorded cause (new message, operator stop,
 					// pause, kill, deadline, shutdown) instead of guessing.
-					outcome, isErr = OutcomeCancelled, false
+					outcome, isErr, cause = OutcomeCancelled, false, cancelCode(ctx)
 					if sum == "" {
 						sum = cancelSummary(ctx)
 					}
@@ -149,7 +149,7 @@ func captureRunSession(ctx context.Context, s *agentcore.Session, input string, 
 					}
 				}
 				u := ev.Terminal.Usage // cumulative token usage for this session
-				rec(db.Activity{Kind: "result", Outcome: outcome, IsError: isErr,
+				rec(db.Activity{Kind: "result", Outcome: outcome, CancelCause: cause, IsError: isErr,
 					Summary: firstLine(sum, 400), Detail: sum,
 					InputTokens: &u.InputTokens, OutputTokens: &u.OutputTokens,
 					CacheReadTokens: &u.CacheReadTokens, CacheWriteTokens: &u.CacheWriteTokens})

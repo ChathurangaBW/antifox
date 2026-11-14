@@ -201,7 +201,8 @@ func (d *DB) UpdateTask(id int64, name, description, goal, egress string, timeou
 // DeleteTask hard-deletes a task and its exploration subgraph (nodes/edges/
 // activity via ON DELETE CASCADE). The task row is removed first so the
 // ON DELETE RESTRICT on tasks.exploration_id does not block the exploration delete.
-// Global assets are NOT touched.
+// Global assets are kept; the database removes this task's id from their
+// task_ids (trigger trg_tasks_remove_asset_refs in schema.sql).
 func (d *DB) DeleteTask(id int64) error {
 	tx, err := d.Begin()
 	if err != nil {

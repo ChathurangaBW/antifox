@@ -284,6 +284,9 @@ type ActivityDTO struct {
 	// Outcome of a run on its kind=result row: completed, cancelled, failed or
 	// budget_reached; empty on rows written before v2.1.3.
 	Outcome string `json:"outcome,omitempty"`
+	// CancelCause is the stable code for why a cancelled run stopped (for
+	// example replaced_by_message, operator_stop, task_paused); empty otherwise.
+	CancelCause string `json:"cancel_cause,omitempty"`
 }
 
 func activityDTO(a db.Activity) ActivityDTO {
@@ -307,6 +310,7 @@ func activityDTO(a db.Activity) ActivityDTO {
 		CacheReadTokens:  a.CacheReadTokens,
 		CacheWriteTokens: a.CacheWriteTokens,
 		Outcome:          a.Outcome,
+		CancelCause:      a.CancelCause,
 	}
 }
 

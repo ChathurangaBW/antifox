@@ -58,3 +58,34 @@ func cancelReason(ctx context.Context) string {
 func cancelSummary(ctx context.Context) string {
 	return "(Interrupted: " + cancelReason(ctx) + "; not completed)"
 }
+
+// Stable cancellation cause codes, stored with a cancelled run's result
+// (Activity.CancelCause) so the cause can be filtered and counted without
+// parsing the human-readable summary.
+var causeCodes = map[error]string{
+	ErrReplacedByMessage: "replaced_by_message",
+	ErrStoppedByOperator: "operator_stop",
+	ErrTaskPaused:        "task_paused",
+	ErrWorkKilled:        "work_killed",
+	ErrTaskCompleted:     "task_completed",
+	ErrTaskDeadline:      "task_deadline",
+	ErrShutdown:          "shutdown",
+}
+
+// cancelCode returns the stable code for why ctx was cancelled: one of
+// causeCodes, "run_deadline" for a deadline, or "unknown".
+func cancelCode(ctx context.Context) string {
+	if ctx == nil || ctx.Err() == nil {
+		return "unknown"
+	}
+	cause := context.Cause(ctx)
+	for _, c := range knownCauses {
+		if errors.Is(cause, c) {
+			return causeCodes[c]
+		}
+	}
+	if errors.Is(cause, context.DeadlineExceeded) {
+		return "run_deadline"
+	}
+	return "unknown"
+}

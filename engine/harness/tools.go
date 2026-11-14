@@ -114,20 +114,27 @@ func safeCall(ctx context.Context, t tool.CoreTool, input json.RawMessage, tc *t
 	return t.Call(ctx, input, tc)
 }
 
-// capOutput runs every text block of a tool result through the idempotent output
-// cap (tool.CaptureOnce). Non-text blocks, such as images, pass through untouched.
+// capOutput bounds a tool result. Text shares one budget for the whole result
+// (tool.MaxOutput), each block going through the idempotent output cap
+// (tool.CaptureOnce). Non-text blocks, such as images, pass through unchanged
+// up to their own count and size limits.
 func capOutput(tc *tool.ToolContext, res tool.Result) tool.Result {
 	budget := tool.MaxOutput(tc)
 	used := 0
-	nonText := 0
+	nonText, nonTextBytes := 0, 0
 	var dropped []string // text blocks past the budget, in order
 	droppedNonText := 0
 	out := make([]llm.ContentBlock, 0, len(res.Content))
 	for _, b := range res.Content {
 		if b.Type != llm.BlockText {
-			if nonText < maxNonTextBlocks {
+			// Non-text blocks have their own budget: a count and a size, the
+			// size measured as the block's serialized form (what reaches the
+			// model). A block over either limit is omitted and reported.
+			size := blockSize(b)
+			if nonText < maxNonTextBlocks && nonTextBytes+size <= maxNonTextBytes {
 				out = append(out, b)
 				nonText++
+				nonTextBytes += size
 			} else {
 				droppedNonText++
 			}
@@ -157,9 +164,23 @@ func capOutput(tc *tool.ToolContext, res tool.Result) tool.Result {
 	return res
 }
 
+// blockSize is the serialized size of a block, the measure of its non-text budget.
+func blockSize(b llm.ContentBlock) int {
+	j, err := json.Marshal(b)
+	if err != nil {
+		return 1 << 30 // unmeasurable: never fits
+	}
+	return len(j)
+}
+
 // Result budget limits. The text budget is the session's MaxOutputChars for the
-// whole result. Non-text blocks (images) are counted separately: at most
-// maxNonTextBlocks per result.
+// whole result. Non-text blocks have their own limits: at most maxNonTextBlocks
+// per result and maxNonTextBytes in total. The size limit is deliberately not
+// the text budget: an image is base64 data, and a single browser screenshot is
+// commonly hundreds of KB, so a text-sized budget would drop every image. It
+// only stops pathological results.
+var maxNonTextBytes = 10 << 20
+
 const (
 	maxNonTextBlocks = 8
 	// minTextBlockBudget is the smallest remainder still worth giving a block;
@@ -177,7 +198,7 @@ func omittedNotice(tc *tool.ToolContext, budget int, dropped []string, droppedNo
 		fmt.Fprintf(&b, " %d further text block(s) omitted.", len(dropped))
 	}
 	if droppedNonText > 0 {
-		fmt.Fprintf(&b, " %d further non-text block(s) omitted (limit %d).", droppedNonText, maxNonTextBlocks)
+		fmt.Fprintf(&b, " %d further non-text block(s) omitted (limit %d blocks, %d bytes); non-text blocks are not saved.", droppedNonText, maxNonTextBlocks, maxNonTextBytes)
 	}
 	b.WriteString("]")
 	if len(dropped) > 0 {

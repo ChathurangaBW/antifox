@@ -57,6 +57,9 @@ type Activity struct {
 	// Outcome of a run, set only on the terminal kind='result' record:
 	// completed | cancelled | failed | budget_reached ("" on older rows).
 	Outcome string `json:"outcome,omitempty"`
+	// CancelCause is a stable code for why a cancelled run stopped (see
+	// agent.cancelCode); set only when Outcome is "cancelled".
+	CancelCause string `json:"cancel_cause,omitempty"`
 }
 
 // TokenUsage is a per-worker token aggregate (TokenStatsByWorker).
@@ -399,10 +402,10 @@ func (s *ExplorationStore) Stats() (map[string]int, error) {
 func (s *ExplorationStore) AppendActivity(a Activity) (int64, error) {
 	var id int64
 	err := s.db.QueryRow(`
-INSERT INTO activity(exploration_id, node_id, worker, kind, tool, tool_use_id, is_error, summary, detail, input_tokens, output_tokens, cache_read_tokens, cache_write_tokens, outcome)
-VALUES ($1,$2,NULLIF($3,''),NULLIF($4,''),NULLIF($5,''),NULLIF($6,''),$7,NULLIF($8,''),NULLIF($9,''),$10,$11,$12,$13,NULLIF($14,''))
+INSERT INTO activity(exploration_id, node_id, worker, kind, tool, tool_use_id, is_error, summary, detail, input_tokens, output_tokens, cache_read_tokens, cache_write_tokens, outcome, cancel_cause)
+VALUES ($1,$2,NULLIF($3,''),NULLIF($4,''),NULLIF($5,''),NULLIF($6,''),$7,NULLIF($8,''),NULLIF($9,''),$10,$11,$12,$13,NULLIF($14,''),NULLIF($15,''))
 RETURNING id`, s.expID, a.NodeID, utf8Clean(a.Worker), utf8Clean(a.Kind), utf8Clean(a.Tool), utf8Clean(a.ToolUseID), a.IsError, utf8Clean(a.Summary), utf8Clean(a.Detail),
-		a.InputTokens, a.OutputTokens, a.CacheReadTokens, a.CacheWriteTokens, a.Outcome).Scan(&id)
+		a.InputTokens, a.OutputTokens, a.CacheReadTokens, a.CacheWriteTokens, a.Outcome, a.CancelCause).Scan(&id)
 	return id, err
 }
 
@@ -523,7 +526,7 @@ func (s *ExplorationStore) ActivityList(nodeID *int64, sinceID int64, limit int)
 	}
 	var rows *sql.Rows
 	var err error
-	const cols = `id, node_id, COALESCE(worker,''), COALESCE(kind,''), COALESCE(tool,''), COALESCE(tool_use_id,''), is_error, COALESCE(summary,''), created_at, input_tokens, output_tokens, cache_read_tokens, cache_write_tokens, COALESCE(outcome,'')`
+	const cols = `id, node_id, COALESCE(worker,''), COALESCE(kind,''), COALESCE(tool,''), COALESCE(tool_use_id,''), is_error, COALESCE(summary,''), created_at, input_tokens, output_tokens, cache_read_tokens, cache_write_tokens, COALESCE(outcome,''), COALESCE(cancel_cause,'')`
 	if nodeID != nil {
 		rows, err = s.db.Query(`SELECT `+cols+`
 FROM activity WHERE exploration_id=$1 AND node_id=$2 AND id>$3 ORDER BY id LIMIT $4`, s.expID, *nodeID, sinceID, limit)
@@ -540,7 +543,7 @@ FROM activity WHERE exploration_id=$1 AND id>$2 ORDER BY id LIMIT $3`, s.expID, 
 	for rows.Next() {
 		var a Activity
 		if err := rows.Scan(&a.ID, &a.NodeID, &a.Worker, &a.Kind, &a.Tool, &a.ToolUseID, &a.IsError, &a.Summary, &a.CreatedAt,
-			&a.InputTokens, &a.OutputTokens, &a.CacheReadTokens, &a.CacheWriteTokens, &a.Outcome); err != nil {
+			&a.InputTokens, &a.OutputTokens, &a.CacheReadTokens, &a.CacheWriteTokens, &a.Outcome, &a.CancelCause); err != nil {
 			return nil, sinceID, err
 		}
 		if a.ID > cursor {
@@ -552,7 +555,7 @@ FROM activity WHERE exploration_id=$1 AND id>$2 ORDER BY id LIMIT $3`, s.expID, 
 }
 
 // activityCols is the shared column list for activity SELECTs feeding scanActivity.
-const activityCols = `id, node_id, COALESCE(worker,''), COALESCE(kind,''), COALESCE(tool,''), COALESCE(tool_use_id,''), is_error, COALESCE(summary,''), created_at, input_tokens, output_tokens, cache_read_tokens, cache_write_tokens, COALESCE(outcome,'')`
+const activityCols = `id, node_id, COALESCE(worker,''), COALESCE(kind,''), COALESCE(tool,''), COALESCE(tool_use_id,''), is_error, COALESCE(summary,''), created_at, input_tokens, output_tokens, cache_read_tokens, cache_write_tokens, COALESCE(outcome,''), COALESCE(cancel_cause,'')`
 
 // scanActivities scans rows selected with activityCols into byID (keyed by id, so the
 // same row from two overlapping queries collapses to one). Closes rows.
@@ -561,7 +564,7 @@ func scanActivities(rows *sql.Rows, byID map[int64]Activity) error {
 	for rows.Next() {
 		var a Activity
 		if err := rows.Scan(&a.ID, &a.NodeID, &a.Worker, &a.Kind, &a.Tool, &a.ToolUseID, &a.IsError, &a.Summary, &a.CreatedAt,
-			&a.InputTokens, &a.OutputTokens, &a.CacheReadTokens, &a.CacheWriteTokens, &a.Outcome); err != nil {
+			&a.InputTokens, &a.OutputTokens, &a.CacheReadTokens, &a.CacheWriteTokens, &a.Outcome, &a.CancelCause); err != nil {
 			return err
 		}
 		byID[a.ID] = a

@@ -9,6 +9,9 @@
 #   tests actually ran.
 # - The race detector over the full suite.
 # - The results (go test -json) and the tested commit are kept as an artifact.
+# - Documentation links: every repository-relative link in CHANGELOG.md,
+#   README*.md and docs/ must resolve in this clean checkout, so a link to a
+#   file that was never committed (ignored or untracked) fails the gate.
 name: test
 on:
   push:
@@ -20,6 +23,12 @@ permissions:
   contents: read
 
 jobs:
+  docs:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Documentation links resolve
+        run: python3 -I scripts/check-doc-links.py
   go:
     runs-on: ubuntu-latest
     services:

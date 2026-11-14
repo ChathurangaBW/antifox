@@ -302,6 +302,8 @@ export interface Activity {
   cache_write_tokens?: number;
   // run outcome (present only on kind='result' from v2.1.3)
   outcome?: "completed" | "cancelled" | "failed" | "budget_reached";
+  // stable code for why a cancelled run stopped (from v2.1.4)
+  cancel_cause?: string;
 }
 
 // ---- Agent triggers (P3 Schedule, custom only agent) ----
