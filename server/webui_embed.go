@@ -35,6 +35,7 @@ func (s *Server) webuiHandler() http.Handler {
 		// 2) route dir → <p>/index.html (trailingSlash export)
 		// 3) <p>.html
 		// 4) SPA Bottom → index.html(Other Organiser
+		w.Header().Set("Cache-Control", webuiCacheControl(p))
 		for _, cand := range []string{p, p + "/index.html", p + ".html"} {
 			if serveFileIfExists(w, r, root, cand) {
 				return

@@ -2,6 +2,23 @@
 
 This project's version update summary. The format follows [Keep a Changelog](https://keepachangelog.com/), and versions follow [SemVer](https://semver.org/).
 
+## v2.1.5 "Swift"
+
+New logo, and the UI no longer shows a stale one after an upgrade.
+
+### Changed
+
+- **Guardian shield logo** on the login screen, the setup screen, the sidebar, the browser tab icon, the Apple touch icon and the README.
+
+### Fixed
+
+- **Old logo and pages could be shown from cache after an upgrade**: the embedded UI was served without cache headers, and `/logo.png`, the icons and the pages keep the same URL across builds. Files under `_next/static/` (content-hashed names) are now cached for a year as immutable; every other UI file is sent with `Cache-Control: no-cache`, so the browser revalidates it and shows the new version.
+
+### Verified
+
+- `go vet`, and the full suite against PostgreSQL 16 + pgvector: 203 passing tests, also under the race detector, no failures or skips.
+- In Chromium against the embedded UI: `/logo.png` is the new artwork (byte-identical to `web/public/logo.png`) with `no-cache`; the login panel and the sidebar render it; hashed assets carry the immutable policy.
+
 ## v2.1.4 "Corsac"
 
 Closes the follow-ups from the v2.1.3 review: task references are now enforced by the database itself, non-text tool output has a size limit, cancellations record a stable cause code, and the runbook and audit actually ship. An upgrade and rollback rehearsal on a copy of production data found one more gap, fixed here: after rolling back, the older version's task deletion left dangling references.
