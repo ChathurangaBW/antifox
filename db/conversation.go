@@ -54,15 +54,16 @@ type Conversation struct {
 	AgentKey     string    `json:"agent_key"`
 	Title        string    `json:"title"`
 	LLMProfileID *int64    `json:"llm_profile_id,omitempty"`
+	TaskID       *int64    `json:"task_id,omitempty"` // attached task: the agent records into its graph (nil = none)
 	CreatedAt    time.Time `json:"created_at"`
 	UpdatedAt    time.Time `json:"updated_at"`
 }
 
-const convCols = `id, agent_key, title, llm_profile_id, created_at, updated_at`
+const convCols = `id, agent_key, title, llm_profile_id, task_id, created_at, updated_at`
 
 func scanConv(row interface{ Scan(...any) error }) (Conversation, error) {
 	var c Conversation
-	err := row.Scan(&c.ID, &c.AgentKey, &c.Title, &c.LLMProfileID, &c.CreatedAt, &c.UpdatedAt)
+	err := row.Scan(&c.ID, &c.AgentKey, &c.Title, &c.LLMProfileID, &c.TaskID, &c.CreatedAt, &c.UpdatedAt)
 	return c, err
 }
 
@@ -182,4 +183,10 @@ func (d *DB) ConvActivityDetail(convID, id int64) (string, error) {
 		return "", nil
 	}
 	return s.String, err
+}
+
+// SetConversationTask attaches a conversation to a task, or detaches it (nil).
+func (d *DB) SetConversationTask(id int64, taskID *int64) error {
+	_, err := d.Exec(`UPDATE conversations SET task_id=$2 WHERE id=$1`, id, taskID)
+	return err
 }

@@ -17,6 +17,7 @@ import { auth } from "@/lib/auth";
 export default function SetupPage() {
   const router = useRouter();
   const { t } = useTranslation();
+  const [setupToken, setSetupToken] = useState("");
   const [password, setPassword] = useState("");
   const [confirm, setConfirm] = useState("");
   const [error, setError] = useState("");
@@ -45,7 +46,7 @@ export default function SetupPage() {
     setLoading(true);
     setError("");
     try {
-      const { token } = await api.initPassword(password);
+      const { token } = await api.initPassword(password, setupToken.trim());
       auth.setToken(token);
       router.replace("/function/tasks");
     } catch (err) {
@@ -81,6 +82,20 @@ export default function SetupPage() {
           </div>
           <form onSubmit={handleSubmit} className="flex flex-col gap-4">
             <div className="space-y-1.5">
+              <Label htmlFor="setup-token">{t("setup.setupToken")}</Label>
+              <Input
+                id="setup-token"
+                value={setupToken}
+                onChange={(e) => setSetupToken(e.target.value)}
+                placeholder={t("setup.setupTokenPlaceholder")}
+                autoFocus
+                autoComplete="off"
+                spellCheck={false}
+                className="font-mono"
+              />
+              <p className="text-muted-foreground text-xs">{t("setup.setupTokenHelp")}</p>
+            </div>
+            <div className="space-y-1.5">
               <Label htmlFor="password">{t("setup.newPassword")}</Label>
               <Input
                 id="password"
@@ -88,7 +103,6 @@ export default function SetupPage() {
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
                 placeholder={t("setup.newPasswordPlaceholder")}
-                autoFocus
                 autoComplete="new-password"
               />
             </div>
@@ -104,7 +118,7 @@ export default function SetupPage() {
               />
             </div>
             {error && <p className="text-sm text-destructive">{error}</p>}
-            <Button type="submit" className="w-full" disabled={loading || !password || !confirm}>
+            <Button type="submit" className="w-full" disabled={loading || !setupToken.trim() || !password || !confirm}>
               {loading ? t("setup.submitting") : t("setup.submit")}
             </Button>
           </form>

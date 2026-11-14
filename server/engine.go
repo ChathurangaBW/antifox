@@ -431,7 +431,7 @@ func (e *Engine) plannerLoop(ctx context.Context, t *Task) {
 			doneIntents := t.drainDone()
 			e.incInflight(t.ID)
 			taskIDInt, _ := strconv.ParseInt(t.ID, 10, 64)
-			met, reason, err := planner.Plan(ectx, taskIDInt, e.m.assets, t.Store, t.Goal, doneIntents, emit)
+			met, reason, err := planner.Plan(ectx, taskIDInt, e.m.assets, t.Store, t.Goal, doneIntents, plannerHooks(t), emit)
 			e.decInflight(t.ID)
 			switch {
 			case err != nil && ectx.Err() == nil:
@@ -605,4 +605,14 @@ func (e *Engine) claimNext(t *Task, name string) *db.Node {
 		}
 	}
 	return nil
+}
+
+// plannerHooks returns the guard hooks for a task's planner. The planner runs
+// with no operator watching, so it gets the unattended variant: deny rules apply
+// in full and an approval rule blocks instead of stalling the planning round.
+func plannerHooks(t *Task) harness.HookRunner {
+	if t == nil || t.Guard == nil {
+		return nil // a typed-nil registry would be a non-nil interface and crash the harness
+	}
+	return t.Guard.UnattendedHooks()
 }

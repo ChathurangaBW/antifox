@@ -46,6 +46,9 @@ func printBanner(addr string) {
 func main() { os.Exit(run()) }
 
 func run() int {
+	// First of all: on Linux, re-exec without the secrets in the start environment,
+	// so /proc/<pid>/environ never shows them (see secrets_linux.go).
+	handoffSecrets()
 	// One-click update bootstrap: must run before opening any port or DB. On a staged
 	// upgrade it swaps the binary and returns Restart (we exit 75; the supervisor relaunches
 	// us). Smoke-test child processes short-circuit via ANTIFOX_SELFUPDATE_SMOKE.
@@ -107,7 +110,9 @@ func run() int {
 		skillDir = abs
 	}
 	log.Printf("[config] skill directory: %s", skillDir)
-	srv := server.New(ctx, mgr, skillDir, *dataDir)
+	// WithSecretScrub: the binary drops the database DSN and model keys from its
+	// environment once read, so agent shells and other child processes never inherit them.
+	srv := server.New(ctx, mgr, skillDir, *dataDir, server.WithSecretScrub())
 	httpSrv := &http.Server{
 		Addr:              *addr,
 		Handler:           srv.Handler(),

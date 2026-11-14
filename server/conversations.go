@@ -42,6 +42,7 @@ func (s *Server) pgCreateConversation(w http.ResponseWriter, r *http.Request) {
 		AgentKey     string `json:"agent_key"`
 		Title        string `json:"title"`
 		LLMProfileID *int64 `json:"llm_profile_id"`
+		TaskID       any    `json:"task_id"` // optional: attach the new conversation to a task
 	}
 	if err := decode(r, &req); err != nil {
 		writeErr(w, 400, err.Error())
@@ -67,6 +68,15 @@ func (s *Server) pgCreateConversation(w http.ResponseWriter, r *http.Request) {
 			return
 		}
 	}
+	taskID, ok := parseTaskRef(req.TaskID)
+	if !ok {
+		writeErr(w, 400, "task_id must be a task id or null")
+		return
+	}
+	if taskID != nil && s.m.ResolveTask(strconv.FormatInt(*taskID, 10)) == nil {
+		writeErr(w, 404, "task not found")
+		return
+	}
 	title := strings.TrimSpace(req.Title)
 	if title == "" {
 		title = "New Dialogue"
@@ -75,6 +85,13 @@ func (s *Server) pgCreateConversation(w http.ResponseWriter, r *http.Request) {
 	if err != nil {
 		writeErr(w, 500, err.Error())
 		return
+	}
+	if taskID != nil {
+		if err := pg.SetConversationTask(c.ID, taskID); err != nil {
+			writeErr(w, 500, err.Error())
+			return
+		}
+		c.TaskID = taskID
 	}
 	writeJSON(w, 200, c)
 }
@@ -321,7 +338,7 @@ func (s *Server) runConversationSync(c *db.Conversation, msg, busyKey string) {
 	}
 	// On a manual stop ctx is cancelled; Chat already emits a clean "Stopped Manually"
 	// step, so skip the raw-error entry — only surface genuine failures.
-	if _, err := ca.Chat(ctx, c.AgentKey, sessionID, msg, maxTurns, maxDuration, webSearch, emit); err != nil && ctx.Err() == nil {
+	if _, err := ca.Chat(ctx, c.AgentKey, sessionID, msg, maxTurns, maxDuration, webSearch, emit, s.conversationTaskBinding(c)); err != nil && ctx.Err() == nil {
 		_, _ = pg.AppendConvActivity(c.ID, db.Activity{Worker: c.AgentKey, Kind: "text", IsError: true,
 			Summary: "(Error:" + err.Error() + ")", Detail: err.Error()})
 	}
@@ -426,6 +443,14 @@ func (s *Server) runTriggeredRun(item triggeredRun) {
 	if err != nil {
 		log.Printf("[trigger] create conversation for %s failed: %v", item.agentKey, err)
 		return
+	}
+	// A run triggered by a task event works on that task: attach it, so the
+	// agent's task tools read and write the task that fired the trigger.
+	if item.taskID > 0 && s.m.ResolveTask(strconv.FormatInt(item.taskID, 10)) != nil {
+		tid := item.taskID
+		if err := pg.SetConversationTask(c.ID, &tid); err == nil {
+			c.TaskID = &tid
+		}
 	}
 	if _, err := pg.AppendConvActivity(c.ID, db.Activity{Worker: item.agentKey, Kind: "user", Summary: firstLine(item.message, 200), Detail: item.message}); err != nil {
 		log.Printf("[trigger] append msg failed: %v", err)

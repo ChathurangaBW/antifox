@@ -129,19 +129,72 @@ type SpawnSpec struct {
 	Kind        TaskKind
 	WorkingDir  string
 	// Env holds extra "KEY=VALUE" entries layered onto the process environment for
-	// this command (see ToolContext.Env). Empty = inherit unchanged.
+	// this command (see ToolContext.Env). Empty still applies nonInteractiveEnv.
 	Env []string
 }
 
-// withEnv returns the current process environment extended with extra
-// "KEY=VALUE" entries, or nil when extra is empty (child inherits unchanged).
-// os/exec dedups by key — case-insensitive on Windows, keeping the LAST
-// occurrence — so the appended entries override inherited ones on every OS.
+// nonInteractiveEnv are defaults every spawned shell gets, whether or not the
+// host passes any env of its own: a pager must never block a non-interactive
+// shell waiting for a terminal nobody is watching, and Debian package frontends
+// must never prompt. Without them, an agent running `git log` or `apt-get
+// install` could hang until the run's time budget expired. These deliberately
+// override values inherited from the agent's own process. A host that names the
+// same key explicitly still wins (see withEnv). Ported from Norma v0.4.x.
+var nonInteractiveEnv = []string{
+	"PAGER=cat",
+	"GIT_PAGER=cat",
+	"SYSTEMD_PAGER=cat",
+	"DEBIAN_FRONTEND=noninteractive",
+}
+
+// withEnv builds the child environment, in precedence order:
+//
+//	process environment  <  nonInteractiveEnv defaults  <  the host's extra vars
+//
+// Each layer is applied by DROPPING the earlier entry for that key rather than
+// appending a duplicate, so the slice is correct on its own terms wherever it is
+// inspected, not only after os/exec's last-wins dedup.
+//
+// The result is never nil — the defaults always apply.
 func withEnv(extra []string) []string {
-	if len(extra) == 0 {
-		return nil
+	extraKeys := make(map[string]bool, len(extra))
+	for _, kv := range extra {
+		if k := envKey(kv); k != "" {
+			extraKeys[k] = true
+		}
 	}
-	return append(os.Environ(), extra...)
+	drop := make(map[string]bool, len(extraKeys)+len(nonInteractiveEnv))
+	for k := range extraKeys {
+		drop[k] = true
+	}
+	for _, kv := range nonInteractiveEnv {
+		if k := envKey(kv); k != "" && !extraKeys[k] {
+			drop[k] = true
+		}
+	}
+	base := os.Environ()
+	out := make([]string, 0, len(base)+len(nonInteractiveEnv)+len(extra))
+	for _, kv := range base {
+		if k := envKey(kv); k != "" && drop[k] {
+			continue
+		}
+		out = append(out, kv)
+	}
+	for _, kv := range nonInteractiveEnv {
+		if k := envKey(kv); k != "" && extraKeys[k] {
+			continue // host override wins
+		}
+		out = append(out, kv)
+	}
+	return append(out, extra...)
+}
+
+// envKey extracts the KEY of a "KEY=value" entry ("" when malformed).
+func envKey(kv string) string {
+	if i := strings.IndexByte(kv, '='); i > 0 {
+		return kv[:i]
+	}
+	return ""
 }
 
 // Manager owns the background tasks of one Session.

@@ -1,6 +1,11 @@
 services:
   postgres:
-    image: postgres:16-alpine
+    # pgvector build of PostgreSQL 16: the knowledge base needs the vector
+    # extension for semantic search; plain postgres silently falls back to keywords.
+    # Upgrading an existing postgres:16-alpine volume: Alpine (musl) and this
+    # Debian (glibc) image order text differently, so run REINDEX DATABASE once
+    # after the switch to rebuild text indexes.
+    image: pgvector/pgvector:pg16
     environment:
       POSTGRES_USER: ${POSTGRES_USER:-antifox}
       POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?Please. .env Settings POSTGRES_PASSWORD}

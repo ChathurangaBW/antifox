@@ -82,6 +82,10 @@ type ToolSet struct {
 	// links without view-time guessing). Input = the raw reproduction JSON; returns the
 	// same shape with each step's exchange_id filled where it matched. nil = skip.
 	resolveTraffic func(taskID int64, repro json.RawMessage) json.RawMessage
+	// verifyFinding, if set, stores the agent's declared POE level and evidence
+	// quotes for a just-recorded finding (by node id), checks the quotes against
+	// the linked traffic, and returns the verdict. nil = verification skipped.
+	verifyFinding FindingVerifier
 }
 
 // SetNotify wires the planner-wake callback (see ToolSet.notify). Set by callers
@@ -135,6 +139,12 @@ func (t *ToolSet) SetTaskID(id int64) { t.taskID = id }
 // nil = no linkage — reproduction steps are stored verbatim without exchange ids).
 func (t *ToolSet) SetTrafficResolver(fn func(taskID int64, repro json.RawMessage) json.RawMessage) {
 	t.resolveTraffic = fn
+}
+
+// SetFindingVerifier wires the machine-checked verification callback that
+// report_finding calls after linking a finding's steps to recorded traffic.
+func (t *ToolSet) SetFindingVerifier(fn FindingVerifier) {
+	t.verifyFinding = fn
 }
 
 // Cross-task reuse: exported accessors returning the per-task tool logic bound to
@@ -403,7 +413,7 @@ func (t *ToolSet) listFacts() actool.CoreTool {
 }
 
 func (t *ToolSet) nodeDetail() actool.CoreTool {
-	return readTool("node_detail", `Retrieve the full content of an exploration node by ID (fact, finding, intent, or goal), including its summary and details/evidence/PoC. Use only exploration-node IDs returned by list_facts, list_findings, or graph_overview recent_facts. For asset IDs, use list_assets or asset_neighbors instead.`,
+	return readTool("node_detail", `Retrieve the full content of an exploration node by ID (fact, finding, intent, or goal), including its summary and details/evidence/PoC. Use only exploration-node IDs returned by list_facts, list_findings, or graph_overview recent_facts. For asset IDs, use list_assets instead.`,
 		obj(map[string]any{"id": idp("Exploration node ID (not an asset ID)")}, "id"),
 		func(_ context.Context, in json.RawMessage) (actool.Result, error) {
 			var a struct {
@@ -419,7 +429,7 @@ func (t *ToolSet) nodeDetail() actool.CoreTool {
 				return actool.Errorf(err.Error()), nil
 			}
 			if n == nil {
-				return actool.Errorf(fmt.Sprintf("No exploration node found with ID %d. If you are looking for assets, use list_assets / asset_neighbors instead (asset IDs and exploration-node IDs are different ID spaces, and an asset ID cannot be passed to node_detail).", id)), nil
+				return actool.Errorf(fmt.Sprintf("No exploration node found with ID %d. If you are looking for assets, use list_assets instead (asset IDs and exploration-node IDs are different ID spaces, and an asset ID cannot be passed to node_detail).", id)), nil
 			}
 			return jsonResult(n) // full payload incl. detail / evidence
 		})
@@ -433,6 +443,51 @@ type intentItem struct {
 	AssetIDs  []json.RawMessage `json:"asset_ids"`
 	ParentIDs []json.RawMessage `json:"parent_ids"`
 	Priority  int               `json:"priority"`
+}
+
+// validateAssetIDs parses raw asset_ids and verifies every ID is a positive
+// integer and (when AssetStore is wired) exists in the assets table. Rejecting
+// invalid or unknown IDs up front avoids FK partial writes on exploration nodes.
+func (t *ToolSet) validateAssetIDs(raw []json.RawMessage) ([]int64, error) {
+	if len(raw) == 0 {
+		return nil, nil
+	}
+	ids := make([]int64, 0, len(raw))
+	seen := make(map[int64]bool, len(raw))
+	unique := make([]int64, 0, len(raw))
+	for _, r := range raw {
+		v := pid(r)
+		if v <= 0 {
+			return nil, fmt.Errorf("invalid asset_ids: entries must be positive integer asset IDs returned by list_assets")
+		}
+		ids = append(ids, v)
+		if !seen[v] {
+			seen[v] = true
+			unique = append(unique, v)
+		}
+	}
+	if t.as != nil && len(unique) > 0 {
+		existing, err := t.as.GetByIDs(unique)
+		if err != nil {
+			return nil, fmt.Errorf("validate asset_ids: %w", err)
+		}
+		found := make(map[int64]bool, len(existing))
+		for _, a := range existing {
+			if a != nil {
+				found[a.ID] = true
+			}
+		}
+		var missing []int64
+		for _, id := range unique {
+			if !found[id] {
+				missing = append(missing, id)
+			}
+		}
+		if len(missing) > 0 {
+			return nil, fmt.Errorf("invalid asset_ids %v: asset(s) do not exist (look up valid IDs with list_assets; asset IDs are distinct from exploration node IDs)", missing)
+		}
+	}
+	return ids, nil
 }
 
 // addOneIntent creates an intent node, links it into the upstream lineage, and returns its id.
@@ -454,11 +509,14 @@ func (t *ToolSet) addOneIntent(it intentItem) (int64, error) {
 			return 0, fmt.Errorf("parent_id %d is a %q node and cannot be used as an intent anchor: an intent may only be anchored to a confirmed fact/finding node, never to an intent, goal, or hint; leave parent_ids empty for a brand-new top-level direction", pidv, n.Kind)
 		}
 	}
+	anchors, err := t.validateAssetIDs(it.AssetIDs)
+	if err != nil {
+		return 0, err
+	}
 	priority := it.Priority
 	if priority == 0 {
 		priority = 5
 	}
-	anchors := pidList(it.AssetIDs)
 	payload := map[string]any{"summary": it.Summary}
 	if len(anchors) > 0 {
 		payload["asset_ids"] = anchors
@@ -602,6 +660,9 @@ func (t *ToolSet) addFinding() actool.CoreTool {
 			"intent_id": idp("ID of the intent that produced this finding (the current intent)"),
 			"asset_ids": map[string]any{"type": "array", "items": map[string]any{"type": "integer"}, "description": "Affected asset IDs (optional, 0/1/multiple): parameters, endpoints, sites, and so on. Fill in every affected location when one vulnerability impacts several; leave it empty for pure observation."},
 			"evidence":  str("Evidence / PoC text"),
+			"poe_level": map[string]any{"type": "integer", "description": "Optional proof-of-exploitation level 0-4: 1 error/timing/response variation, 2 structural manipulation (boolean, UNION, parser difference), 3 actual data extracted, 4 critical impact (admin credentials, code execution). L3 is the minimum for a verified finding. Omit or 0 when not proven. Never raise it to get a verified status."},
+			"evidence_quotes": map[string]any{"type": "array", "items": map[string]any{"type": "string"},
+				"description": "Optional exact lines copied from the real response of a reproduction step (at least 8 characters each), never from memory or rewritten. The server checks each one verbatim, after whitespace normalization, against the recorded traffic linked to this finding. If you cannot quote the proof, omit this: the finding is still recorded, only unverified."},
 			"reproduction": map[string]any{
 				"type":        "object",
 				"description": "Strongly recommended: the structured reproduction process — it enables manual reproduction from scratch and drives the delivered report. Write each step's request as a standard HTTP request message (not a curl/shell command) and its response as a status line plus key body content (do not omit key content with '...'). Copy everything verbatim from the requests and responses you actually executed in this run; never rewrite or fabricate them. You just performed every step, so you know them best.",
@@ -624,6 +685,8 @@ func (t *ToolSet) addFinding() actool.CoreTool {
 				IntentID                               json.RawMessage   `json:"intent_id"`
 				AssetIDs                               []json.RawMessage `json:"asset_ids"`
 				Reproduction                           json.RawMessage   `json:"reproduction"`
+				POELevel                               int               `json:"poe_level"`
+				EvidenceQuotes                         []string          `json:"evidence_quotes"`
 			}
 			_ = json.Unmarshal(in, &a)
 			payload := map[string]any{"vulnclass": a.VulnClass, "severity": a.Severity, "summary": a.Summary,
@@ -654,11 +717,9 @@ func (t *ToolSet) addFinding() actool.CoreTool {
 				}
 				payload["reproduction"] = repro
 			}
-			var anchors []int64
-			for _, raw := range a.AssetIDs {
-				if p := pid(raw); p > 0 {
-					anchors = append(anchors, p)
-				}
+			anchors, err := t.validateAssetIDs(a.AssetIDs)
+			if err != nil {
+				return actool.Errorf(err.Error()), nil
 			}
 			var id int64
 			if t.ts != nil {
@@ -679,10 +740,27 @@ func (t *ToolSet) addFinding() actool.CoreTool {
 				return actool.Errorf("report_finding Task context required (exploration store Not initialized)"), nil
 			}
 			t.writes.Findings++
+			msg := fmt.Sprintf("finding recorded: %d", id)
 			if totalSteps > 0 {
-				return actool.Text(fmt.Sprintf("finding recorded: %d (linked %d/%d reproduction steps to recorded traffic)", id, linkedSteps, totalSteps)), nil
+				msg += fmt.Sprintf(" (linked %d/%d reproduction steps to recorded traffic)", linkedSteps, totalSteps)
 			}
-			return actool.Text(fmt.Sprintf("finding recorded: %d", id)), nil
+			// Machine-checked verification runs after the steps are linked, so the
+			// quotes are checked against exactly the traffic this finding cites.
+			// It never blocks recording: an unverified finding is still a finding.
+			if t.verifyFinding != nil {
+				poe := a.POELevel
+				if poe < 0 || poe > 4 {
+					poe = 0
+				}
+				status, note := t.verifyFinding(id, poe, a.EvidenceQuotes)
+				msg += "\nverification: " + status
+				if status == db.VerificationVerified {
+					msg += fmt.Sprintf(" (POE L%d)", poe)
+				} else if note != "" {
+					msg += " - " + note + "\nThe finding is recorded but not verified. To verify it, declare poe_level 3 or 4 and pass evidence_quotes copied exactly from the real response of a linked step; do not raise poe_level without that proof."
+				}
+			}
+			return actool.Text(msg), nil
 		})
 }
 
@@ -717,8 +795,12 @@ func (t *ToolSet) recordOneFact(it factItem, defaultIntent int64) (int64, error)
 	if c := strings.TrimSpace(it.Confidence); c != "" {
 		payload["confidence"] = c
 	}
+	anchors, err := t.validateAssetIDs(it.AssetIDs)
+	if err != nil {
+		return 0, err
+	}
 	// a fact is its OWN node kind (distinct from a vuln finding).
-	id, err := t.ts.AddNode(db.KindFact, payload, 5, "confirmed", t.worker, pidList(it.AssetIDs))
+	id, err := t.ts.AddNode(db.KindFact, payload, 5, "confirmed", t.worker, anchors)
 	if err != nil {
 		return 0, err
 	}
@@ -798,11 +880,9 @@ func (t *ToolSet) addOneHint(it hintItem) (int64, error) {
 	if strings.TrimSpace(it.Text) == "" {
 		return 0, fmt.Errorf("text Can't be empty.")
 	}
-	var anchors []int64
-	for _, raw := range it.AssetIDs {
-		if tid := pid(raw); tid > 0 {
-			anchors = append(anchors, tid)
-		}
+	anchors, err := t.validateAssetIDs(it.AssetIDs)
+	if err != nil {
+		return 0, err
 	}
 	id, err := t.ts.AddNode(db.KindHint, map[string]any{"text": it.Text}, 0, "active", "human", anchors)
 	if err == nil && t.notify != nil {
@@ -912,9 +992,15 @@ func (t *ToolSet) steerWorkTool() actool.CoreTool {
 		})
 }
 
-// getWorkerOutput returns a work's final (orat the time of suspension) conclusion text by intent id.
+// intentTerminatedState reports whether an intent lifecycle state represents an
+// interrupted/aborted/terminal-without-completion outcome rather than active or done work.
+func intentTerminatedState(state string) bool {
+	return state == "stopped" || state == "blocked" || state == "exhausted"
+}
+
+// getWorkerOutput returns a work's final (or interim/interrupted) conclusion text and lifecycle state by intent id.
 func (t *ToolSet) getWorkerOutput() actool.CoreTool {
-	return readTool("get_worker_output", "Get the final output of an intent (work). A normally finished work returns its summary; a terminated (stopped) or abnormal work returns the last output produced before it was interrupted (terminated=true).",
+	return readTool("get_worker_output", "Get the output and lifecycle state of an intent (work). Check the returned state field: 'open', 'queued', and 'running' are still active (terminated=false); 'done' finished cleanly (terminated=false); 'stopped', 'blocked', and 'exhausted' terminated without completing normally (terminated=true).",
 		obj(map[string]any{"intent_id": idp("Intent ID (= the work handle)")}, "intent_id"),
 		func(_ context.Context, in json.RawMessage) (actool.Result, error) {
 			var a struct {
@@ -924,6 +1010,16 @@ func (t *ToolSet) getWorkerOutput() actool.CoreTool {
 			id := pid(a.IntentID)
 			if id <= 0 {
 				return actool.Errorf("intent_id Required"), nil
+			}
+			node, err := t.ts.GetNode(id)
+			if err != nil {
+				return actool.Errorf(err.Error()), nil
+			}
+			if node == nil {
+				return actool.Errorf(fmt.Sprintf("No exploration node found with ID %d", id)), nil
+			}
+			if node.Kind != db.KindIntent {
+				return actool.Errorf(fmt.Sprintf("node %d is %q, not an intent", id, node.Kind)), nil
 			}
 			acts, _, err := t.ts.ActivityList(&id, 0, 1000)
 			if err != nil {
@@ -939,20 +1035,42 @@ func (t *ToolSet) getWorkerOutput() actool.CoreTool {
 					fallback = &acts[i]
 				}
 			}
-			pick, terminated := chosen, false
+			pick := chosen
 			if pick == nil {
-				pick, terminated = fallback, true
+				pick = fallback
 			}
+			terminated := intentTerminatedState(node.State)
 			if pick == nil {
-				return actool.Text("(The work No output yet)"), nil
+				summary := fmt.Sprintf("Intent %d is %s and has no text output yet", id, node.State)
+				if terminated {
+					summary = fmt.Sprintf("Intent %d ended in state %s with no output", id, node.State)
+				}
+				return jsonResult(map[string]any{
+					"intent_id":   id,
+					"state":       node.State,
+					"worker_name": node.Owner,
+					"final_text":  "",
+					"summary":     summary,
+					"is_error":    false,
+					"terminated":  terminated,
+				})
 			}
 			detail, _ := t.ts.ActivityDetail(pick.ID)
 			if detail == "" {
 				detail = pick.Summary
 			}
+			workerName := pick.Worker
+			if workerName == "" {
+				workerName = node.Owner
+			}
 			return jsonResult(map[string]any{
-				"intent_id": id, "worker_name": pick.Worker, "final_text": detail,
-				"summary": pick.Summary, "is_error": pick.IsError, "terminated": terminated,
+				"intent_id":   id,
+				"state":       node.State,
+				"worker_name": workerName,
+				"final_text":  detail,
+				"summary":     pick.Summary,
+				"is_error":    pick.IsError,
+				"terminated":  terminated,
 			})
 		})
 }
@@ -1008,7 +1126,7 @@ func (t *ToolSet) getWorkerTrace() actool.CoreTool {
 					}
 				}
 				if len(ids) > 5 {
-					return actool.Errorf("step_ids Most at a time. 5 One (first without one) step_ids , which is then selected in batch)"), nil
+					return actool.Errorf(fmt.Sprintf("step_ids accepts at most 5 IDs per call; you sent %d. Call get_worker_trace without step_ids to see the step summary, then request the steps you need in batches of 5.", len(ids))), nil
 				}
 				acts, err := t.ts.ActivityByIDs(ids)
 				if err != nil {
@@ -1132,8 +1250,8 @@ func (t *ToolSet) listWorkerTraces() actool.CoreTool {
 
 // PlannerTools is the read + intent-generation + goal-judgement tool set.
 func (t *ToolSet) PlannerTools() []actool.CoreTool {
-	return []actool.CoreTool{
-		t.graphOverview(), t.listFindings(), t.listFacts(), t.nodeDetail(),
+	return t.guardTaskOnly([]actool.CoreTool{
+		t.graphOverview(), t.listAssets(), t.listFindings(), t.listFacts(), t.nodeDetail(),
 		t.getWorkerOutput(), t.getWorkerTrace(), t.searchAllWorkerTraces(), t.listGoals(), t.addIntent(), t.proveGoal(), t.goalMet(),
 		t.killWorkTool(), t.steerWorkTool(),
 		// report_finding:Direct registration is possible when planning a posture study, if a gap has been identified (and worker The same tool).
@@ -1142,5 +1260,9 @@ func (t *ToolSet) PlannerTools() []actool.CoreTool {
 		t.listCompanies(),
 		// Knowledge base: rules for scoring when planning/Objective/The general methodology is to calibrate the intent of exploration.
 		t.searchKnowledge(), t.listKnowledgeCategories(),
-	}
+	})
 }
+
+// FindingVerifier is the host callback report_finding uses for machine-checked
+// verification (see ToolSet.SetFindingVerifier).
+type FindingVerifier func(nodeID int64, poe int, quotes []string) (status, note string)

@@ -14,6 +14,8 @@ import {
   LayersIcon,
   Link2Icon,
   ShieldAlertIcon,
+  ShieldCheckIcon,
+  ShieldQuestionIcon,
   SparklesIcon,
 } from "lucide-react";
 import { useTranslation } from "react-i18next";
@@ -311,8 +313,26 @@ export default function FindingsPage() {
                             <span className="text-muted-foreground line-clamp-1 text-xs" title={f.summary}>
                               {f.summary}
                             </span>
-                            {(f.evidence_count || f.traffic_count) ? (
+                            {(f.evidence_count || f.traffic_count || f.verification_status === "verified" || f.verification_status === "not_assessed") ? (
                               <div className="flex flex-wrap items-center gap-1">
+                                {f.verification_status === "verified" ? (
+                                  <span
+                                    className="inline-flex items-center gap-1 rounded bg-emerald-500/10 px-1.5 py-0.5 font-medium text-[10px] text-emerald-700 dark:text-emerald-400"
+                                    title={t("findings.verification.verifiedHint")}
+                                  >
+                                    <ShieldCheckIcon className="size-3" />
+                                    {t("findings.verification.verified", { level: f.poe_level ?? 0 })}
+                                  </span>
+                                ) : null}
+                                {f.verification_status === "not_assessed" ? (
+                                  <span
+                                    className="inline-flex items-center gap-1 rounded bg-amber-500/10 px-1.5 py-0.5 font-medium text-[10px] text-amber-700 dark:text-amber-400"
+                                    title={f.verification_note || t("findings.verification.notAssessedHint")}
+                                  >
+                                    <ShieldQuestionIcon className="size-3" />
+                                    {t("findings.verification.notAssessed")}
+                                  </span>
+                                ) : null}
                                 {f.evidence_count ? (
                                   <span className="inline-flex items-center gap-1 rounded bg-muted px-1.5 py-0.5 text-[10px] font-medium text-muted-foreground">
                                     <ImageIcon className="size-3" />

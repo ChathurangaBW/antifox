@@ -233,6 +233,9 @@
   "setup": {
     "title": "Set Up Password",
     "intro": "First time using AntiFox. Set a login password for your account (at least 8 characters).",
+    "setupToken": "Setup Token",
+    "setupTokenPlaceholder": "Paste the token from the server log",
+    "setupTokenHelp": "The server prints a one-time setup token in its log at startup. Run: docker compose logs antifox | grep \"Setup token\"",
     "newPassword": "New Password",
     "newPasswordPlaceholder": "At least 8 characters",
     "confirm": "Confirm Password",
@@ -657,9 +660,16 @@
       "change": "Change",
       "selectProfile": "Select LLM Profile"
     },
+    "task": {
+      "none": "No task",
+      "change": "Attach",
+      "select": "Attach to a task",
+      "hint": "Findings, facts and assets this agent records are saved to the attached task, with traffic linking and verification."
+    },
     "toast": {
       "sendFailed": "Failed to send: {{msg}}",
       "switchLlmFailed": "Failed to switch LLM: {{msg}}",
+      "switchTaskFailed": "Failed to attach the task: {{msg}}",
       "stopFailed": "Failed to stop: {{msg}}",
       "deleteFailed": "Failed to delete: {{msg}}",
       "renameFailed": "Failed to rename: {{msg}}"
@@ -1670,6 +1680,14 @@
     "linkedTraffic": "Linked traffic",
     "unlinkTraffic": "Unlink",
     "trafficCount": "{{count}} linked",
+    "verification": {
+      "verified": "Verified L{{level}}",
+      "verifiedHint": "Machine-checked: every evidence quote appears verbatim in the recorded traffic linked to this finding, at proof-of-exploitation level 3 or higher.",
+      "unverified": "Unverified",
+      "notAssessed": "Not assessed",
+      "notAssessedHint": "The linked traffic could not be checked, for example a binary or undecodable response.",
+      "label": "Verification"
+    },
     "jumpTraffic": "View packet",
     "jumpTrafficHint": "Open the exact recorded packet in a new tab (to screenshot)",
     "rawEvidence": "Raw evidence / PoC (source)",

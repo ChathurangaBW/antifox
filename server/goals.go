@@ -64,5 +64,11 @@ func (s *Server) goalsLLMConfig(t *Task) (agent.Config, bool) {
 			return cfg, true
 		}
 	}
-	return s.loadLLMConfig()
+	if cfg, ok := s.loadLLMConfig(); ok {
+		return cfg, true
+	}
+	// No saved profile: use the environment config the engine itself runs on.
+	// Without this, an environment-only deployment never decomposed goals and
+	// every task fell back to its raw goal text as a single goal.
+	return s.envLLM, s.envLLMOK
 }

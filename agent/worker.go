@@ -58,6 +58,7 @@ type Worker struct {
 	// trafficResolver, if set, resolves a finding's reproduction steps to real
 	// recorded traffic exchange ids at record time (host callback). nil = no linkage.
 	trafficResolver func(taskID int64, repro json.RawMessage) json.RawMessage
+	verifier        FindingVerifier // machine-checked verification of recorded findings (nil = off)
 }
 
 // SetRunTimeout configures the per-intent wall-clock budget for the main
@@ -94,6 +95,9 @@ func (w *Worker) SetProxy(addr, caCert string) { w.proxyAddr, w.proxyCACert = ad
 func (w *Worker) SetWebSearch(o WebSearchOpts) { w.webSearch = o }
 
 // SetTrafficResolver wires the record-time traffic linkage callback (host-provided).
+// SetFindingVerifier wires machine-checked verification of recorded findings.
+func (w *Worker) SetFindingVerifier(fn FindingVerifier) { w.verifier = fn }
+
 func (w *Worker) SetTrafficResolver(fn func(taskID int64, repro json.RawMessage) json.RawMessage) {
 	w.trafficResolver = fn
 }
@@ -147,7 +151,7 @@ Available tools:
 - record_fact: Write an exploration **fact/conclusion** to the exploration graph and link it to this intent by passing intent_id. Use it for positive/negative conclusions, observations, and judgments. **Combine multiple observations from one exploration into one fact** with a one-sentence summary and details in detail; do not create one fact per attribute. Use facts only for genuinely distinct conclusions. **Record only what you actually observed:** provide evidence as one concise line containing the command/request and key output, with longer details in detail, and set confidence to observed for direct observation or inferred for an inference. **Evidence threshold for negative conclusions:** before concluding that something is not injectable, a port is closed, no login entry exists, or another conclusion that may cause the planner to abandon an entire route, exhaust reasonable methods within this intent—alternative encodings, parameters, paths, and methods. If reasonable methods remain or the evidence only suggests likelihood, set confidence=inferred. **Prefer inferred so the planner can review rather than using a careless observed negative to permanently close a route.** This is especially important early in a task, when one false observed negative can misdirect the whole assessment and be difficult to correct.
 - report_finding: Record a confirmed vulnerability, including its PoC and intent_id for the assigned intent. **Use it only when this run actually triggered the issue and obtained reproducible evidence such as requests/responses or command output.** Never report a confirmed vulnerability based only on a version/fingerprint matching a CVE, because a parameter looks injectable, or from an external vulnerability database, changelog, or code diff. **Do not substitute CVE lookup or patch-version comparison for actual triggering.** If an issue is plausible but cannot be triggered, use record_fact with confidence=inferred, explaining the suspicion and why triggering failed, so the planner can assign follow-up work.
   **You must fill the structured reproduction object.** You have just performed the test and are the person best able to preserve each exact step: entry_point (the method and URL of the key interface that triggers the issue); prerequisites (required account/role/previous steps, and if a test account is needed, exactly how to register it, including the interface and key request details); steps (ordered steps where request is the exact request you sent, verbatim and never rewritten or invented; response is the exact real response including status, key headers, and the minimum verbatim body excerpt proving the issue; expected is a one-sentence expected result/conclusion; proves states what the step demonstrates); and provenance (the attack-chain source or dependencies). Preserve real requests and responses wherever possible. This reproduction data directly determines whether a human can reproduce the report finding, so complete it carefully.
-- list_assets (asset lookup, not exploration nodes) / asset_neighbors / list_facts (exploration facts) / list_findings (vulnerabilities) / node_detail (exploration-node ID, not asset ID): Query context only as needed.
+- list_assets (asset lookup, not exploration nodes) / list_facts (exploration facts) / list_findings (vulnerabilities) / node_detail (exploration-node ID, not asset ID): Query context only as needed.
 - search_all_worker_traces / list_worker_traces / get_worker_trace: Use these **only when necessary; most context is already in this session** to reuse information from another work run that appeared in its execution but was not saved as a fact. You cannot browse the exploration graph through these tools, but can search_all_worker_traces(q) across work histories (results include intent_id), list_worker_traces to see completed work, get_worker_trace(intent_id) for a step summary, and get_worker_trace(intent_id, step_ids=[...]) for full content of selected steps, at most five per call. **Use these only to reuse observations and avoid duplicated work; they do not broaden your task boundary. You must still perform only this intent.**
 
 Operate only within the authorized scope. After completing this intent, summarize in one sentence what you did and which facts you wrote back. Be practical, restrained, and focused on this one intent.`
@@ -179,7 +183,7 @@ const workerArtifactSubdir = "To prevent filename collisions with other work run
 
 func workerSystem(proxyAddr, workDir string) string {
 	body := renderSystem("worker", workerDefaultTmpl, WorkerVars{ProxyAddr: proxyAddr})
-	return withEnglish(body + workerTrafficBlock(proxyAddr) + artifactSpec(workDir) + workerArtifactSubdir)
+	return withEnglish(body + untrustedContentTail(body) + workerTrafficBlock(proxyAddr) + artifactSpec(workDir) + workerArtifactSubdir)
 }
 
 // renderIntentTask formats the claimed intent for the worker's SYSTEM prompt: the
@@ -219,6 +223,7 @@ func (w *Worker) Execute(ctx context.Context, name string, taskID int64, as *db.
 	tsx := NewToolSet(ts, name)
 	tsx.SetTaskID(taskID)
 	tsx.SetTrafficResolver(w.trafficResolver)
+	tsx.SetFindingVerifier(w.verifier)
 	if as != nil {
 		tsx.SetAssetStore(as, as.Companies())
 	}

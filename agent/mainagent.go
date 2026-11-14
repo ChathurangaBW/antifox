@@ -2,10 +2,13 @@ package agent
 
 import (
 	"context"
+	"encoding/json"
 	"fmt"
+	"path/filepath"
 
 	"antifox/db"
 	"antifox/engine/agentcore"
+	"antifox/engine/harness"
 	"antifox/engine/llm"
 	"antifox/engine/permission"
 	actool "antifox/engine/tool"
@@ -17,15 +20,17 @@ import (
 // (→planner) or direct high-priority intents (→frontier). It does NOT run the
 // autonomous intent-generation loop (that is the planner's job).
 type MainAgent struct {
-	prov        llm.Provider
-	model       string
-	tx          *transcript.Store // raw LLM conversation persistence (nil = off)
-	window      int               // context window in tokens (for compaction)
-	maxTurns    int               // max agent turns per run (0 = unlimited)
-	proxyAddr   string            // recording proxy for WebFetch (empty = direct)
-	proxyCACert string            // recording proxy's CA cert path (HTTPS verify)
-	webSearch   WebSearchOpts     // web_search tool backend selection (off by default)
-	workDir     string            // shared work dir (surfaced in prompt as artifact-output target)
+	prov            llm.Provider
+	model           string
+	tx              *transcript.Store // raw LLM conversation persistence (nil = off)
+	window          int               // context window in tokens (for compaction)
+	maxTurns        int               // max agent turns per run (0 = unlimited)
+	proxyAddr       string            // recording proxy for WebFetch (empty = direct)
+	proxyCACert     string            // recording proxy's CA cert path (HTTPS verify)
+	webSearch       WebSearchOpts     // web_search tool backend selection (off by default)
+	workDir         string            // shared work dir (surfaced in prompt as artifact-output target)
+	trafficResolver func(taskID int64, repro json.RawMessage) json.RawMessage
+	verifier        FindingVerifier
 }
 
 func NewMainAgent(prov llm.Provider, model, workDir string, tx *transcript.Store, window, maxTurns int) *MainAgent {
@@ -38,6 +43,14 @@ func (m *MainAgent) SetProxy(addr, caCert string) { m.proxyAddr, m.proxyCACert =
 
 // SetWebSearch selects the web_search backend for the main agent (off by default).
 func (m *MainAgent) SetWebSearch(o WebSearchOpts) { m.webSearch = o }
+
+// SetTrafficResolver wires the record-time traffic linkage callback onto MainAgent's ToolSet.
+// SetFindingVerifier wires machine-checked verification of recorded findings.
+func (m *MainAgent) SetFindingVerifier(fn FindingVerifier) { m.verifier = fn }
+
+func (m *MainAgent) SetTrafficResolver(fn func(taskID int64, repro json.RawMessage) json.RawMessage) {
+	m.trafficResolver = fn
+}
 
 // mainAgentDefaultTmpl is the built-in EDITABLE body (Paragraph [A]) of the main agent
 // prompt, seeded into agent_prompts. Goal is a {{.Goal}} template var; the Centre
@@ -61,20 +74,26 @@ Never fabricate findings. Record and answer only from real tool output and valid
 
 func mainAgentSystem(goal, workDir string) string {
 	body := renderSystem("mainagent", mainAgentDefaultTmpl, MainVars{Goal: goal})
-	return withEnglish(body + artifactSpec(workDir))
+	return withEnglish(body + untrustedContentTail(body) + artifactSpec(workDir))
 }
 
 // Chat handles one human message and returns the assistant reply. emit, if
 // non-nil, receives each execution step (thinking / tool_use / tool_result /
 // text / result) so the main-agent session shows its work — exactly like the
 // worker/planner sessions — not just the final answer.
-func (m *MainAgent) Chat(ctx context.Context, taskID int64, as *db.AssetStore, ts *db.ExplorationStore, goal, message string, emit func(db.Activity), notify func()) (string, error) {
+//
+// hooks gates every tool call (the task's guard); the main agent has shell and
+// file tools, so it must pass the same checks as a worker. nil runs ungated, for
+// tests only.
+func (m *MainAgent) Chat(ctx context.Context, taskID int64, as *db.AssetStore, ts *db.ExplorationStore, goal, message string, hooks harness.HookRunner, emit func(db.Activity), notify func()) (string, error) {
 	tsx := NewToolSet(ts, "human")
 	if as != nil {
 		tsx.SetAssetStore(as, as.Companies())
 	}
 	tsx.SetTaskID(taskID)
 	tsx.SetNotify(notify) // add_hint wakes this task's planner (debounced)
+	tsx.SetTrafficResolver(m.trafficResolver)
+	tsx.SetFindingVerifier(m.verifier)
 	// Field tools + Basic Default ToolsetsRead/Write/Edit/MultiEdit/LS/Glob/Grep/Bash)
 	base := append(tsx.MainAgentTools(), actool.DefaultTools()...)
 	tools, def, cleanup := AugmentTools(ctx, "mainagent", base)
@@ -101,9 +120,15 @@ func (m *MainAgent) Chat(ctx context.Context, taskID int64, as *db.AssetStore, t
 		BashEnv:            proxyEnv(m.proxyAddr, m.proxyCACert), // Bash Sub-order default proxy+Trust CA
 		MaxTurns:           m.maxTurns,                           // 0 = unlimited (configurable in agent management)
 		Compaction:         compactionConfig(m.window),           // long chats stay within the window
-		Todos:              actool.NewTodoStore(),                // Session Level Temporary To-doTodoWrite),It's for pure planning.
+		// Oversized tool output spills to a file the main agent can Read, so the
+		// harness-wide output cap never drops data (same directory as workers).
+		ToolOutputDir: filepath.Join(m.workDir, "cmd-output"),
+		Todos:         actool.NewTodoStore(), // Session Level Temporary To-doTodoWrite),It's for pure planning.
 		// When the step budget is exhausted the SDK ends the run: a progress summary is produced for the user, and the prompt and remaining turns are counted (default 5 turns).
 		Settlement: wrapupSettlement("mainagent", nil),
+	}
+	if hooks != nil {
+		opts.Hooks = hooks
 	}
 	if m.tx != nil { // persist raw human↔AI conversation; one accumulating file per task
 		opts.Transcript = m.tx

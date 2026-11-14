@@ -32,8 +32,14 @@ type Guard struct {
 	audit       []AuditEntry
 	attrib      map[string]int // failure attribution counts (Observer / G5)
 	reg         *hook.Registry
+	unattended  *hook.Registry         // same checks, but "ask" rules block (see UnattendedHooks)
 	interceptor *intercept.Interceptor // optional; nil disables user-configured rules
 }
+
+// unattendedAskMessage tells an agent that cannot wait for a human why a call
+// was blocked and what to do instead.
+const unattendedAskMessage = "An intercept rule requires operator approval for this call, and this agent runs without an operator to approve it. " +
+	"Do not retry it here: assign the work to a worker as an intent, where the approval request reaches the operator."
 
 // New creates a Guard without user-configured intercept rules (used for pentest
 // tasks where the Interceptor is not yet available).
@@ -47,11 +53,20 @@ func newGuard(ic *intercept.Interceptor) *Guard {
 	g.reg = hook.NewRegistry().
 		On(hook.PreToolUse, g.preToolUse).
 		On(hook.PostToolUse, g.postToolUse)
+	g.unattended = hook.NewRegistry().
+		On(hook.PreToolUse, func(ctx context.Context, ev hook.Event) hook.Result { return g.check(ctx, ev, false) }).
+		On(hook.PostToolUse, g.postToolUse)
 	return g
 }
 
 // Hooks returns the hook registry to attach to an agent session.
 func (g *Guard) Hooks() *hook.Registry { return g.reg }
+
+// UnattendedHooks returns the registry for agents that run with no operator
+// watching, such as the planner. Built-in and user deny rules apply exactly as
+// in Hooks; a rule that asks for approval blocks the call instead of waiting,
+// because no one would answer and the agent would stall.
+func (g *Guard) UnattendedHooks() *hook.Registry { return g.unattended }
 
 var (
 	reDestructive = regexp.MustCompile(`(?i)\b(rm\s+-rf\s+/|mkfs|dd\s+if=|:\(\)\s*\{|shutdown|reboot|>\s*/dev/sd)`)
@@ -59,6 +74,12 @@ var (
 )
 
 func (g *Guard) preToolUse(ctx context.Context, ev hook.Event) hook.Result {
+	return g.check(ctx, ev, true)
+}
+
+// check runs the built-in shell rules, then the user intercept rules. allowAsk
+// selects what an "ask" rule does: wait for the operator, or block at once.
+func (g *Guard) check(ctx context.Context, ev hook.Event, allowAsk bool) hook.Result {
 	// Gate the shell-command surface: Bash + the interactive-shell tools (shell_open's
 	// command, shell_send's text). Same destructive/exfil rules — an interactive
 	// session must not bypass the safety boundary. Other tools pass through.
@@ -78,11 +99,11 @@ func (g *Guard) preToolUse(ctx context.Context, ev hook.Event) hook.Result {
 		cmd = in.Text
 	default:
 		g.record(ev.ToolName, "allow", "", "")
-		return g.applyIntercept(ctx, ev)
+		return g.applyIntercept(ctx, ev, allowAsk)
 	}
 	if strings.TrimSpace(cmd) == "" { // e.g. shell_send with only keys/hex → nothing to check
 		g.record(ev.ToolName, "allow", "", "")
-		return g.applyIntercept(ctx, ev)
+		return g.applyIntercept(ctx, ev, allowAsk)
 	}
 
 	// destructive / exfil gating (§11 side-effect gating)
@@ -94,12 +115,12 @@ func (g *Guard) preToolUse(ctx context.Context, ev hook.Event) hook.Result {
 	}
 
 	g.record(ev.ToolName, "allow", "", cmd)
-	return g.applyIntercept(ctx, ev)
+	return g.applyIntercept(ctx, ev, allowAsk)
 }
 
 // applyIntercept evaluates user-configured intercept rules against the tool call.
 // It is called after all built-in safety checks pass.
-func (g *Guard) applyIntercept(ctx context.Context, ev hook.Event) hook.Result {
+func (g *Guard) applyIntercept(ctx context.Context, ev hook.Event, allowAsk bool) hook.Result {
 	if g.interceptor == nil {
 		return hook.Result{}
 	}
@@ -116,6 +137,9 @@ func (g *Guard) applyIntercept(ctx context.Context, ev hook.Event) hook.Result {
 	case "allow":
 		return hook.Result{}
 	case "ask":
+		if !allowAsk {
+			return g.block(ev.ToolName, unattendedAskMessage, "")
+		}
 		// If the worker context is already cancelled (task stopped / killed), block
 		// immediately without creating a pending record — avoids orphaned DB entries
 		// and makes execOne complete fast, reducing the race against drainSynthetic.

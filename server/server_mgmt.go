@@ -1545,6 +1545,16 @@ func (s *Server) pgSaveProfile(w http.ResponseWriter, r *http.Request) {
 	}
 	p := body.LLMProfile
 	p.APIKey = body.APIKey
+	// Editing a profile without re-entering its key keeps the stored key. That is
+	// only safe while the endpoint stays the same; otherwise every later call on
+	// this profile would carry the stored key to the newly named host.
+	if p.ID != 0 && strings.TrimSpace(p.APIKey) == "" {
+		if old, _ := pg.ProfileByID(p.ID); old != nil && old.APIKey != "" &&
+			!sameLLMEndpoint(p.Format, p.BaseURL, old.Format, old.BaseURL) {
+			writeErr(w, 400, errKeyEndpointChanged)
+			return
+		}
+	}
 	id, err := pg.SaveProfile(&p)
 	if err != nil {
 		writeErr(w, 500, err.Error())

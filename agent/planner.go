@@ -4,12 +4,14 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	"path/filepath"
 	"strings"
 	"sync"
 	"time"
 
 	"antifox/db"
 	"antifox/engine/agentcore"
+	"antifox/engine/harness"
 	"antifox/engine/llm"
 	"antifox/engine/permission"
 	actool "antifox/engine/tool"
@@ -32,6 +34,11 @@ type Planner struct {
 	proxyCACert string                                 // recording proxy's CA cert path (HTTPS verify)
 	webSearch   WebSearchOpts                          // web_search tool backend selection (off by default)
 	workDir     string                                 // shared work dir (surfaced in prompt as artifact-output target)
+	// The planner can record findings too (report_finding), so it gets the same
+	// record-time traffic linkage and verification as a worker. Before, its
+	// findings were never linked to the traffic that proves them.
+	trafficResolver func(taskID int64, repro json.RawMessage) json.RawMessage
+	verifier        FindingVerifier
 
 	// todos keeps ONE plan-scratchpad per task (keyed by exploration id) so the
 	// planner's multi-step plan survives across wake-ups — each Plan() is a fresh
@@ -48,6 +55,14 @@ func NewPlanner(prov llm.Provider, model, workDir string, tx *transcript.Store, 
 // SetProxy points the planner's WebFetch at the recording proxy plus the CA cert
 // it trusts to verify HTTPS through it (empty addr = direct).
 func (p *Planner) SetProxy(addr, caCert string) { p.proxyAddr, p.proxyCACert = addr, caCert }
+
+// SetTrafficResolver wires record-time linkage of finding steps to recorded traffic.
+func (p *Planner) SetTrafficResolver(fn func(taskID int64, repro json.RawMessage) json.RawMessage) {
+	p.trafficResolver = fn
+}
+
+// SetFindingVerifier wires machine-checked verification of recorded findings.
+func (p *Planner) SetFindingVerifier(fn FindingVerifier) { p.verifier = fn }
 
 // SetWebSearch selects the web_search backend for the planner (off by default).
 func (p *Planner) SetWebSearch(o WebSearchOpts) { p.webSearch = o }
@@ -137,7 +152,7 @@ Decision process for every wake-up:
 1. **The complete state is attached below this prompt. It is the graph_overview response, so do not call graph_overview again.** It contains: task (the **original task title and goal**, represented by the root node); asset counts; goals and their status; open/running/recent_done intents; sites_without_endpoints; findings (the count of **confirmed vulnerabilities**); facts (the count of **exploration facts/conclusions**, which are distinct from vulnerabilities); and recent_facts (recent {id, summary, confidence?} facts, including **negative conclusions** such as "port closed" or "not injectable"). Do not create intents for dead ends already established by those facts. However, a negative conclusion with confidence=inferred is only a weakly supported inference, not definitive proof; if that direction is important to the goal, one review intent may be warranted. **Exploration nodes here—goals, intents, facts, and findings—belong only to this task; they never include another task's goals. The asset graph is globally shared:** multiple tasks use the same graph, so in-scope asset counts are global rather than unique to this task. Only when deeper detail is needed, call list_facts for all facts, list_findings for all findings, or node_detail(id) for one node's complete evidence/details; lists and recent_facts contain summaries only.
    - open_intents / running_intents / recent_done_intents show which directions are covered or have already been attempted. Each intent includes **parents** (upstream facts/intents from which it was derived) and **yields** (downstream facts/findings it produced). This is the exploration graph's **lineage**; use it to understand which facts came from which direction and whether facts can be combined into a new direction. Each recent_facts entry also includes **from_intent**, identifying the producing intent.
    - sites_without_endpoints / findings indicate directions that **may** warrant exploration.
-   - Only when one part requires detail, call list_assets on demand (pull mode: search with q; combine type/company_id/task_id filters; paginate with limit/offset; or fetch directly with id/ids), asset_neighbors, or list_findings. Because the asset graph is shared globally, never fetch everything by default. Assets unrelated to this task may be present; ignore them when they are not relevant to the current task.
+   - Only when one part requires detail, call list_assets on demand (pull mode: search with q or dsl; combine type/company_id/task_id filters; paginate with limit/offset; or fetch directly with id/ids), or call list_findings. Because the asset graph is shared globally, never fetch everything by default. Assets unrelated to this task may be present; ignore them when they are not relevant to the current task.
 
 2. **Evaluate goals—this is your core responsibility.** graph_overview already lists goals and their statuses. When an unmet goal has been proven by a finding or fact, call prove_goal(goal_id,evidence_id,reason) to mark it met. **If the goal you mark with prove_goal is the last unfinished goal, the system automatically completes the entire task; you do not need to call goal_met.** Completion should be driven by proving each goal individually.
    ⚠️ **Verify quantitative acceptance criteria; never approve completion early.** If a goal has a measurable condition—such as "obtain N flags / N vulnerabilities," "obtain a particular privilege or sensitive data," or "reach conclusions for every asset/interface in a set"—then before prove_goal or any other completion action, **you must compare that condition against the measured graph_overview state above**: finding counts, relevant facts, whether each corresponding asset has a conclusion, and so on. If the measured result falls short, **do not** mark the goal met; assign intents to close the gap. **Never approve it early because "the main part is complete," "it is broadly achieved," or "the core objective is secured," and never use goal_met to bypass this check.** Example: if the goal requires three flags and the graph proves only one, the goal is unmet; continue assigning additional testing and do not mark it complete.
@@ -164,14 +179,14 @@ Decision process for every wake-up:
 
 4. Call add_intent **once** to batch-submit the new directions selected in step 3. Pass an intents array containing at most the four highest-value directions; do not make one tool call per intent.
    - summary: Describe the direction in one natural-language sentence stating what to do and why. **Do not force it into a fixed category.** Make the direction explicit because deduplication primarily compares it against summaries of existing intents.
-   - asset_ids: IDs of the assets this direction will **test or attack**, from list_assets. **Supply these whenever possible**; zero, one, or many are allowed. If the direction concerns specific assets—a site, interface, parameter, or host—you **must include them**. This identifies what the exploration targets, enables coverage deduplication, and links the intent into the asset chain. Include every asset when the direction spans several. Leave empty only for truly global reconnaissance with no specific target asset.
+   - asset_ids: IDs of the assets this direction will **test or attack**, returned by list_assets. **Never guess or invent asset IDs or pass exploration-node IDs.** Look them up with list_assets first; if the direction targets specific known assets, include their IDs so the intent links cleanly and avoids duplicates. Leave empty when no matching asset record exists or for global reconnaissance.
    - parent_ids: Optional IDs of the **upstream nodes** from which this direction was derived; zero, one, or many are allowed. If several facts combine to produce a new intent, include all their IDs. Also include the ID when deriving it from an upstream intent or finding. Leave empty for a wholly new top-level direction.
 
 Prefer creating nothing over creating duplicates or filler. Be concise, restrained, and efficient.`
 
 func plannerSystem(goal, workDir string) string {
 	body := renderSystem("planner", plannerDefaultTmpl, PlannerVars{Goal: goal, Now: time.Now().Format("2006-01-02 15:04:05 MST")})
-	return withEnglish(body + artifactSpec(workDir))
+	return withEnglish(body + untrustedDataTail(body) + artifactSpec(workDir))
 }
 
 // Plan runs one planning round. emit, if non-nil, receives the planner's execution
@@ -182,7 +197,10 @@ func plannerSystem(goal, workDir string) string {
 // round (may be several — the engine debounces a burst; empty for non-completion
 // wakes). They are surfaced in the prompt so the planner focuses on the fresh
 // yields of what just finished.
-func (p *Planner) Plan(ctx context.Context, taskID int64, as *db.AssetStore, ts *db.ExplorationStore, goal string, doneIntents []int64, emit func(db.Activity)) (met bool, reason string, err error) {
+// hooks gates every tool call the planner makes (the task's guard). It has shell
+// and file tools, so running it ungated left a hole in the safety boundary.
+// nil runs ungated, for tests only.
+func (p *Planner) Plan(ctx context.Context, taskID int64, as *db.AssetStore, ts *db.ExplorationStore, goal string, doneIntents []int64, hooks harness.HookRunner, emit func(db.Activity)) (met bool, reason string, err error) {
 	tsx := NewToolSet(ts, "planner")
 	if as != nil {
 		tsx.SetAssetStore(as, as.Companies())
@@ -190,6 +208,8 @@ func (p *Planner) Plan(ctx context.Context, taskID int64, as *db.AssetStore, ts 
 	tsx.SetTaskID(taskID)
 	tsx.killWork = p.killWork   // enable kill_work tool (nil = unavailable)
 	tsx.steerWork = p.steerWork // enable steer_work tool (nil = unavailable)
+	tsx.SetTrafficResolver(p.trafficResolver)
+	tsx.SetFindingVerifier(p.verifier)
 	if origin, _ := ts.OriginFactID(); origin > 0 {
 		tsx.SetOwnerNode(origin) // planner-side anchors default to the task root (origin fact)
 	}
@@ -237,12 +257,18 @@ func (p *Planner) Plan(ctx context.Context, taskID int64, as *db.AssetStore, ts 
 		MaxTurns:           p.maxTurns,                           // 0 = unlimited (configurable in agent management)
 		MaxDuration:        maxDur,                               // 0 = unlimited; otherwise the remaining time until the deadline
 		Compaction:         compactionConfig(p.window),
+		// Oversized tool output spills to a file the planner can Read, so the
+		// harness-wide output cap never drops data (same directory as workers).
+		ToolOutputDir: filepath.Join(p.workDir, "cmd-output"),
 		// Plan-to-dos for cross-aware sharing: keep the chain between multiple roundssession Is new,store No. No.
 		Todos: p.todoFor(ts.ID()),
 		// The budget for the strike.→ SDK End of the run.:Putting down what we've come up with.(It's a pie. add_intent,
 		// I can prove it. prove_goal, Serial chain TodoWrite),Not stop planning.——planner And then they'll wake up again and again.
 		// clamped(Tasked deadline Cracker.)Time to Use PromptByReason(See wrapupSettlementForTask).
 		Settlement: settle,
+	}
+	if hooks != nil {
+		opts.Hooks = hooks
 	}
 	if p.tx != nil { // persist raw LLM conversation; one accumulating file per task's planner
 		opts.Transcript = p.tx

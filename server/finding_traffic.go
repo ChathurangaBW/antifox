@@ -31,6 +31,7 @@ func (s *Server) linkFindingTraffic(w http.ResponseWriter, r *http.Request) {
 		writeErr(w, 500, "Association failed: "+err.Error())
 		return
 	}
+	s.reverifyFinding(nodeID) // the evidence changed, so the verdict may too
 	writeJSON(w, 200, map[string]any{"ok": true, "linked": len(req.ExchangeIDs)})
 }
 
@@ -72,5 +73,6 @@ func (s *Server) unlinkFindingTraffic(w http.ResponseWriter, r *http.Request) {
 		writeErr(w, 500, "Undo Failed: "+err.Error())
 		return
 	}
+	s.reverifyFinding(nodeID) // the evidence changed, so the verdict may too
 	writeJSON(w, 200, map[string]any{"ok": true})
 }

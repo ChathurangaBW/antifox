@@ -70,7 +70,7 @@ cp .env.example .env          # set POSTGRES_PASSWORD
 docker compose up -d          # pulls the image + PostgreSQL and starts
 ```
 
-Open **http://localhost:8787** — on first run, go to `/setup` to set the admin password.
+Open **http://localhost:8787** — on first run, go to `/setup` to set the admin password. The page asks for a one-time setup token, which the server prints to its log at startup (`docker compose logs antifox | grep "Setup token"`), so only someone with access to the server can claim a fresh install.
 
 ### Option 2: Prebuilt binary
 

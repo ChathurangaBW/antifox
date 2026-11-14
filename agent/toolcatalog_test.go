@@ -26,6 +26,46 @@ func TestBuiltinToolSeeds(t *testing.T) {
 	if rf, ok := byKey["record_fact"]; !ok || len(rf.Agents) != 1 || rf.Agents[0] != "worker" {
 		t.Errorf("record_fact agents = %v, want [worker]", rf.Agents)
 	}
+	// list_assets must be bound to planner, worker, mainagent, auto, and pentest.
+	la, ok := byKey["list_assets"]
+	if !ok {
+		t.Fatal("list_assets missing from BuiltinToolSeeds")
+	}
+	for _, wantAgent := range []string{"mainagent", "planner", "worker", "auto", "pentest"} {
+		found := false
+		for _, a := range la.Agents {
+			if a == wantAgent {
+				found = true
+				break
+			}
+		}
+		if !found {
+			t.Errorf("list_assets agents %v missing %q", la.Agents, wantAgent)
+		}
+	}
+	// PlannerTools itself must include list_assets so planner never hits "unknown tool".
+	hasPlannerListAssets := false
+	for _, pt := range NewToolSet(nil, "planner").PlannerTools() {
+		if pt.Name() == "list_assets" {
+			hasPlannerListAssets = true
+			break
+		}
+	}
+	if !hasPlannerListAssets {
+		t.Errorf("PlannerTools() is missing list_assets")
+	}
+	// MainAgentTools itself must include report_finding so task-bound MainAgent
+	// sessions do not fall back to the server-level ToolSet (ts == nil).
+	hasMainReportFinding := false
+	for _, mt := range NewToolSet(nil, "human").MainAgentTools() {
+		if mt.Name() == "report_finding" {
+			hasMainReportFinding = true
+			break
+		}
+	}
+	if !hasMainReportFinding {
+		t.Errorf("MainAgentTools() is missing report_finding")
+	}
 	// SDK generic tools (incl. sleep, now part of DefaultTools) are deliberately NOT
 	// seeded — every agent owns them; they flow through ToolResolve untouched.
 	for _, k := range []string{"Bash", "Read", "Write", "Edit", "Grep", "sleep"} {

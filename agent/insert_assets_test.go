@@ -426,3 +426,30 @@ func TestParseScanRecords(t *testing.T) {
 		t.Errorf("ffuf parse mismatch: %+v", ffufItems)
 	}
 }
+
+func TestBuildListAssetsDSL(t *testing.T) {
+	cases := []struct {
+		dsl, q            string
+		companyID, taskID int64
+		want              string
+	}{
+		{q: "10.129.205.13", want: "10.129.205.13"},
+		{q: "bedside", want: "bedside"},
+		{q: "bedside portal", want: "bedside AND portal"},
+		{dsl: "port==80", q: "10.129.205.13", taskID: 4, want: "((port==80) AND (10.129.205.13)) AND task_id=4"},
+		{companyID: 2, taskID: 9, want: "company_id=2 AND task_id=9"},
+		{want: ""},
+	}
+	for _, tc := range cases {
+		got := buildListAssetsDSL(tc.dsl, tc.q, tc.companyID, tc.taskID)
+		if got != tc.want {
+			t.Errorf("buildListAssetsDSL(%q,%q,%d,%d) = %q, want %q", tc.dsl, tc.q, tc.companyID, tc.taskID, got, tc.want)
+			continue
+		}
+		if got != "" {
+			if _, err := db.ParseDSL(got); err != nil {
+				t.Errorf("db.ParseDSL(%q) failed: %v", got, err)
+			}
+		}
+	}
+}

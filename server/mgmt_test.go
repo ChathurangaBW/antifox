@@ -4,9 +4,13 @@ import (
 	"bytes"
 	"context"
 	"encoding/json"
+	"fmt"
 	"net/http"
 	"net/http/httptest"
 	"testing"
+	"time"
+
+	"antifox/db"
 )
 
 // TestMgmtAPI exercises the PostgreSQL-backed management API through the real mux.
@@ -21,7 +25,13 @@ func TestMgmtAPI(t *testing.T) {
 	td := t.TempDir()
 	s := New(context.Background(), m, td, td)
 	h := s.Handler()
-	tok, err := signJWT(s.jwtKey, "test-admin", "admin")
+	// Access is resolved from rbac_users by the token subject, so the subject must
+	// be a real admin user ID; a role claim in the token alone is not trusted.
+	admin, err := m.pg.CreateRBACUser(fmt.Sprintf("test-admin-%d", time.Now().UnixNano()), "Test Admin", "x", true, []string{db.RBACRoleAdmin})
+	if err != nil {
+		t.Fatalf("create admin user: %v", err)
+	}
+	tok, err := signJWT(s.jwtKey, admin.ID, admin.Username)
 	if err != nil {
 		t.Fatalf("sign jwt: %v", err)
 	}

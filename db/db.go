@@ -249,7 +249,11 @@ ON CONFLICT (name) DO NOTHING`,
 // where that hasn't happened the knowledge base degrades to keyword search.
 // Records the outcome in the settings flag "knowledge.vector_available".
 func (d *DB) ensureKnowledgeVectorSchema() {
-	if _, err := d.Exec(`CREATE EXTENSION IF NOT EXISTS vector`); err != nil {
+	// CREATE EXTENSION IF NOT EXISTS is not safe under concurrency: two openers can
+	// both pass the existence check, and the loser fails with a unique violation on
+	// pg_extension even though the extension now exists. Re-check before treating
+	// the error as "pgvector unavailable", or one lost race disables semantic search.
+	if _, err := d.Exec(`CREATE EXTENSION IF NOT EXISTS vector`); err != nil && !d.vectorExtensionPresent() {
 		log.Printf("[knowledge] pgvector Not Available%v)——Semantic search is disabled, downgraded to keyword search."+
 			"Super user execution is required once to enable CREATE EXTENSION vector", err)
 		_ = d.SetBool("knowledge.vector_available", false)
@@ -546,4 +550,13 @@ ON CONFLICT DO NOTHING`,
 		}
 	}
 	return d.SetSetting("intercept_default_rules_v1", "done")
+}
+
+// vectorExtensionPresent reports whether the pgvector extension is installed.
+func (d *DB) vectorExtensionPresent() bool {
+	var ok bool
+	if err := d.QueryRow(`SELECT EXISTS (SELECT 1 FROM pg_extension WHERE extname = 'vector')`).Scan(&ok); err != nil {
+		return false
+	}
+	return ok
 }

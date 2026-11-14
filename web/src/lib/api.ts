@@ -118,8 +118,8 @@ export const api = {
   authStatus: () => get<{ initialized: boolean }>("/auth/status"),
   login: (username: string, password: string) =>
     post<{ token: string }>("/auth/login", { username, password }),
-  initPassword: (password: string) =>
-    post<{ token: string }>("/auth/init", { password }),
+  initPassword: (password: string, setupToken: string) =>
+    post<{ token: string }>("/auth/init", { password, setup_token: setupToken }),
   changePassword: (oldPassword: string, newPassword: string) =>
     post<{ ok: boolean; token?: string }>("/auth/change-password", { old_password: oldPassword, new_password: newPassword }).then((r) => {
       // It'll be obsolete. token(Including this session; backend to send a new token,Here, replace local storage instantaneously.
@@ -452,8 +452,10 @@ export const api = {
 
   // ---- conversations (chat page) ----
   conversations: () => get<{ conversations: Conversation[] }>("/conversations").then((r) => arr(r.conversations)),
-  createConversation: (agent_key: string, title = "", llm_profile_id?: number | null) =>
-    post<Conversation>("/conversations", { agent_key, title, llm_profile_id: llm_profile_id ?? null }),
+  createConversation: (agent_key: string, title = "", llm_profile_id?: number | null, task_id?: number | null) =>
+    post<Conversation>("/conversations", { agent_key, title, llm_profile_id: llm_profile_id ?? null, task_id: task_id ?? null }),
+  setConversationTask: (id: number, task_id: number | null) =>
+    patch<{ ok: boolean }>(`/conversations/${id}/task`, { task_id }),
   renameConversation: (id: number, title: string) => patch<{ ok: boolean }>(`/conversations/${id}`, { title }),
   updateConversationProfile: (id: number, llm_profile_id: number | null) =>
     patch<{ ok: boolean }>(`/conversations/${id}/profile`, { llm_profile_id }),

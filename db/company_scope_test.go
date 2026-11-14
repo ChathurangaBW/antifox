@@ -56,8 +56,17 @@ func TestCompanyScopeAttribution(t *testing.T) {
 		d.Close()
 		t.Fatalf("startMax: %v", err)
 	}
+	// Companies (and their scope rows, via ON DELETE CASCADE) must be removed too:
+	// the test uses fixed documentation IP ranges, so a scope left behind by an
+	// earlier run would claim those IPs and break attribution on the next run.
+	var startCompanyMax int64
+	if err := d.QueryRow(`SELECT COALESCE(MAX(id),0) FROM companies`).Scan(&startCompanyMax); err != nil {
+		d.Close()
+		t.Fatalf("startCompanyMax: %v", err)
+	}
 	t.Cleanup(func() {
 		_, _ = d.Exec(`DELETE FROM assets WHERE id > $1`, startMax)
+		_, _ = d.Exec(`DELETE FROM companies WHERE id > $1`, startCompanyMax)
 		d.Close()
 	})
 

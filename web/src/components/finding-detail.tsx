@@ -2,7 +2,7 @@
 
 import * as React from "react";
 
-import { CameraIcon, CheckIcon, ChevronDownIcon, CopyIcon, ExternalLinkIcon, ImagePlusIcon, Link2Icon, Loader2Icon, PencilIcon, ShieldAlertIcon, SparklesIcon, Trash2Icon, XIcon } from "lucide-react";
+import { CameraIcon, CheckIcon, ChevronDownIcon, CopyIcon, ExternalLinkIcon, ImagePlusIcon, Link2Icon, Loader2Icon, PencilIcon, ShieldAlertIcon, ShieldCheckIcon, ShieldQuestionIcon, ShieldXIcon, SparklesIcon, Trash2Icon, XIcon } from "lucide-react";
 import { useTranslation } from "react-i18next";
 import { toast } from "sonner";
 
@@ -266,7 +266,7 @@ export function FindingDetail({ finding, onChanged }: { finding: Finding; onChan
             </div>
           </div>
           {/* row 2: target + CVSS (wraps freely, never affects the actions) */}
-          {(target || (enr && enr.cvss_score > 0)) && (
+          {(target || (enr && enr.cvss_score > 0) || finding.verification_status) && (
             <div className="flex flex-wrap items-center gap-x-3 gap-y-1 text-xs text-muted-foreground">
               {target && <code className="max-w-full break-all rounded bg-muted px-1.5 py-0.5 font-mono">{target}</code>}
               {enr && enr.cvss_score > 0 && (
@@ -275,6 +275,7 @@ export function FindingDetail({ finding, onChanged }: { finding: Finding; onChan
                   {enr.cvss_vector ? ` · ${enr.cvss_vector}` : ""}
                 </span>
               )}
+              {finding.verification_status && <VerificationLine finding={finding} />}
             </div>
           )}
         </div>
@@ -760,5 +761,35 @@ function Meta({ label, children }: { label: string; children: React.ReactNode })
       <span className="text-muted-foreground">{label}</span>
       <span>{children}</span>
     </div>
+  );
+}
+
+// VerificationLine shows the machine-checked verification state of a finding and,
+// when it is not verified, the reason the server recorded (for example "no
+// recorded traffic is linked" or "quote not found in linked evidence").
+function VerificationLine({ finding }: { finding: Finding }) {
+  const { t } = useTranslation();
+  const s = finding.verification_status;
+  if (s === "verified") {
+    return (
+      <span className="inline-flex items-center gap-1 font-medium text-emerald-700 dark:text-emerald-400" title={t("findings.verification.verifiedHint")}>
+        <ShieldCheckIcon className="size-3.5" />
+        {t("findings.verification.verified", { level: finding.poe_level ?? 0 })}
+      </span>
+    );
+  }
+  const notAssessed = s === "not_assessed";
+  return (
+    <span className="inline-flex min-w-0 items-center gap-1">
+      {notAssessed ? (
+        <ShieldQuestionIcon className="size-3.5 shrink-0 text-amber-600 dark:text-amber-400" />
+      ) : (
+        <ShieldXIcon className="size-3.5 shrink-0" />
+      )}
+      <span className="font-medium">
+        {notAssessed ? t("findings.verification.notAssessed") : t("findings.verification.unverified")}
+      </span>
+      {finding.verification_note && <span className="break-words">· {finding.verification_note}</span>}
+    </span>
   );
 }

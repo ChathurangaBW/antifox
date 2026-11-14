@@ -228,10 +228,18 @@ func (s *Server) authInit(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	var req struct {
-		Password string `json:"password"`
+		Password   string `json:"password"`
+		SetupToken string `json:"setup_token"`
 	}
 	if err := decode(r, &req); err != nil {
 		writeErr(w, 400, "Request format error")
+		return
+	}
+	// 403, not 401: the frontend treats any 401 as an expired session and
+	// redirects to /login, which would hide this message.
+	if !s.checkSetupToken(req.SetupToken) {
+		pg.RecordAudit("", "auth", "init", "fail", ip, "Initialization rejected: missing or wrong setup token", nil)
+		writeErr(w, 403, "Invalid setup token. The server log prints it at startup while no admin password is set: docker compose logs antifox | grep \"Setup token\"")
 		return
 	}
 	if msg := validatePasswordStrength(req.Password); msg != "" {
@@ -248,6 +256,7 @@ func (s *Server) authInit(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	_ = pg.SetSetting(authPassKey, string(hash)) // Compatibility reservations
+	s.clearSetupToken()
 	ver := 0
 	if u, e := pg.GetRBACUserByID("admin"); e == nil && u != nil {
 		ver = u.TokenVersion

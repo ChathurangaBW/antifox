@@ -400,9 +400,12 @@ func (s *Server) seedOrchestrationTools() {
 	}
 	s.seedKaliToolCatalog()
 	s.refreshBuiltinToolSchemas()
-	s.refreshReportFindingSchema() // Add reproduction Parameters for the structured recurrence process → Push to old library,Otherwise... agent I can't see it.
+	s.refreshReportFindingSchema()    // Add reproduction Parameters for the structured recurrence process → Push to old library,Otherwise... agent I can't see it.
+	s.seedFindingVerificationSchema() // poe_level / evidence_quotes on report_finding, added once and edit-preserving
 	s.seedAutoDefaultBindings()
 	s.seedPlannerDefaultBindings()
+	s.refreshToolListAssets()
+	s.seedPentestDefaultBindings()
 	s.seedAutoReportFindingBinding()
 	s.seedMainagentReportFindingBinding()
 	s.reseedAgentPrompt("mainagent", "prompt_exposure_findings_mainagent_v1", "Record exposure/Information leak class discovery + When combing, expose the confirmed.")
@@ -415,7 +418,11 @@ func (s *Server) seedOrchestrationTools() {
 	s.reseedAgentPrompt("worker", "prompt_reproduction_recipe_v1", "report_finding Fill structured recurrence process(Record locally,Request to be true word by word)")
 	s.reseedAgentPrompt("pentest", "prompt_reproduction_recipe_pentest_v1", "report_finding Fill structured recurrence process")
 	s.reseedAgentPrompt("mainagent", "prompt_reproduction_recipe_mainagent_v1", "report_finding Fill structured recurrence process")
+	s.reseedAgentPrompt("planner", "prompt_planner_list_assets_v2", "Update list_assets usage guidance, forbid asset_id guessing, and remove retired asset_neighbors reference")
+	s.reseedAgentPrompt("worker", "prompt_worker_list_assets_v2", "Remove retired asset_neighbors reference")
+	s.reseedAgentPrompt("auto", "prompt_auto_update_skill_file_v1", "Name the real skill-editing tool, update_skill_file, instead of the nonexistent update_skill")
 	s.bumpWorkerRunSecondsTo1200() // worker Single Wall Bell 600→1200s(only undefined defaults;references AntiFox 0.3.3)
+	s.warnPromptToolDrift()        // last: checks prompts and bindings after every seed and reseed above
 	// Notes:pentest Default tool binding does not need to be migrated——BuiltinToolSeeds At the start of the whole new thing.
 	// list_assets/insert_assets/report_finding/list_findings/list_companies with
 	// pentest Together. seed Okay.
@@ -466,17 +473,38 @@ func (s *Server) seedAutoReportFindingBinding() {
 	_ = s.m.pg.SetSetting(flag, "true")
 }
 
-// seedPlannerDefaultBindings adds "planner" to report_finding's binding ONCE
-// (guarded by a settings flag), so existing DBs — whose report_finding row was
-// seeded as worker-only — also let the planner record findings. Fresh DBs already
-// get it via PlannerTools(); this only backfills without overriding a user unbind.
+// seedPlannerDefaultBindings adds "report_finding" and "list_assets" to "planner" ONCE
+// (guarded by settings flags), so existing DBs also let the planner look up assets
+// and record findings without overriding a user unbind.
 func (s *Server) seedPlannerDefaultBindings() {
 	const flag = "planner_report_finding_v1"
+	if v, _, _ := s.m.pg.GetSetting(flag); v != "true" {
+		if err := s.m.pg.AddAgentToToolBinding("planner", []string{"report_finding"}); err != nil {
+			log.Printf("[planner] report_finding Default binding failed: %v", err)
+		} else {
+			_ = s.m.pg.SetSetting(flag, "true")
+		}
+	}
+	const assetFlag = "planner_list_assets_v1"
+	if v, _, _ := s.m.pg.GetSetting(assetFlag); v != "true" {
+		if err := s.m.pg.AddAgentToToolBinding("planner", []string{"list_assets"}); err != nil {
+			log.Printf("[planner] list_assets default binding failed: %v", err)
+		} else {
+			_ = s.m.pg.SetSetting(assetFlag, "true")
+		}
+	}
+}
+
+// seedPentestDefaultBindings guarantees "pentest" has its core asset/finding/KB
+// tools bound on upgraded DBs created before pentest had full default bindings.
+func (s *Server) seedPentestDefaultBindings() {
+	const flag = "pentest_default_bindings_v1"
 	if v, _, _ := s.m.pg.GetSetting(flag); v == "true" {
 		return
 	}
-	if err := s.m.pg.AddAgentToToolBinding("planner", []string{"report_finding"}); err != nil {
-		log.Printf("[planner] report_finding Default binding failed: %v", err)
+	keys := []string{"list_assets", "insert_assets", "report_finding", "list_findings", "list_companies", "search_knowledge", "list_knowledge_categories"}
+	if err := s.m.pg.AddAgentToToolBinding("pentest", keys); err != nil {
+		log.Printf("[pentest] default binding failed: %v", err)
 		return
 	}
 	_ = s.m.pg.SetSetting(flag, "true")
@@ -538,18 +566,89 @@ func (s *Server) reseedAgentPrompt(key, flag, note string) {
 	if !ok {
 		return
 	}
+	cur, updatedBy, err := s.m.pg.CurrentPromptMeta(a.ID)
+	if err != nil || cur == "" {
+		return
+	}
 	// Fresh DBs just seeded this exact template as v1; appending an identical v2 is a
 	// cosmetic duplicate in the version history. Skip the write when already current.
-	if cur, _ := s.m.pg.CurrentPrompt(a.ID); cur == tmpl {
+	if cur == tmpl {
 		_ = s.m.pg.SetSetting(flag, "true")
 		return
 	}
-	if _, err := s.m.pg.SavePrompt(a.ID, tmpl, "System update:"+note, "system"); err != nil {
-		log.Printf("[%s] prompt Replay failed: %v", key, err)
+	// Never overwrite a prompt that an operator customized (updated_by != "system").
+	if updatedBy != "system" {
+		_ = s.m.pg.SetSetting(flag, "true")
+		log.Printf("[%s] Preserving user-customized prompt (%s); skipped system prompt update", key, updatedBy)
+		return
+	}
+	if _, err := s.m.pg.SavePrompt(a.ID, tmpl, "System update: "+note, "system"); err != nil {
+		log.Printf("[%s] prompt update failed: %v", key, err)
 		return
 	}
 	_ = s.m.pg.SetSetting(flag, "true")
-	log.Printf("[%s] Updated Psych%s)", key, note)
+	log.Printf("[%s] Updated prompt (%s)", key, note)
+}
+
+// refreshToolListAssets updates ONLY list_assets on existing DBs (once per flag)
+// so new query parameters (q, company_id, task_id) and planner docs reach upgraded
+// databases without resetting unrelated built-in tools or user customizations.
+func (s *Server) refreshToolListAssets() {
+	const flag = "tool_schema_refresh_list_assets_v1"
+	if v, _, _ := s.m.pg.GetSetting(flag); v == "true" {
+		return
+	}
+	var seed *agent.ToolSeed
+	for _, sd := range agent.BuiltinToolSeeds() {
+		if sd.Key == "list_assets" {
+			cp := sd
+			seed = &cp
+			break
+		}
+	}
+	if seed == nil {
+		return
+	}
+	cur, err := s.m.pg.GetTool("list_assets")
+	if err != nil {
+		return
+	}
+	if cur == nil {
+		_ = s.m.pg.SetSetting(flag, "true")
+		return
+	}
+	isStock := cur.Description == "" ||
+		cur.Description == seed.Desc ||
+		strings.HasPrefix(cur.Description, "Search for asset bank") ||
+		strings.HasPrefix(cur.Description, "Search the asset store") ||
+		strings.HasPrefix(cur.Description, "搜索资产库")
+	if cur.Description != seed.Desc && isStock {
+		b, _ := json.Marshal(seed.Schema)
+		var seedMap map[string]any
+		_ = json.Unmarshal(b, &seedMap)
+		var curMap map[string]any
+		if json.Unmarshal(cur.Schema, &curMap) == nil {
+			if sp, ok := seedMap["properties"].(map[string]any); ok {
+				if cp, ok := curMap["properties"].(map[string]any); ok {
+					for k, v := range cp {
+						if cm, ok := v.(map[string]any); ok {
+							if def, hasDef := cm["default"]; hasDef {
+								if sm, ok := sp[k].(map[string]any); ok {
+									sm["default"] = def
+								}
+							}
+						}
+					}
+				}
+			}
+		}
+		schema, _ := json.Marshal(seedMap)
+		if err := s.m.pg.RefreshToolDefaults(seed.Key, seed.Desc, schema); err != nil {
+			log.Printf("[tools] refresh %s failed: %v", seed.Key, err)
+			return
+		}
+	}
+	_ = s.m.pg.SetSetting(flag, "true")
 }
 
 // refreshReportFindingSchema pushes report_finding's CODE schema to the DB tools table

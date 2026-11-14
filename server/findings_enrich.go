@@ -171,7 +171,11 @@ func (s *Server) findingDetail(w http.ResponseWriter, r *http.Request) {
 			_ = json.Unmarshal(f.Reproduction, &repro)
 		}
 	}
-	writeJSON(w, 200, map[string]any{"finding": findingFromDB(f), "enrichment": dtoFromEnrichment(enr), "reproduction": repro})
+	dto := findingFromDB(f)
+	if v, _ := s.m.pg.GetFindingVerification(id); v != nil {
+		dto.VerificationStatus, dto.VerificationNote, dto.POELevel = v.Status, v.Note, v.POELevel
+	}
+	writeJSON(w, 200, map[string]any{"finding": dto, "enrichment": dtoFromEnrichment(enr), "reproduction": repro})
 }
 
 // resolveFindingTraffic resolves a finding's reproduction steps to real recorded

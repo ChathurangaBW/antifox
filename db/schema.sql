@@ -452,6 +452,10 @@ CREATE TABLE IF NOT EXISTS conversations (
 DROP TRIGGER IF EXISTS trg_conversations_upd ON conversations;
 CREATE TRIGGER trg_conversations_upd BEFORE UPDATE ON conversations
     FOR EACH ROW EXECUTE FUNCTION set_updated_at();
+-- A conversation can be attached to a task: its agent then records findings,
+-- facts and assets into that task's graph (with traffic linking and
+-- verification), instead of having no task context at all. NULL = not attached.
+ALTER TABLE conversations ADD COLUMN IF NOT EXISTS task_id BIGINT REFERENCES tasks(id) ON DELETE SET NULL;
 
 CREATE TABLE IF NOT EXISTS conversation_activities (
     id                 BIGSERIAL PRIMARY KEY,
@@ -559,6 +563,15 @@ CREATE INDEX IF NOT EXISTS idx_findings_time ON findings(created_at DESC);
 -- Structural reproduction of local records(entry_point/prerequisites/steps[{request,expected,proves}]/provenance):
 -- agent While confirming the bug report_finding Fill,Request taken word for word from true execution→After that, only words are written and no more large-scale reconstructions are generated.
 ALTER TABLE findings ADD COLUMN IF NOT EXISTS reproduction JSONB;
+-- Machine-checked verification (adapted from ARTEX S1). Kept apart from any human
+-- disposition. poe_level is the agent-declared proof-of-exploitation level (0-4);
+-- evidence_quotes are exact lines it says appear in linked response bodies.
+-- verification_status: verified | unverified | not_assessed; NULL reads as
+-- unverified, so findings recorded before this column existed stay unverified.
+ALTER TABLE findings ADD COLUMN IF NOT EXISTS poe_level INT NOT NULL DEFAULT 0;
+ALTER TABLE findings ADD COLUMN IF NOT EXISTS evidence_quotes JSONB NOT NULL DEFAULT '[]';
+ALTER TABLE findings ADD COLUMN IF NOT EXISTS verification_status TEXT;
+ALTER TABLE findings ADD COLUMN IF NOT EXISTS verification_note TEXT NOT NULL DEFAULT '';
 
 -- =====================================================================
 -- M. Backend Last

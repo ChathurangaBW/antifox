@@ -1,8 +1,11 @@
 package harness
 
 import (
+	"context"
 	"encoding/json"
 	"fmt"
+	"log"
+	"runtime/debug"
 
 	"antifox/engine/llm"
 	"antifox/engine/permission"
@@ -74,10 +77,15 @@ func (l *loop) execOne(use llm.ContentBlock, emitProgress func(tool.ProgressInfo
 		Tasks:          l.in.Tasks,
 		Env:            l.in.BashEnv,
 	}
-	res, err := t.Call(l.ctx, input, tc)
+	res, err := safeCall(l.ctx, t, input, tc)
 	if err != nil {
 		res = tool.Errorf("Error: " + err.Error())
 	}
+	// Global output cap at the single post-tool choke point: every tool (built-in,
+	// MCP, custom, host) is bounded here whether or not it capped its own output,
+	// so no tool can flood the context window. CaptureOnce is idempotent, so
+	// output a tool already truncated or spilled is left untouched. Ported from Norma.
+	res = capOutput(tc, res)
 
 	if l.in.Hooks != nil {
 		raw, _ := json.Marshal(res.Flatten())
@@ -89,4 +97,29 @@ func (l *loop) execOne(use llm.ContentBlock, emitProgress func(tool.ProgressInfo
 		content = []llm.ContentBlock{llm.TextBlock("(no output)")}
 	}
 	return llm.ContentBlock{Type: llm.BlockToolResult, ToolUseID: use.ID, Content: content, IsError: res.IsError}, res.Extra
+}
+
+// safeCall runs a tool and turns a panic into an error result. The streaming
+// executor runs each tool on its own goroutine, where an unrecovered panic would
+// terminate the whole process, taking every running task and the web interface
+// with it. The stack is logged for debugging; the model sees a plain error.
+func safeCall(ctx context.Context, t tool.CoreTool, input json.RawMessage, tc *tool.ToolContext) (res tool.Result, err error) {
+	defer func() {
+		if r := recover(); r != nil {
+			log.Printf("[tool] %s panicked: %v\n%s", t.Name(), r, debug.Stack())
+			res, err = tool.Errorf(fmt.Sprintf("tool %s failed with an internal error: %v", t.Name(), r)), nil
+		}
+	}()
+	return t.Call(ctx, input, tc)
+}
+
+// capOutput runs every text block of a tool result through the idempotent output
+// cap (tool.CaptureOnce). Non-text blocks, such as images, pass through untouched.
+func capOutput(tc *tool.ToolContext, res tool.Result) tool.Result {
+	for i, b := range res.Content {
+		if b.Type == llm.BlockText {
+			res.Content[i].Text = tool.CaptureOnce(tc, b.Text)
+		}
+	}
+	return res
 }

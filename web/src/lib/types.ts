@@ -197,7 +197,13 @@ export interface Finding {
   cvss_score?: number;
   evidence_count?: number;
   traffic_count?: number;
+  // machine-checked verification (server/finding_verification.go)
+  verification_status?: VerificationStatus;
+  verification_note?: string;
+  poe_level?: number;
 }
+
+export type VerificationStatus = "verified" | "unverified" | "not_assessed";
 
 export type FindingStatus = "open" | "confirmed" | "fixed" | "false_positive" | "ignored";
 
@@ -318,6 +324,7 @@ export interface Conversation {
   agent_key: string;
   title: string;
   llm_profile_id?: number;
+  task_id?: number; // attached task: the agent records findings into it
   created_at: string;
   updated_at: string;
 }

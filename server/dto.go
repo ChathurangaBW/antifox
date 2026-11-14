@@ -199,6 +199,10 @@ type FindingDTO struct {
 	CVSSScore     float64 `json:"cvss_score,omitempty"`     // After the enrichment CVSS Points (list directly)
 	EvidenceCount int     `json:"evidence_count,omitempty"` // Number of exhibits (list shows)"Evidence N Chang!")
 	TrafficCount  int     `json:"traffic_count,omitempty"`  // Number of associated traffic bars (list shows)"Related flows N Article")
+	// Machine-checked verification (see server/finding_verification.go).
+	VerificationStatus string `json:"verification_status,omitempty"` // verified | unverified | not_assessed
+	VerificationNote   string `json:"verification_note,omitempty"`
+	POELevel           int    `json:"poe_level,omitempty"`
 }
 
 // findingPayload mirrors the JSON written by the worker's report_finding tool

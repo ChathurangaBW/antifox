@@ -19,10 +19,12 @@ import (
 
 	"antifox/agent"
 	"antifox/db"
+	"antifox/engine/harness"
 	"antifox/engine/llm"
 	"antifox/engine/memory"
 	actool "antifox/engine/tool"
 	"antifox/engine/transcript"
+	"antifox/intercept"
 	"antifox/llmpool"
 	"antifox/report"
 	"antifox/traffic"
@@ -40,6 +42,10 @@ type Server struct {
 	jwtKey   []byte // HS256 signing key loaded from / generated into dataDir/jwt.key
 
 	loginLimiter *loginLimiter // Login failed to limit flow/Lock (click) IP + Account number)
+	// setupToken is the one-time first-run token (see initSetupToken); empty once
+	// an admin password exists. Guarded by setupMu.
+	setupMu    sync.Mutex
+	setupToken string
 
 	// reportJobs tracks async .docx report generation per task (in-memory; reports
 	// are regenerable so a restart simply drops job state). Guarded by reportMu.
@@ -59,7 +65,12 @@ type Server struct {
 	mainAgent *agent.MainAgent // nil when no LLM provider is configured
 	chatAgent *agent.ChatAgent // conversational runner for the chat page; nil w/o LLM
 	llmCfg    agent.Config     // current LLM config (key not exposed)
-	llmOn     bool
+	// envLLM is the environment model configuration captured once at startup
+	// (see captureEnvLLM); envLLMOK reports whether one was set.
+	envLLM       agent.Config
+	envLLMOK     bool
+	scrubSecrets bool // set by WithSecretScrub; the binary scrubs, tests do not
+	llmOn        bool
 
 	// chatBusy guards the per-task main-agent run: the chat handler launches the
 	// agent on the server's background ctx (not the request ctx) and returns
@@ -126,7 +137,7 @@ type triggeredRun struct {
 	mergeable bool  // true for finding/goal event triggers (merge by taskID)
 }
 
-func New(ctx context.Context, m *Manager, skillDir string, dataDir string) *Server {
+func New(ctx context.Context, m *Manager, skillDir string, dataDir string, opts ...Option) *Server {
 	key, err := loadOrCreateJWTKey(dataDir)
 	if err != nil {
 		log.Fatalf("[auth] JWT key: %v", err)
@@ -135,11 +146,22 @@ func New(ctx context.Context, m *Manager, skillDir string, dataDir string) *Serv
 		chatCancel: map[string]context.CancelFunc{}, chatLock: map[string]*sync.Mutex{}, triggerQ: map[string][]triggeredRun{}, triggerRun: map[string]bool{},
 		profAgents: map[int64]*profBundle{}, profChatAgents: map[int64]*agent.ChatAgent{}, reportJobs: map[string]*reportJob{},
 		enrichJobs: map[int64]*enrichJob{}, provCache: map[int64]llm.Provider{}}
+	for _, o := range opts {
+		o(s)
+	}
+	// Read the environment's model config and secrets first, then scrub them,
+	// before anything below can spawn a child process (MCP discovery, the
+	// scheduler, resumed tasks). NewManager has already read ANTIFOX_PG_DSN.
+	s.captureEnvLLM()
+	if s.scrubSecrets {
+		ScrubSecretEnv()
+	}
 	s.loginLimiter = newLoginLimiter()
 	ensureKaliBinDir(dataDir)
 	s.llmHealth = newLLMHealthRegistry(m.pg) // process-wide LLM circuit breaker (restores cooling windows)
 	// Multiple Users RBAC:Initial migration of old single user passwords as built-in admin + Seeding roles/Permissions (things, etc.).
 	s.bootstrapRBAC()
+	s.initSetupToken() // only while no admin exists: printed to the log for the /setup page
 	// Internal skill Coop: Put embed Default for binary skill To the object. skillDir(Only when it is missing.
 	// Single binary inclusion, cloud/The initials are on-site. skill,Not dependent dev Machine file.
 	materializeEmbeddedSkills(skillDir)
@@ -220,7 +242,7 @@ func New(ctx context.Context, m *Manager, skillDir string, dataDir string) *Serv
 		} else {
 			log.Printf("[engine] LLM configured from DB: %s / %s", cfg.Provider(), cfg.Model)
 		}
-	} else if cfg, ok := agent.FromEnv(); ok {
+	} else if cfg, ok := s.envLLM, s.envLLMOK; ok { // captured before the scrub
 		if err := s.applyLLM(cfg); err != nil {
 			log.Printf("[engine] env provider init failed — engine idle: %v", err)
 		} else {
@@ -384,13 +406,16 @@ func (s *Server) buildPlannerWorker(prov llm.Provider, cfg agent.Config) (*agent
 	wk := agent.NewWorker(wkProv, wkCfg.Model, s.m.dir, tx, wkCfg.CompactionWindow(), s.agentMaxTurns("worker"))
 	wk.SetRunTimeout(time.Duration(s.agentRunSeconds("worker")) * time.Second)
 	wk.SetProxy(s.m.ProxyAddr(), s.m.ProxyCACert())
-	wk.SetTrafficResolver(s.resolveFindingTraffic) // record-time: resolve finding steps → traffic exchange ids
+	wk.SetTrafficResolver(s.resolveFindingTraffic)     // record-time: resolve finding steps → traffic exchange ids
+	wk.SetFindingVerifier(s.recordFindingVerification) // machine-checked verification after linking
 	wk.SetMemory(memory.NewStore(filepath.Join(s.m.dir, "memory")))
 	wk.SetWebSearch(s.webSearchFor("worker"))
 	pl := agent.NewPlanner(plProv, plCfg.Model, s.m.dir, tx, plCfg.CompactionWindow(), s.agentMaxTurns("planner"))
 	pl.SetKillWork(s.engine.KillWork)               // planner kill_work → terminate a running work
 	pl.SetSteerWork(s.engine.SteerWork)             // planner steer_work → inject mid-run course-correction
 	pl.SetProxy(s.m.ProxyAddr(), s.m.ProxyCACert()) // WebFetch through the recording proxy
+	pl.SetTrafficResolver(s.resolveFindingTraffic)
+	pl.SetFindingVerifier(s.recordFindingVerification)
 	pl.SetWebSearch(s.webSearchFor("planner"))
 	return pl, wk
 }
@@ -421,6 +446,8 @@ func (s *Server) applyLLM(cfg agent.Config) error {
 	s.mainAgent = agent.NewMainAgent(maProv, maCfg.Model, s.m.dir, tx, maCfg.CompactionWindow(), s.agentMaxTurns("mainagent"))
 	s.mainAgent.SetProxy(s.m.ProxyAddr(), s.m.ProxyCACert()) // WebFetch through the recording proxy
 	s.mainAgent.SetWebSearch(s.webSearchFor("mainagent"))
+	s.mainAgent.SetTrafficResolver(s.resolveFindingTraffic)
+	s.mainAgent.SetFindingVerifier(s.recordFindingVerification)
 	// chat agent serves MANY custom agents by key → it holds the GLOBAL opts
 	// (backend/key) and gates Enabled per-conversation-agent at Chat time. Dialogue is always active configuration.
 	s.chatAgent = agent.NewChatAgent(prov, cfg.Model, s.m.dir, tx, win) // chat page runner
@@ -696,6 +723,7 @@ func (s *Server) Handler() http.Handler {
 	mux.HandleFunc("POST /api/conversations", s.pgCreateConversation)
 	mux.HandleFunc("PATCH /api/conversations/{id}", s.pgRenameConversation)
 	mux.HandleFunc("PATCH /api/conversations/{id}/profile", s.pgUpdateConversation)
+	mux.HandleFunc("PATCH /api/conversations/{id}/task", s.pgSetConversationTask)
 	mux.HandleFunc("DELETE /api/conversations/{id}", s.pgDeleteConversation)
 	mux.HandleFunc("GET /api/conversations/{id}/messages", s.pgConversationMessages)
 	mux.HandleFunc("POST /api/conversations/{id}/messages", s.pgSendConversationMessage)
@@ -1077,9 +1105,16 @@ func (s *Server) setLLM(w http.ResponseWriter, r *http.Request) {
 		cfg.ContextWindowK = k
 	}
 	if cfg.APIKey == "" {
+		// Keep the existing key only for the endpoint it belongs to; otherwise this
+		// save would send it to whatever base URL the request names.
 		s.cfgMu.Lock()
-		cfg.APIKey = s.llmCfg.APIKey // keep existing key if not re-entered
+		cur := s.llmCfg
 		s.cfgMu.Unlock()
+		if cur.APIKey != "" && !sameLLMEndpoint(req.Provider, req.BaseURL, cur.Provider(), cur.BaseURL) {
+			writeErr(w, 400, errKeyEndpointChanged)
+			return
+		}
+		cfg.APIKey = cur.APIKey // keep existing key if not re-entered
 	}
 	if cfg.APIKey == "" {
 		writeErr(w, 400, "api_key required")
@@ -1109,24 +1144,63 @@ func (s *Server) testLLM(w http.ResponseWriter, r *http.Request) {
 		writeErr(w, 400, err.Error())
 		return
 	}
+	// A stored profile is tested as stored: fields the form left empty come from
+	// the saved row, so a test button that sends only profile_id reaches the
+	// profile's own endpoint rather than the provider's default. Form values win.
+	var stored *db.LLMProfile
+	if req.ProfileID != nil && s.m.pg != nil {
+		if p, err := s.m.pg.ProfileByID(*req.ProfileID); err == nil && p != nil {
+			stored = p
+		}
+	}
+	if stored != nil {
+		if strings.TrimSpace(req.Provider) == "" {
+			req.Provider = stored.Format
+		}
+		if strings.TrimSpace(req.Model) == "" {
+			req.Model = stored.Model
+		}
+		if strings.TrimSpace(req.BaseURL) == "" {
+			req.BaseURL = stored.BaseURL
+		}
+		if strings.TrimSpace(req.Proxy) == "" {
+			req.Proxy = stored.Proxy
+		}
+	}
 	cfg := agent.ConfigFrom(req.Provider, req.Model, req.BaseURL, req.APIKey, req.Proxy)
 	// mirror production: send the SAME thinking params so a provider that rejects the
 	// reasoning_effort/thinking field fails the test too (no false "test ok, run 400").
 	cfg.ReasoningEffort = req.ReasoningEffort
-	// API Key Parsing priority: Form input > Assign profile Saved key > Global Configuration key.
-	// A saved profile key is not returned to the browser, so the stored configuration table stays empty and the values have to be read from the DB.
-	if cfg.APIKey == "" && req.ProfileID != nil {
-		if p, err := s.m.pg.ProfileByID(*req.ProfileID); err == nil && p != nil {
-			cfg.APIKey = p.APIKey
+	// API key precedence: form input > the named profile's saved key > the global key.
+	// A saved key is only sent to the endpoint it was saved for: provider and base
+	// URL come from the request, so without this check the test would send the
+	// saved key to any host the request names.
+	withheld := false
+	if cfg.APIKey == "" && stored != nil {
+		if sameLLMEndpoint(req.Provider, req.BaseURL, stored.Format, stored.BaseURL) {
+			cfg.APIKey = strings.TrimSpace(stored.APIKey)
+		} else {
+			withheld = true
 		}
 	}
 	if cfg.APIKey == "" {
 		s.cfgMu.Lock()
-		cfg.APIKey = s.llmCfg.APIKey
+		global := s.llmCfg
 		s.cfgMu.Unlock()
+		if global.APIKey != "" {
+			if sameLLMEndpoint(req.Provider, req.BaseURL, global.Provider(), global.BaseURL) {
+				cfg.APIKey = global.APIKey
+			} else {
+				withheld = true
+			}
+		}
 	}
 	if cfg.APIKey == "" {
-		writeJSON(w, 200, map[string]any{"ok": false, "error": "Not provided API Key"})
+		msg := "no API key provided"
+		if withheld {
+			msg = errKeyEndpointChanged
+		}
+		writeJSON(w, 200, map[string]any{"ok": false, "error": msg})
 		return
 	}
 	lat, err := agent.TestConnection(r.Context(), cfg)
@@ -1356,8 +1430,12 @@ func (s *Server) mergeEnrichmentSummary(dtos []FindingDTO) []FindingDTO {
 	enr, _ := s.m.pg.GetFindingEnrichments(ids)
 	evCount := s.m.pg.CountFindingEvidence(ids)
 	trCount := s.m.pg.CountFindingTraffic(ids)
+	ver, _ := s.m.pg.FindingVerifications(ids)
 	for i := range dtos {
 		n, _ := strconv.ParseInt(dtos[i].NodeID, 10, 64)
+		if v, ok := ver[n]; ok {
+			dtos[i].VerificationStatus, dtos[i].VerificationNote, dtos[i].POELevel = v.Status, v.Note, v.POELevel
+		}
 		if e, ok := enr[n]; ok {
 			dtos[i].Enriched = true
 			dtos[i].EnrName, dtos[i].EnrTarget, dtos[i].Status = e.Name, e.Target, e.Status
@@ -2109,7 +2187,15 @@ func (s *Server) chat(w http.ResponseWriter, r *http.Request) {
 			// agent session shows its work live, like worker/planner.
 			emit := func(rec db.Activity) { s.engine.emitActivity(t, rec) }
 			maTaskID, _ := strconv.ParseInt(t.ID, 10, 64)
-			if _, err := ma.Chat(ctx, maTaskID, s.m.Assets(), t.Store, t.Goal, req.Message, emit, t.Notify); err != nil && ctx.Err() == nil {
+			// The main agent has shell and file tools, so it passes the same guard as
+			// a worker. An operator is in the chat, so approval rules can wait for
+			// them: the task context routes the request into this task's stream.
+			var hooks harness.HookRunner
+			if t.Guard != nil {
+				hooks = t.Guard.Hooks()
+				ctx = intercept.WithTaskContext(ctx, t.ID, "mainagent", emit)
+			}
+			if _, err := ma.Chat(ctx, maTaskID, s.m.Assets(), t.Store, t.Goal, req.Message, hooks, emit, t.Notify); err != nil && ctx.Err() == nil {
 				s.engine.emitActivity(t, db.Activity{Worker: "mainagent", Kind: "text", IsError: true, Summary: "(Lord Agent Error:" + err.Error() + ")"})
 			}
 		}()

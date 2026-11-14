@@ -58,7 +58,8 @@ func chatWorkDirSpec(workDir string) string {
 // chatSystem renders the DB-managed prompt body for agentKey. Custom agents have
 // no per-key in-code default, so DefaultAssistantPrompt is the render fallback.
 func chatSystem(agentKey, workDir string) string {
-	return withEnglish(renderSystem(agentKey, DefaultAssistantPrompt, chatVars{}) + chatWorkDirSpec(workDir))
+	body := renderSystem(agentKey, DefaultAssistantPrompt, chatVars{})
+	return withEnglish(body + untrustedContentTail(body) + chatWorkDirSpec(workDir))
 }
 
 // chatVars carries no runtime variables today — a custom prompt referencing any
@@ -74,7 +75,13 @@ type chatVars struct{}
 // but each agent decides on/off). emit receives each execution step (thinking /
 // tool_use / tool_result / text / result), tagged with the agent key as the
 // worker lane.
-func (c *ChatAgent) Chat(ctx context.Context, agentKey, sessionID, message string, maxTurns int, maxDuration time.Duration, webSearch bool, emit func(db.Activity)) (string, error) {
+//
+// bind, when non-nil, attaches the conversation to a task: the agent's domain
+// tools are backed by that task's exploration graph, so report_finding, record_fact
+// and list_findings work (with traffic linking and verification) instead of
+// returning "requires a task context". The tools table still decides which of
+// them this agent sees. nil keeps the plain conversation behavior.
+func (c *ChatAgent) Chat(ctx context.Context, agentKey, sessionID, message string, maxTurns int, maxDuration time.Duration, webSearch bool, emit func(db.Activity), bind *TaskBinding) (string, error) {
 	// gate the global web-search opts by this agent's own flag.
 	ws := c.webSearch
 	if !webSearch {
@@ -90,10 +97,20 @@ func (c *ChatAgent) Chat(ctx context.Context, agentKey, sessionID, message strin
 	// visible skills/MCP and lets the DB tools table filter/override. DefaultTools
 	// have no tools-table rows, so they always pass through.
 	base := actool.DefaultTools()
+	if bind != nil && bind.Store != nil {
+		// Task-bound domain tools go in the base, so they take precedence over the
+		// store-less copies AugmentTools would otherwise inject (per-task instances
+		// win), and the tools table filters them by this agent's bindings as usual.
+		base = append(bind.Tools(agentKey), base...)
+	}
 	tools, def, cleanup := AugmentTools(ctx, agentKey, base)
 	defer cleanup()
 
-	system, boundary := deferredSystem(chatSystem(agentKey, sessionWorkDir), def)
+	sys := chatSystem(agentKey, sessionWorkDir)
+	if bind != nil && bind.Store != nil {
+		sys += bind.promptBlock()
+	}
+	system, boundary := deferredSystem(sys, def)
 	opts := agentcore.Options{
 		Provider:        c.prov,
 		SystemPrompt:    system,

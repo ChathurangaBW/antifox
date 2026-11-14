@@ -3,7 +3,7 @@
 import * as React from "react";
 import { toast } from "sonner";
 import { useTranslation } from "react-i18next";
-import { Bot, ChevronDownIcon, PlusIcon, SendIcon, Square, Trash2Icon, ZapIcon } from "lucide-react";
+import { Bot, ChevronDownIcon, ClipboardListIcon, PlusIcon, SendIcon, Square, Trash2Icon, ZapIcon } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
@@ -35,7 +35,7 @@ import {
   PopoverTrigger,
 } from "@/components/ui/popover";
 import { api } from "@/lib/api";
-import type { Activity, Agent, Conversation, LLMProfile } from "@/lib/types";
+import type { Activity, Agent, Conversation, LLMProfile, Task } from "@/lib/types";
 import { cn } from "@/lib/utils";
 
 // fmtTokens renders a compact token count (1234 → 1.2k, 2_000_000 → 2M).
@@ -203,6 +203,82 @@ function LLMProfileRow({
   );
 }
 
+// TaskPicker attaches the conversation to a task. When attached, findings the
+// agent reports (and facts and assets it records) are saved into that task, with
+// traffic linking and verification, instead of being refused for lack of a task.
+// `selected` is the task id or null for none.
+function TaskPicker({
+  tasks,
+  selected,
+  onChange,
+  disabled,
+}: {
+  tasks: Task[];
+  selected: number | null;
+  onChange: (id: number | null) => void;
+  disabled?: boolean;
+}) {
+  const { t } = useTranslation();
+  const [open, setOpen] = React.useState(false);
+  const current = selected != null ? tasks.find((x) => Number(x.id) === selected) : null;
+  const taskLabel = (x: Task) => `#${x.id} · ${x.name || x.description || x.goal}`;
+  const label = current ? taskLabel(current) : selected != null ? `#${selected}` : t("chat.task.none");
+
+  return (
+    <span className="flex min-w-0 items-center gap-1">
+      <ClipboardListIcon className="size-3 shrink-0 text-muted-foreground/50" />
+      <span className="max-w-56 truncate text-muted-foreground/70 text-xs" title={current ? taskLabel(current) : undefined}>
+        {label}
+      </span>
+      <Popover open={open} onOpenChange={disabled ? undefined : setOpen}>
+        <PopoverTrigger asChild>
+          <button
+            type="button"
+            disabled={disabled}
+            className="flex items-center gap-0.5 text-primary text-xs hover:underline disabled:pointer-events-none disabled:opacity-40"
+          >
+            {t("chat.task.change")}
+            <ChevronDownIcon className="size-3" />
+          </button>
+        </PopoverTrigger>
+        <PopoverContent align="start" className="w-72 p-1">
+          <p className="px-2 py-1 font-medium text-[11px] text-muted-foreground">{t("chat.task.select")}</p>
+          <p className="px-2 pb-1 text-[11px] text-muted-foreground">{t("chat.task.hint")}</p>
+          <button
+            type="button"
+            onClick={() => {
+              onChange(null);
+              setOpen(false);
+            }}
+            className={cn("flex w-full rounded px-2 py-1.5 text-left text-sm hover:bg-accent", selected == null && "bg-accent")}
+          >
+            {t("chat.task.none")}
+          </button>
+          <div className="max-h-64 overflow-y-auto">
+            {tasks.map((x) => (
+              <button
+                key={x.id}
+                type="button"
+                onClick={() => {
+                  onChange(Number(x.id));
+                  setOpen(false);
+                }}
+                className={cn(
+                  "flex w-full flex-col rounded px-2 py-1.5 text-left hover:bg-accent",
+                  selected === Number(x.id) && "bg-accent",
+                )}
+              >
+                <span className="truncate text-sm">{taskLabel(x)}</span>
+                <span className="text-[11px] text-muted-foreground">{t(`status.task.${x.status}`, { defaultValue: x.status })}</span>
+              </button>
+            ))}
+          </div>
+        </PopoverContent>
+      </Popover>
+    </span>
+  );
+}
+
 // DraftChat is the default right-pane view: a fresh chat (agent picker in the
 // header, centered empty state, composer) with NO conversation created yet. The
 // conversation is created lazily on the first send (ChatGPT-style), then the
@@ -210,15 +286,18 @@ function LLMProfileRow({
 function DraftChat({
   agents,
   profiles,
+  tasks,
   onStarted,
 }: {
   agents: Agent[];
   profiles: LLMProfile[];
+  tasks: Task[];
   onStarted: (c: Conversation) => void;
 }) {
   const { t } = useTranslation();
   const [agentKey, setAgentKey] = React.useState("");
   const [llmProfileId, setLlmProfileId] = React.useState<number | null>(null);
+  const [taskId, setTaskId] = React.useState<number | null>(null);
   const [input, setInput] = React.useState("");
   const [sending, setSending] = React.useState(false);
 
@@ -234,7 +313,7 @@ function DraftChat({
     if (!msg || !agentKey || sending) return;
     setSending(true);
     try {
-      const c = await api.createConversation(agentKey, "", llmProfileId);
+      const c = await api.createConversation(agentKey, "", llmProfileId, taskId);
       await api.sendConversationMessage(c.id, msg);
       onStarted(c);
     } catch (e) {
@@ -290,6 +369,11 @@ function DraftChat({
         selected={llmProfileId}
         onChange={setLlmProfileId}
         disabled={sending}
+        rightSlot={
+          <span className="ml-3">
+            <TaskPicker tasks={tasks} selected={taskId} onChange={setTaskId} disabled={sending} />
+          </span>
+        }
       />
     </>
   );
@@ -302,12 +386,14 @@ function ChatView({
   conv,
   agents,
   profiles,
+  tasks,
   onTitleMaybeChanged,
   onConvUpdated,
 }: {
   conv: Conversation;
   agents: Agent[];
   profiles: LLMProfile[];
+  tasks: Task[];
   onTitleMaybeChanged: () => void;
   onConvUpdated: () => void;
 }) {
@@ -320,6 +406,16 @@ function ChatView({
   const cursorRef = React.useRef(0);
   const agent = agents.find((a) => a.key === conv.agent_key);
   const currentProfileId = conv.llm_profile_id ?? null;
+  const currentTaskId = conv.task_id ?? null;
+
+  async function changeTask(id: number | null) {
+    try {
+      await api.setConversationTask(conv.id, id);
+      onConvUpdated();
+    } catch (e) {
+      toast.error(t("chat.toast.switchTaskFailed", { msg: (e as Error).message }));
+    }
+  }
 
   async function changeProfile(id: number | null) {
     try {
@@ -542,7 +638,12 @@ function ChatView({
         selected={currentProfileId}
         onChange={changeProfile}
         disabled={running || sending}
-        rightSlot={<TodoPopover seq={latestTodoSeq} fetchDetail={fetchDetail} />}
+        rightSlot={
+          <span className="ml-3 flex min-w-0 items-center gap-3">
+            <TaskPicker tasks={tasks} selected={currentTaskId} onChange={changeTask} disabled={running || sending} />
+            <TodoPopover seq={latestTodoSeq} fetchDetail={fetchDetail} />
+          </span>
+        }
       />
     </>
   );
@@ -640,6 +741,7 @@ export default function ChatPage() {
   const { t } = useTranslation();
   const [agents, setAgents] = React.useState<Agent[]>([]);
   const [profiles, setProfiles] = React.useState<LLMProfile[]>([]);
+  const [tasks, setTasks] = React.useState<Task[]>([]);
   const [convs, setConvs] = React.useState<Conversation[]>([]);
   const [selectedId, setSelectedId] = React.useState<number | null>(null);
   const [renamingId, setRenamingId] = React.useState<number | null>(null);
@@ -651,6 +753,7 @@ export default function ChatPage() {
   React.useEffect(() => {
     api.agents().then(setAgents).catch(() => {});
     api.llmProfiles().then(setProfiles).catch(() => {});
+    api.tasks().then((r) => setTasks(r.tasks)).catch(() => {});
     reloadConvs();
   }, [reloadConvs]);
 
@@ -732,6 +835,7 @@ export default function ChatPage() {
               conv={selected}
               agents={agents}
               profiles={profiles}
+              tasks={tasks}
               onTitleMaybeChanged={reloadConvs}
               onConvUpdated={reloadConvs}
             />
@@ -739,6 +843,7 @@ export default function ChatPage() {
             <DraftChat
               agents={chatAgents}
               profiles={profiles}
+              tasks={tasks}
               onStarted={(c) => {
                 reloadConvs();
                 setSelectedId(c.id);

@@ -3,6 +3,7 @@ package db
 import (
 	"database/sql"
 	"encoding/json"
+	"sync/atomic"
 	"time"
 )
 
@@ -91,6 +92,34 @@ func (d *DB) ActiveProfile() (*LLMProfile, error) {
 	return &p, err
 }
 
+// envFallbackProfile is the model configuration read from the environment at
+// startup (ANTIFOX_LLM_* and the API key variables). It exists because the
+// secrets are scrubbed from the environment once read, so nothing can re-read
+// them later, and because an environment-only deployment has no saved profile.
+// Without it, every feature that looks up a saved profile (goal decomposition,
+// report narrative, finding enrichment, transcript extraction) silently turned
+// itself off on such deployments. Process-wide: one process has one environment.
+var envFallbackProfile atomic.Pointer[LLMProfile]
+
+// SetEnvFallbackProfile records the environment model configuration. Call once
+// at startup, before the environment is scrubbed. nil clears it.
+func SetEnvFallbackProfile(p *LLMProfile) { envFallbackProfile.Store(p) }
+
+// EffectiveProfile returns the saved active profile, or the environment
+// configuration when no profile is saved. The fallback has ID 0 and is never
+// stored, so callers that key on a profile ID must keep using ActiveProfile.
+func (d *DB) EffectiveProfile() (*LLMProfile, error) {
+	p, err := d.ActiveProfile()
+	if err != nil || p != nil {
+		return p, err
+	}
+	if env := envFallbackProfile.Load(); env != nil {
+		cp := *env
+		return &cp, nil
+	}
+	return nil, nil
+}
+
 // ReportRoleProfile returns the LLM profile bound to the Report enrichment/report role (setting
 // llm_role_report = profile id), or the globally-active profile when unbound/invalid.
 // Lets the user route report/enrichment to a stronger model (e.g. Claude) without
@@ -101,7 +130,7 @@ func (d *DB) ReportRoleProfile() (*LLMProfile, error) {
 			return p, nil
 		}
 	}
-	return d.ActiveProfile()
+	return d.EffectiveProfile()
 }
 
 // ProfileByID returns one profile with its api key by id, or nil if not found.
@@ -387,12 +416,19 @@ func (d *DB) PromptVars(agentID int64) ([]PromptVar, error) {
 
 // CurrentPrompt returns the agent's active template text ("" if none set yet).
 func (d *DB) CurrentPrompt(agentID int64) (string, error) {
-	var tmpl sql.NullString
-	err := d.QueryRow(`SELECT p.template_text FROM agents a JOIN agent_prompts p ON p.id=a.current_prompt_id WHERE a.id=$1`, agentID).Scan(&tmpl)
+	tmpl, _, err := d.CurrentPromptMeta(agentID)
+	return tmpl, err
+}
+
+// CurrentPromptMeta returns the agent's active template text and updated_by
+// author (e.g. "system" for built-in defaults/migrations, "ui" for user edits).
+func (d *DB) CurrentPromptMeta(agentID int64) (string, string, error) {
+	var tmpl, updatedBy sql.NullString
+	err := d.QueryRow(`SELECT p.template_text, p.updated_by FROM agents a JOIN agent_prompts p ON p.id=a.current_prompt_id WHERE a.id=$1`, agentID).Scan(&tmpl, &updatedBy)
 	if err == sql.ErrNoRows {
-		return "", nil
+		return "", "", nil
 	}
-	return tmpl.String, err
+	return tmpl.String, updatedBy.String, err
 }
 
 // SeedPromptIfEmpty writes the code-default template as the agent's first prompt

@@ -2,6 +2,43 @@
 
 This project's version update summary. The format follows [Keep a Changelog](https://keepachangelog.com/), and versions follow [SemVer](https://semver.org/).
 
+## v2.1.2
+
+Security hardening ported from ARTEX and Norma, plus fixes for the tool errors recorded in production. Every item below was reviewed against the reference implementation and covered by a test.
+
+### Security
+
+- **Secrets no longer reach agent shells**: the binary reads `ANTIFOX_PG_DSN`, `OPENAI_API_KEY`, `ANTHROPIC_API_KEY` and `ANTIFOX_LLM_PROXY` at startup, then removes them from its environment before anything can spawn a child process. Agent shells, custom tools and MCP servers no longer inherit the database password or model keys. On Linux the binary goes one step further than ARTEX: it re-executes itself at startup (same PID) with the secrets passed through a pipe instead of the environment, so `/proc/<pid>/environ`, which an agent shell running as the same user could read, never contains them either. On other platforms the start environment keeps them, as in ARTEX. (ARTEX #136, #146, extended)
+- **Planner and main agent shells are now gated**: both have shell and file tools and previously ran with no safety hooks. The main agent now passes the same guard as a worker, with approval requests appearing in the task stream. The planner gets the same deny rules; an approval rule blocks its call and tells it to hand the command to a worker, because no operator is watching the planner. (ARTEX #190, extended to user deny rules)
+- **Prompt-injection rules**: code-owned rules telling every agent that target-derived content is data, never instructions, appended after the prompt so a UI edit cannot remove them. The planner's version is adapted to this platform's tools. (ARTEX #49, #189)
+- **Saved API keys stay with their endpoint**: the connection test, the global LLM save and profile edits only reuse a saved key for the provider and base URL it was saved with. Changing the endpoint requires re-entering the key. Previously a request could name its own base URL and receive the saved key. (ARTEX #142, extended to the save and edit paths, which ARTEX still leaves open)
+- **First-run setup token**: until an admin exists, `/setup` requires a one-time token printed to the server log (`docker compose logs antifox | grep "Setup token"`), so whoever reaches the port first can no longer claim a fresh install. (ARTEX #137)
+
+### Fixed
+
+- **Environment-only model configuration disabled four features**: goal decomposition, the AI report narrative, finding enrichment and transcript finding extraction only looked for a saved profile. Deployments configured through environment variables silently skipped all four; every task ran on its raw goal as a single goal. The startup environment config is now the fallback.
+- **The server could crash on a tool call**: thirteen exploration-graph tools dereferenced a missing store when a chat agent (pentest, auto, custom) called them, and tools run on their own goroutine, so one call ended the process. They now return a clear task-context error, and the engine recovers from any tool panic.
+- **Planner could not search assets**: its prompt told it to call `list_assets`, which it did not have; 23 production failures. The tool is now in the planner's set and bound on upgraded databases.
+- **Invented asset IDs**: intents, facts, hints and findings now reject asset IDs that do not exist instead of failing on a foreign key.
+- **Phantom tool names in prompts**: references to `asset_neighbors` and `update_skill`, which never existed, are removed.
+- **Shells could hang on a pager**: every shell now gets `PAGER=cat`, `GIT_PAGER=cat`, `SYSTEMD_PAGER=cat` and `DEBIAN_FRONTEND=noninteractive`. (Norma)
+- **Unbounded tool output**: a single cap now bounds every tool's output, including MCP and custom tools; oversized output spills to a file the agent can read, now also for the planner and main agent, so nothing is lost. Truncation no longer splits multi-byte characters, and spill files are owner-only. (Norma)
+- **Semantic search could be disabled by a startup race** on `CREATE EXTENSION vector`.
+- **Operator-edited prompts survive upgrades**: built-in prompt updates skip prompts not authored by the system.
+- **`get_worker_output` reports the real lifecycle state**, and `insert_assets` keeps the bound task.
+
+### Added
+
+- **Machine-checked finding verification** (adapted from ARTEX S1): `report_finding` takes two optional fields, `poe_level` (proof-of-exploitation 0-4) and `evidence_quotes` (exact lines from a real response). A finding is **verified** only when the level is 3 or higher and every quote of 8+ characters appears verbatim, after whitespace normalization, in the response body of recorded traffic linked to it. It is checked right after recording (steps are linked to traffic at that moment) and again whenever traffic is linked or unlinked on the finding page. Unreadable, binary or over-cap bodies give **not assessed**, never a pass or a fail. Bodies are decoded (gzip, brotli, deflate, zstd) and large bodies are read from their blob file. Verification never blocks recording, and the agent sees the verdict and the reason in its tool reply. The findings list shows a Verified or Not assessed chip; the finding page shows every state with its reason. Existing findings read as unverified. Upgraded databases get the two new fields added to the stored `report_finding` schema without touching operator edits.
+- **Attach a conversation to a task**: a chat conversation (pentest, auto or any custom agent) can be attached to a task from the new task picker beside the model picker, or with `task_id` when it is created. Attached, the agent's findings, facts and assets are saved to that task with the same traffic linking and verification as a worker's, and the agent is told which task it serves. Before, the pentest agent could never save a finding, in AntiFox, upstream AntiFox or ARTEX. Conversations started by a task event are attached to that task automatically. `PATCH /api/conversations/{id}/task` attaches or detaches (`null`).
+- **Planner findings are linked to traffic**: the planner can record findings, but they were never linked to the traffic that proves them. It now uses the same record-time linking and verification as workers.
+- **Prompt and binding drift checks**: a test fails when a built-in prompt names a tool its agent cannot call, and startup logs a warning when an edited prompt and its bindings drift apart.
+- **`docker-compose.yml` uses `pgvector/pgvector:pg16`** so the knowledge base's semantic search works on a fresh deployment. Switching an existing `postgres:16-alpine` volume needs one `REINDEX DATABASE`.
+
+### Tests
+
+- Database-backed tests now run under `ANTIFOX_PG_DSN` instead of passing by skipping; two stale tests were fixed. The full suite passes twice in a row with no skips.
+
 ## v2.1.1
 
 - **Docker Build Fix (`non-free` Debian Bookworm package removal)**: Removed Debian `non-free` `nikto` from the container `apt-get install` list and preinstalled `libnet-ssleay-perl`, `libxml-writer-perl`, `libio-socket-ssl-perl`, and `libjson-perl` from Debian `main` so container builds succeed reliably on `python:3.12-slim-bookworm`.
