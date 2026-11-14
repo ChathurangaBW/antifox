@@ -1410,19 +1410,26 @@
     },
     "backToList": "Back to task list",
     "notFound": "Task {{id}} not found",
+    "observation": {
+      "unavailable": "Status unavailable",
+      "inactive": "No recent recorded activity",
+      "fresh": "Status observed at {{time}}",
+      "stale": "Status is stale — last observed at {{time}}",
+      "detailsStale": "Work-set details could not be refreshed; displayed details may be stale."
+    },
     "copy": "Copy",
     "copied": "Copied",
     "header": {
       "llmConfigured": "LLM configured",
       "pause": "Pause",
       "resume": "Resume",
-      "rerun": "Continue running",
+      "rerun": "Rerun (resets run clock)",
       "edit": "Edit"
     },
     "toast": {
       "paused": "Exploration paused",
       "resumed": "Exploration resumed",
-      "rerun": "Task resumed running",
+      "rerun": "New run requested",
       "saved": "Task updated",
       "opFailed": "Operation failed: {{msg}}"
     },
@@ -1606,8 +1613,8 @@
     "tokenOut": "Out",
     "pause": "Pause",
     "resume": "Resume",
-    "rerun": "Continue running",
-    "rerunToast": "Task resumed running",
+    "rerun": "Rerun (resets run clock)",
+    "rerunToast": "New run requested",
     "pauseToast": "Task paused",
     "resumeToast": "Task resumed",
     "edit": "Edit",

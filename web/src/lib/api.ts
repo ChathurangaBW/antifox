@@ -103,7 +103,7 @@ export function sseUrl(path: string): string {
   return token ? `${base}${path}${sep}token=${encodeURIComponent(token)}` : `${base}${path}`;
 }
 
-const get = <T>(p: string) => http<T>(p);
+const get = <T>(p: string, signal?: AbortSignal) => http<T>(p, { signal });
 const post = <T>(p: string, body?: unknown) => http<T>(p, { method: "POST", body: body ? JSON.stringify(body) : undefined });
 const put = <T>(p: string, body?: unknown) => http<T>(p, { method: "PUT", body: body ? JSON.stringify(body) : undefined });
 const patch = <T>(p: string, body?: unknown) => http<T>(p, { method: "PATCH", body: body ? JSON.stringify(body) : undefined });
@@ -132,7 +132,7 @@ export const api = {
     }),
 
   // ---- tasks ----
-  tasks: () => get<{ tasks: Task[]; active: string }>("/tasks").then((r) => ({ tasks: arr(r.tasks), active: r.active ?? "" })),
+  tasks: (signal?: AbortSignal) => get<{ tasks: Task[]; active: string }>("/tasks", signal).then((r) => ({ tasks: arr(r.tasks), active: r.active ?? "" })),
   createTask: (name: string, description: string, goal: string, llmProfileId?: number, timeoutSeconds?: number, egress?: string) =>
     post<Task>("/tasks", { name, description, goal, llm_profile_id: llmProfileId ?? null, timeout_seconds: timeoutSeconds ?? 0, egress: egress ?? "" }),
   deleteTask: (id: string) => del<{ deleted: number }>(`/tasks/${id}`),
@@ -141,7 +141,7 @@ export const api = {
     patch<{ id: string; ok: boolean }>(`/tasks/${id}`, body),
   setActive: (id: string) => post<{ active: string }>("/active", { id }),
   // ---- stats ----
-  stats: (task?: string) => get<Stats>(`/stats${tq(task)}`),
+  stats: (task?: string, signal?: AbortSignal) => get<Stats>(`/stats${tq(task)}`, signal),
 
   // ---- assets ----
   // Server-side paginated: pass limit/offset, get back the page + full match total.

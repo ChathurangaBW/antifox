@@ -418,8 +418,6 @@ export default function TasksPage() {
                     {(() => {
                       const terminal = ["done", "failed", "timeout"].includes(task.status);
                       const paused = !!task.paused;
-                      const stalled = !!task.stalled || task.engine_mode === "stalled";
-                      const stopped = terminal || stalled;
                       return (
                         <div className="flex items-center justify-end gap-2">
                           <Button asChild size="sm">
@@ -442,7 +440,7 @@ export default function TasksPage() {
                                   {paused ? t("tasks.resume") : t("tasks.pause")}
                                 </DropdownMenuItem>
                               )}
-                              {stopped && (
+                              {terminal && (
                                 <DropdownMenuItem onSelect={() => control(task.id, "rerun")}>
                                   <RotateCwIcon /> {t("tasks.rerun")}
                                 </DropdownMenuItem>

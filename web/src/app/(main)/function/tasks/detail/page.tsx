@@ -26,7 +26,8 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
-import { StatusBadge } from "@/components/status-badge";
+import { TaskObservationFreshness, TaskObservationStatus } from "@/components/task-observation-status";
+import { useTaskObservation } from "@/hooks/use-task-observation";
 import {
   TaskFormFields,
   BLANK_TASK_FORM,
@@ -35,7 +36,7 @@ import {
   type TaskFormValues,
 } from "@/components/task-form-fields";
 import { api } from "@/lib/api";
-import type { Task, LLMProfile } from "@/lib/types";
+import type { LLMProfile } from "@/lib/types";
 
 import { SessionsTab } from "./_tabs/sessions-tab";
 import { OverviewTab } from "./_tabs/overview-tab";
@@ -57,13 +58,12 @@ const TAB_VALUES = [
   "report",
 ] as const;
 
-function TaskDetailInner() {
+function TaskDetailInner({ id }: { id: string }) {
   const { t: tr } = useTranslation();
-  const searchParams = useSearchParams();
-  const id = searchParams.get("id") ?? "";
-  const [task, setTask] = React.useState<Task | null>(null);
-  const [paused, setPaused] = React.useState(false);
-  const [loaded, setLoaded] = React.useState(false);
+  const observation = useTaskObservation(id);
+  const { task, stats, freshness, refresh: load } = observation;
+  const paused = task?.status === "paused" || !!task?.paused || !!stats?.active_task?.paused;
+  const [actionPending, setActionPending] = React.useState(false);
   const [tab, setTab] = React.useState("sessions");
   const [interceptPendingCount, setInterceptPendingCount] = React.useState(0);
   const [profiles, setProfiles] = React.useState<LLMProfile[]>([]);
@@ -85,53 +85,37 @@ function TaskDetailInner() {
     return () => { alive = false; clearInterval(t); };
   }, [id]);
 
-  const load = React.useCallback(() => {
-    Promise.all([
-      api.tasks(),
-      api.stats(id).catch(() => null),
-    ])
-      .then(([r, s]) => {
-        const base = r.tasks.find((t) => t.id === id) ?? null;
-        const at = (s as { active_task?: Partial<Task> & { paused?: boolean } } | null)?.active_task;
-        if (base && at) {
-          base.in_flight = at.in_flight;
-          base.goals_total = at.goals_total;
-          base.goals_met = at.goals_met;
-          base.engine_mode = at.engine_mode;
-          base.paused = at.paused;
-        }
-        setTask(base);
-        setPaused(at?.paused ?? base?.paused ?? false);
-      })
-      .catch(() => {})
-      .finally(() => setLoaded(true));
-  }, [id]);
-  React.useEffect(() => { load(); }, [load]);
-
   // load LLM profiles once for the edit dialog's profile picker.
   React.useEffect(() => {
     api.llmProfiles().then(setProfiles).catch(() => setProfiles([]));
   }, []);
 
   async function togglePause() {
+    if (freshness !== "fresh" || actionPending) return;
     const next = !paused;
+    setActionPending(true);
     try {
       await api.controlTask(id, next ? "pause" : "resume");
-      setPaused(next);
+      load();
       toast.success(next ? tr("taskDetail.toast.paused") : tr("taskDetail.toast.resumed"));
     } catch (e) {
       toast.error(tr("taskDetail.toast.opFailed", { msg: (e as Error).message }));
+    } finally {
+      setActionPending(false);
     }
   }
 
   async function rerun() {
+    if (!task || !["done", "failed", "timeout"].includes(task.status) || freshness !== "fresh" || actionPending) return;
+    setActionPending(true);
     try {
       await api.controlTask(id, "rerun");
-      setPaused(false);
       toast.success(tr("taskDetail.toast.rerun"));
       load();
     } catch (e) {
       toast.error(tr("taskDetail.toast.opFailed", { msg: (e as Error).message }));
+    } finally {
+      setActionPending(false);
     }
   }
 
@@ -166,8 +150,9 @@ function TaskDetailInner() {
   if (!task) {
     return (
       <div className="flex flex-1 flex-col items-center justify-center gap-3 p-10 text-center">
-        <p className="text-muted-foreground">{loaded ? tr("taskDetail.notFound", { id }) : tr("common.loading")}</p>
-        {loaded && (
+        <p className="text-muted-foreground">{freshness === "loading" ? tr("common.loading")
+          : freshness === "fresh" ? tr("taskDetail.notFound", { id }) : tr("taskDetail.observation.unavailable")}</p>
+        {freshness !== "loading" && (
           <Button asChild variant="outline">
             <Link href="/function/tasks">
               <ArrowLeftIcon /> {tr("taskDetail.backToList")}
@@ -178,10 +163,7 @@ function TaskDetailInner() {
     );
   }
 
-  const engineMode = paused ? "paused" : task.engine_mode ?? "idle";
-  // Interrupted mode = Final(done/failed/timeout) or stalled → It's not like it's going to work.
   const terminal = ["done", "failed", "timeout"].includes(task.status);
-  const stopped = terminal || !!task.stalled || task.engine_mode === "stalled";
 
   return (
     <Tabs
@@ -206,16 +188,16 @@ function TaskDetailInner() {
           </code>
           <Separator orientation="vertical" className="mx-1 h-4" />
           {/* status pills */}
-          <span className="inline-flex items-center gap-1 rounded-md border px-2 py-0.5 text-xs">
+          {stats?.llm_configured && <span className="inline-flex items-center gap-1 rounded-md border px-2 py-0.5 text-xs">
             <BrainIcon className="size-3.5 text-emerald-500" /> {tr("taskDetail.header.llmConfigured")}
-          </span>
-          <StatusBadge domain="engine" value={engineMode} dot />
+          </span>}
+          <TaskObservationStatus observation={observation} />
           <div className="ml-auto flex items-center gap-2">
             <Button size="sm" variant="outline" onClick={openEdit}>
               <PencilIcon /> {tr("taskDetail.header.edit")}
             </Button>
-            {stopped && (
-              <Button size="sm" variant="default" onClick={rerun}>
+            {terminal && (
+              <Button size="sm" variant="default" onClick={rerun} disabled={freshness !== "fresh" || actionPending}>
                 <RotateCwIcon /> {tr("taskDetail.header.rerun")}
               </Button>
             )}
@@ -224,6 +206,7 @@ function TaskDetailInner() {
                 size="sm"
                 variant={paused ? "default" : "outline"}
                 onClick={togglePause}
+                disabled={freshness !== "fresh" || actionPending}
               >
                 {paused ? <PlayIcon /> : <PauseIcon />}
                 {paused ? tr("taskDetail.header.resume") : tr("taskDetail.header.pause")}
@@ -232,6 +215,7 @@ function TaskDetailInner() {
           </div>
         </div>
         <p className="truncate text-xs text-muted-foreground">{task.goal}</p>
+        <TaskObservationFreshness observation={observation} />
         {/* Tabs */}
         <TabsList variant="default">
           {TAB_VALUES.map((v) => (
@@ -253,7 +237,7 @@ function TaskDetailInner() {
           <SessionsTab taskId={id} />
         </TabsContent>
         <TabsContent value="overview" className="mt-0">
-          <OverviewTab taskId={id} />
+          <OverviewTab taskId={id} observation={observation} />
         </TabsContent>
         <TabsContent value="graph" className="mt-0">
           <GraphTab taskId={id} />
@@ -302,10 +286,15 @@ function TaskDetailInner() {
 }
 
 // useSearchParams must sit under a Suspense boundary for static export.
+function TaskDetailRoute() {
+  const id = useSearchParams().get("id") ?? "";
+  return <TaskDetailInner key={id} id={id} />;
+}
+
 export default function TaskDetailPage() {
   return (
     <React.Suspense fallback={null}>
-      <TaskDetailInner />
+      <TaskDetailRoute />
     </React.Suspense>
   );
 }

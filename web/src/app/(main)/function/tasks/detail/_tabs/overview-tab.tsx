@@ -19,8 +19,10 @@ import {
 } from "@/components/ui/card";
 import { Progress } from "@/components/ui/progress";
 import { StatusBadge } from "@/components/status-badge";
+import { TaskObservationFreshness, TaskObservationStatus } from "@/components/task-observation-status";
+import type { TaskObservation } from "@/hooks/use-task-observation";
 import { api } from "@/lib/api";
-import type { Task, Stats, TaskNode, Finding } from "@/lib/types";
+import type { TaskNode, Finding } from "@/lib/types";
 
 function StatCard({
   label,
@@ -48,40 +50,39 @@ function StatCard({
   );
 }
 
-export function OverviewTab({ taskId }: { taskId: string }) {
-  const { t } = useTranslation();
-  const [task, setTask] = React.useState<Task | null>(null);
-  const [stats, setStats] = React.useState<Stats | null>(null);
+export function OverviewTab({ taskId, observation }: { taskId: string; observation: TaskObservation }) {
+  const { t, i18n } = useTranslation();
+  const { task, stats } = observation;
   const [intents, setIntents] = React.useState<TaskNode[]>([]);
   const [findings, setFindings] = React.useState<Finding[]>([]);
+  const [detailsStale, setDetailsStale] = React.useState(false);
 
   React.useEffect(() => {
     let cancelled = false;
+    let timer: ReturnType<typeof setTimeout> | undefined;
 
     const load = async () => {
       try {
-        const [tasksResp, statsResp, intentsResp, findingsResp] =
+        const [intentsResp, findingsResp] =
           await Promise.all([
-            api.tasks(),
-            api.stats(taskId),
             api.intents(taskId),
             api.findings(taskId),
           ]);
         if (cancelled) return;
-        setTask(tasksResp.tasks.find((t) => t.id === taskId) ?? null);
-        setStats(statsResp);
         setIntents(intentsResp);
         setFindings(findingsResp);
+        setDetailsStale(false);
       } catch {
-        // transient errors are ignored; the next poll will retry
+        if (!cancelled) setDetailsStale(true);
+      } finally {
+        if (!cancelled) timer = setTimeout(load, 3000);
       }
     };
 
     load();
-    const timer = setInterval(load, 3000);
     return () => {
       cancelled = true;
-      clearInterval(timer);
+      clearTimeout(timer);
     };
   }, [taskId]);
 
@@ -105,25 +106,20 @@ export function OverviewTab({ taskId }: { taskId: string }) {
         <CardContent className="grid grid-cols-2 gap-4 sm:grid-cols-4">
           <div>
             <div className="text-xs text-muted-foreground">{t("taskDetail.overview.engineState")}</div>
-            <StatusBadge
-              domain="engine"
-              value={stats?.engine_mode ?? task?.engine_mode ?? "idle"}
-              dot
-              className="mt-1"
-            />
+            <div className="mt-1"><TaskObservationStatus observation={observation} /></div>
           </div>
           <div>
             <div className="text-xs text-muted-foreground">{t("taskDetail.overview.runningWorker")}</div>
             <div className="mt-1 text-lg font-semibold tabular-nums">
-              {running.length}
+              {stats?.active_task?.in_flight ?? "—"}
             </div>
           </div>
           <div>
             <div className="text-xs text-muted-foreground">{t("taskDetail.overview.recentActivity")}</div>
             <div className="mt-1 inline-flex items-center gap-1 text-sm">
               <ClockIcon className="size-3.5" />
-              {task?.last_activity
-                ? new Date(task.last_activity).toLocaleTimeString("zh-CN")
+              {task?.last_activity_unix && task.last_activity_unix > 0
+                ? new Date(task.last_activity_unix * 1000).toLocaleString(i18n.resolvedLanguage)
                 : "—"}
             </div>
           </div>
@@ -138,14 +134,16 @@ export function OverviewTab({ taskId }: { taskId: string }) {
               <div className="text-xs text-muted-foreground">{t("taskDetail.overview.completedAt")}</div>
               <div className="mt-1 inline-flex items-center gap-1 text-sm">
                 <ClockIcon className="size-3.5" />
-                {new Date(task.completed_unix * 1000).toLocaleString("zh-CN")}
+                {new Date(task.completed_unix * 1000).toLocaleString(i18n.resolvedLanguage)}
               </div>
             </div>
           ) : null}
+          <div className="col-span-full"><TaskObservationFreshness observation={observation} /></div>
         </CardContent>
       </Card>
 
       {/* Work set */}
+      {detailsStale && <p role="status" className="text-sm text-muted-foreground">{t("taskDetail.observation.detailsStale")}</p>}
       <div className="grid grid-cols-1 gap-4 lg:grid-cols-3">
         <Card>
           <CardHeader>

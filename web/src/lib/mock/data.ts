@@ -24,7 +24,6 @@ export const tasks: Task[] = [
     status: "running",
     created_at: T("2026-07-24T09:12:00Z"),
     created_unix: 1785489120,
-    last_activity: T("2026-07-26T03:58:22Z"),
     last_activity_unix: 1785643102,
     paused: false, active: true, in_flight: 3, stalled: false,
     goals_total: 5, goals_met: 2, engine_mode: "exploring",
@@ -38,7 +37,6 @@ export const tasks: Task[] = [
     status: "running",
     created_at: T("2026-07-25T14:05:00Z"),
     created_unix: 1785592500,
-    last_activity: T("2026-07-26T03:40:10Z"),
     last_activity_unix: 1785642010,
     paused: false, active: false, in_flight: 2, stalled: false,
     goals_total: 4, goals_met: 1, engine_mode: "exploring",
@@ -52,7 +50,6 @@ export const tasks: Task[] = [
     status: "paused",
     created_at: T("2026-07-22T08:30:00Z"),
     created_unix: 1785313800,
-    last_activity: T("2026-07-23T18:40:10Z"),
     last_activity_unix: 1785436810,
     paused: true, active: false, in_flight: 0, stalled: false,
     goals_total: 4, goals_met: 1, engine_mode: "paused",
@@ -68,7 +65,6 @@ export const tasks: Task[] = [
     created_unix: 1784966400,
     completed_at: T("2026-07-20T22:11:00Z"),
     completed_unix: 1785190260,
-    last_activity: T("2026-07-20T22:11:00Z"),
     last_activity_unix: 1785190260,
     paused: false, active: false, in_flight: 0, stalled: false,
     goals_total: 3, goals_met: 3, engine_mode: "idle",
@@ -90,7 +86,7 @@ const grandTotal: TokenTotal = tasks.reduce(
 );
 
 // ── Stats ──────────────────────────────────────────────────────────────────
-export function stats(taskId?: string): Stats & { active_task?: unknown } {
+export function stats(taskId?: string): Stats {
   const base: Stats = {
     assets: assets.length,
     engine_mode: "exploring",
@@ -105,8 +101,11 @@ export function stats(taskId?: string): Stats & { active_task?: unknown } {
     engine_mode: t.engine_mode ?? "idle",
     findings_confirmed: findings.filter((f) => f.task_id === t.id).length,
     active_task: {
-      id: t.id, in_flight: t.in_flight, goals_total: t.goals_total,
-      goals_met: t.goals_met, engine_mode: t.engine_mode, paused: t.paused,
+      id: t.id, description: t.description, goal: t.goal,
+      running: t.status === "running", paused: !!t.paused,
+      in_flight: t.in_flight ?? 0, last_activity: t.last_activity_unix ?? 0,
+      stalled: !!t.stalled, goals_total: t.goals_total ?? 0,
+      goals_met: t.goals_met ?? 0,
     },
   };
 }

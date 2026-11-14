@@ -18,7 +18,6 @@ export interface Task {
   paused?: boolean;
   active?: boolean;
   in_flight?: number;
-  last_activity?: string;
   stalled?: boolean;
   goals_total?: number;
   goals_met?: number;
@@ -656,12 +655,26 @@ export interface Tool {
 }
 
 // ---- Stats ----
+export interface ActiveTaskStats {
+  id: string;
+  description: string;
+  goal: string;
+  running: boolean;
+  paused: boolean;
+  in_flight: number; // Running intent rows, not a planner-health measurement.
+  last_activity: number; // Unix seconds; distinct from Task.last_activity_unix.
+  stalled: boolean;
+  goals_total: number;
+  goals_met: number;
+}
+
 export interface Stats {
-  assets: number;
+  assets?: number;
   engine_mode: EngineMode;
   llm_configured: boolean;
-  roe_enabled: boolean;
-  findings_confirmed: number;
+  active_task?: ActiveTaskStats;
+  roe_enabled?: boolean;
+  findings_confirmed?: number;
 }
 
 // ---- Intercept Rules ----
