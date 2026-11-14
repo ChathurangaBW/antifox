@@ -106,11 +106,19 @@ jobs:
         run: cd dist && sha256sum *.zip > SHA256SUMS && cat SHA256SUMS
       # Keep the "This update" summary concise: use the topmost version section from CHANGELOG as the release body.
       - name: Extract release notes
+        id: notes
         run: |
           awk '/^## /{n++} n==1{print}' CHANGELOG.md | tail -n +2 > RELEASE_NOTES.md
           echo "--- release notes ---"; cat RELEASE_NOTES.md
+          # Release title = the version plus its codename, taken from the top CHANGELOG
+          # heading, e.g. '## v2.1.2 "Fennec"' gives 'v2.1.2 "Fennec"' (named like Linux
+          # kernel releases). A heading without a codename falls back to the tag alone.
+          title=$(awk '/^## /{sub(/^## /,""); print; exit}' CHANGELOG.md)
+          case "$title" in "${GITHUB_REF_NAME}"*) ;; *) title="${GITHUB_REF_NAME}" ;; esac
+          echo "title=$title" >> "$GITHUB_OUTPUT"
       - uses: softprops/action-gh-release@v2
         with:
+          name: ${{ steps.notes.outputs.title }}
           files: |
             dist/*.zip
             dist/SHA256SUMS

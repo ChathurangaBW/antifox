@@ -1,0 +1,39 @@
+# Keeps a published release's title in step with its CHANGELOG heading.
+#
+# Releases are named like Linux kernel releases: version plus codename, written
+# as the top CHANGELOG heading, e.g. '## v2.1.2 "Fennec"'. release.yml applies it
+# when a release is created; this workflow applies it when the heading is added
+# or changed afterwards, so a release never stays titled with the bare tag.
+name: release-title
+on:
+  push:
+    branches: [main]
+    paths: [CHANGELOG.md]
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  title:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Set release title from CHANGELOG
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          heading=$(awk '/^## /{sub(/^## /,""); print; exit}' CHANGELOG.md)
+          tag=${heading%% *}
+          case "$tag" in v[0-9]*) ;; *) echo "top heading '$heading' has no version; nothing to do"; exit 0 ;; esac
+          if ! gh release view "$tag" >/dev/null 2>&1; then
+            echo "no release $tag yet; release.yml will name it when the tag is pushed"
+            exit 0
+          fi
+          current=$(gh release view "$tag" --json name --jq .name)
+          if [ "$current" = "$heading" ]; then
+            echo "release $tag already titled '$heading'"
+          else
+            gh release edit "$tag" --title "$heading"
+            echo "release $tag retitled: '$current' -> '$heading'"
+          fi

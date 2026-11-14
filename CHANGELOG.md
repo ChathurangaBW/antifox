@@ -2,7 +2,7 @@
 
 This project's version update summary. The format follows [Keep a Changelog](https://keepachangelog.com/), and versions follow [SemVer](https://semver.org/).
 
-## v2.1.2
+## v2.1.2 "Fennec"
 
 Security hardening ported from ARTEX and Norma, plus fixes for the tool errors recorded in production. Every item below was reviewed against the reference implementation and covered by a test.
 
