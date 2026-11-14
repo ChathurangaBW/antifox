@@ -2,6 +2,19 @@
 
 This project's version update summary. The format follows [Keep a Changelog](https://keepachangelog.com/), and versions follow [SemVer](https://semver.org/).
 
+## v2.1.6 "Bengal"
+
+Login and setup screens in the new brand.
+
+### Changed
+
+- **Branded login and setup screens**: the stock city photo with a blue overlay is replaced by a backdrop drawn from the guardian shield: a charcoal field, nested shield outlines, the logo's "A" chevron, an orange glow behind the logo and an orange baseline. The "AntiFox" name is cream with an orange "Fox" (it was blue and purple). The setup screen, previously the plain theme colour with rings, uses the same backdrop. The backdrop is inline SVG in the logo's sampled colours (`web/src/components/brand-backdrop.tsx`), so it needs no image request and stays sharp at every size.
+- `login.jpg` (395 KB) is no longer used and is removed from the bundle.
+
+### Verified
+
+- Frontend type check and static export passed. In Chromium against the embedded UI: the setup screen (empty database) and the login screen (copy of production data) render the backdrop and the logo with no console errors or failed requests.
+
 ## v2.1.5 "Swift"
 
 New logo, and the UI no longer shows a stale one after an upgrade.

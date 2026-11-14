@@ -10,7 +10,7 @@ func TestWebUICacheControl(t *testing.T) {
 		"_next/static/chunks/app-3f9a.js": "public, max-age=31536000, immutable",
 		"_next/static/css/1a2b.css":       "public, max-age=31536000, immutable",
 		"logo.png":                        "no-cache",
-		"login.jpg":                       "no-cache",
+		"apple-icon.png":                  "no-cache",
 		"favicon.ico":                     "no-cache",
 		"index.html":                      "no-cache",
 		"login":                           "no-cache",

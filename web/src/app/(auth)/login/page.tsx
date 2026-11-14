@@ -8,6 +8,7 @@ import { useTranslation } from "react-i18next";
 
 import { LanguageSwitcher } from "@/app/(main)/_components/sidebar/language-switcher";
 import { AntifoxLogo } from "@/components/antifox-logo";
+import { BrandBackdrop, BrandWordmark, brand } from "@/components/brand-backdrop";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -59,19 +60,14 @@ export default function LoginPage() {
       <div className="absolute top-4 right-4 z-20">
         <LanguageSwitcher />
       </div>
-      {/* Left brand panel — Feature Background Chart login.jpg + AntiFox Brand */}
+      {/* Left brand panel: branded backdrop in the logo's colours + logo and name */}
       <div className="relative hidden flex-col items-center justify-center overflow-hidden p-12 text-center lg:flex lg:w-1/2">
-        {/* eslint-disable-next-line @next/next/no-img-element */}
-        <img src="/login.jpg" alt="" className="absolute inset-0 size-full object-cover" />
-        {/* Dark Gradient Mask: Promise logo/Text is clear and readable and aligned to the deep blue brand */}
-        <div className="absolute inset-0 bg-gradient-to-br from-[#0A1126]/90 via-[#0A1126]/55 to-[#0A1126]/90" />
-        <div className="relative z-10 flex flex-col items-center gap-5 text-white">
-          <AntifoxLogo className="size-24 drop-shadow-xl" />
+        <BrandBackdrop />
+        <div className="relative z-10 flex flex-col items-center gap-5">
+          <AntifoxLogo className="size-28 drop-shadow-[0_10px_30px_rgba(224,96,26,0.35)]" />
           <div className="space-y-1.5">
-            <div className="text-4xl font-bold tracking-tight">
-              Anti<span className="bg-gradient-to-r from-[#4F6BF6] to-[#7C3AED] bg-clip-text text-transparent">Fox</span>
-            </div>
-            <div className="text-xs font-medium uppercase tracking-[0.25em] text-white/70">
+            <BrandWordmark className="text-4xl" />
+            <div className="text-xs font-medium uppercase tracking-[0.25em]" style={{ color: brand.cream, opacity: 0.7 }}>
               AI Autonomous Pentest Platform
             </div>
           </div>

@@ -8,6 +8,7 @@ import { useTranslation } from "react-i18next";
 
 import { LanguageSwitcher } from "@/app/(main)/_components/sidebar/language-switcher";
 import { AntifoxLogo } from "@/components/antifox-logo";
+import { BrandBackdrop, BrandWordmark } from "@/components/brand-backdrop";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -63,13 +64,12 @@ export default function SetupPage() {
       <div className="absolute top-4 right-4 z-20">
         <LanguageSwitcher />
       </div>
-      {/* Left panel */}
-      <div className="hidden flex-col items-center justify-center bg-primary p-12 text-center lg:flex lg:w-1/3">
-        <div className="relative flex items-center justify-center">
-          <div className="absolute size-80 rounded-full border border-primary-foreground/10" />
-          <div className="absolute size-60 rounded-full border border-primary-foreground/15" />
-          <div className="absolute size-40 rounded-full border border-primary-foreground/20" />
-          <AntifoxLogo className="relative size-40 drop-shadow-xl" />
+      {/* Left panel: same branded backdrop as the login screen */}
+      <div className="relative hidden flex-col items-center justify-center overflow-hidden p-12 text-center lg:flex lg:w-1/3">
+        <BrandBackdrop />
+        <div className="relative z-10 flex flex-col items-center gap-5">
+          <AntifoxLogo className="size-36 drop-shadow-[0_10px_30px_rgba(224,96,26,0.35)]" />
+          <BrandWordmark className="text-3xl" />
         </div>
       </div>
 
