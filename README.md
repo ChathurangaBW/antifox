@@ -1,6 +1,8 @@
 <div align="center">
 
-# 🦊 AntiFox
+<img src="web/public/logo.png" alt="AntiFox Guardian shield logo" width="160" height="160" />
+
+# AntiFox
 
 **AI-Driven Autonomous Penetration Testing Platform**
 

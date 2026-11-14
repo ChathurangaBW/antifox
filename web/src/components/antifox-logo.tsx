@@ -1,7 +1,9 @@
-// AntiFox Brand signs. PNG)——by className Control size, dark theme generic.
+import { cn } from "@/lib/utils";
+
+// Guardian shield artwork uses square bounds and retains its proportions at every size.
 export function AntifoxLogo({ className }: { className?: string }) {
   return (
-    // eslint-disable-next-line @next/next/no-img-element
-    <img src="/logo.png" alt="AntiFox" className={className} />
+    // biome-ignore lint/performance/noImgElement: Static logo is served directly by the embedded Go UI.
+    <img src="/logo.png" alt="AntiFox" width={512} height={512} className={cn("object-contain", className)} />
   );
 }
