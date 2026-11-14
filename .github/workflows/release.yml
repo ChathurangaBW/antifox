@@ -7,7 +7,16 @@ permissions:
   contents: write # Required to create a Release
 
 jobs:
-  # 1. Export the frontend static site once; reuse the artifact for each cross-compiled platform
+  # 0. Backend gate: vet, the full suite on PostgreSQL 16 + pgvector with no
+  #    skipped tests, and the race detector. Nothing is built or published
+  #    unless it passes.
+  test:
+    uses: ./.github/workflows/test.yml
+    permissions:
+      contents: read
+
+  # 1. Export the frontend static site once (this also type-checks the UI); reuse
+  #    the artifact for each cross-compiled platform
   frontend:
     runs-on: ubuntu-latest
     steps:
@@ -31,7 +40,7 @@ jobs:
 
   # 2. Cross-compile five platforms with the embedded frontend and package ZIP archives
   binaries:
-    needs: frontend
+    needs: [test, frontend]
     runs-on: ubuntu-latest
     strategy:
       matrix:
@@ -124,8 +133,10 @@ jobs:
             dist/SHA256SUMS
           body_path: RELEASE_NOTES.md
 
-  # 4. Push multi-architecture images to GHCR, reusing the prebuilt Linux binaries
-  #    The image contains only tools and binaries; arm64 needs only the emulated apt layer, making builds much faster.
+  # 4. Push the container image to GHCR, reusing the prebuilt Linux binary.
+  #    Supported image platform: linux/amd64 only. Release binaries also cover
+  #    linux/arm64, darwin and windows, but there is no arm64 image; publishing
+  #    one would first need arm64 startup and dependency checks.
   docker:
     needs: binaries
     runs-on: ubuntu-latest
@@ -138,11 +149,6 @@ jobs:
         with:
           name: bin-linux-amd64
           path: dist/amd64
-      - uses: actions/download-artifact@v4
-        with:
-          name: bin-linux-arm64
-          path: dist/arm64
-      - uses: docker/setup-qemu-action@v3
       - uses: docker/setup-buildx-action@v3
       - uses: docker/login-action@v3
         with:

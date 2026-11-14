@@ -472,15 +472,16 @@ function AnswerBlock({ step, getDetail }: { step: Activity; getDetail: (seq: num
       live = false;
     };
   }, [step.seq, getDetail, step.summary]);
+  // A cancelled run (new message, stop, pause, shutdown) is not a failure: it
+  // gets its own muted style instead of the error red.
+  const cancelled = step.outcome === "cancelled";
+  let tone = "";
+  if (step.is_error) tone = "text-sm text-red-600 dark:text-red-400";
+  else if (cancelled) tone = "border border-dashed text-muted-foreground text-sm italic";
   return (
     <div className="mb-2 mt-1 flex">
-      <div
-        className={
-          "min-w-0 flex-1 break-words rounded-lg bg-muted px-3 py-2 " +
-          (step.is_error ? "text-sm text-red-600 dark:text-red-400" : "")
-        }
-      >
-        {step.is_error ? (
+      <div className={`min-w-0 flex-1 break-words rounded-lg bg-muted px-3 py-2 ${tone}`}>
+        {step.is_error || cancelled ? (
           <span className="whitespace-pre-wrap">{full ?? step.summary}</span>
         ) : (
           <Markdown text={full ?? step.summary} />

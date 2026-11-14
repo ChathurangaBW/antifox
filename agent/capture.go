@@ -69,11 +69,12 @@ func captureRunSession(ctx context.Context, s *agentcore.Session, input string, 
 	for ev, err := range s.Prompt(ctx, input) {
 		if err != nil {
 			flush()
-			if ctx.Err() != nil { // ctx cancelled = manual stop, not a failure
-				rec(db.Activity{Kind: "result", Summary: "(Stopped this run manually)"})
+			if ctx.Err() != nil { // cancelled: say why, and do not record it as a failure
+				sum := cancelSummary(ctx)
+				rec(db.Activity{Kind: "result", Outcome: OutcomeCancelled, Summary: sum, Detail: sum})
 				return finalText, reason, ctx.Err()
 			}
-			rec(db.Activity{Kind: "result", IsError: true, Summary: "Error executing: " + err.Error(), Detail: err.Error()})
+			rec(db.Activity{Kind: "result", Outcome: OutcomeFailed, IsError: true, Summary: "Error executing: " + err.Error(), Detail: err.Error()})
 			return finalText, reason, err
 		}
 		switch ev.Kind {
@@ -121,23 +122,34 @@ func captureRunSession(ctx context.Context, s *agentcore.Session, input string, 
 				}
 				flush() // flush any trailing thinking / non-final text
 				sum := ev.Terminal.Text
-				if sum == "" {
-					switch ev.Terminal.Reason {
-					case harness.ReasonAbortedTools, harness.ReasonAbortedStreaming:
-						// interruption (task paused / worker killed / backend restart),
-						// not a real completion — the intent is re-queued (open) or
-						// stopped, so the session icon reflects that, not this run.
-						sum = "(Operation interrupted: Task suspended / Termination / As a result of restart; not completed)"
-					case harness.ReasonTimeout, harness.ReasonMaxTurns:
-						// budget hit → settlement ran (facts/assets were written back);
-						// only the trailing text summary is missing, not a failure.
+				outcome := OutcomeCompleted
+				isErr := ev.Terminal.Err != nil
+				switch ev.Terminal.Reason {
+				case harness.ReasonAbortedTools, harness.ReasonAbortedStreaming:
+					// Cancelled, not failed: the intent is re-queued (open) or stopped.
+					// The text names the recorded cause (new message, operator stop,
+					// pause, kill, deadline, shutdown) instead of guessing.
+					outcome, isErr = OutcomeCancelled, false
+					if sum == "" {
+						sum = cancelSummary(ctx)
+					}
+				case harness.ReasonTimeout, harness.ReasonMaxTurns:
+					// budget hit → settlement ran (facts/assets were written back);
+					// only the trailing text summary is missing, not a failure.
+					outcome = OutcomeBudget
+					if sum == "" {
 						sum = "(Operating budget ceiling reached, facts written back; no summary, final: " + string(ev.Terminal.Reason) + ")"
-					default:
+					}
+				default:
+					if isErr {
+						outcome = OutcomeFailed
+					}
+					if sum == "" {
 						sum = "(No summary, final: " + string(ev.Terminal.Reason) + ")"
 					}
 				}
 				u := ev.Terminal.Usage // cumulative token usage for this session
-				rec(db.Activity{Kind: "result", IsError: ev.Terminal.Err != nil,
+				rec(db.Activity{Kind: "result", Outcome: outcome, IsError: isErr,
 					Summary: firstLine(sum, 400), Detail: sum,
 					InputTokens: &u.InputTokens, OutputTokens: &u.OutputTokens,
 					CacheReadTokens: &u.CacheReadTokens, CacheWriteTokens: &u.CacheWriteTokens})

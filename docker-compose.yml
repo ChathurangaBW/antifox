@@ -20,7 +20,7 @@ services:
     restart: unless-stopped
 
   antifox:
-    image: ghcr.io/antifox-ai/antifox:${ANTIFOX_TAG:-latest}
+    image: ghcr.io/chathurangabw/antifox:${ANTIFOX_TAG:-latest}
     depends_on:
       postgres:
         condition: service_healthy

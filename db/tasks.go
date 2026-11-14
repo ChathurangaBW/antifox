@@ -2,6 +2,8 @@ package db
 
 import (
 	"encoding/json"
+	"errors"
+	"fmt"
 	"time"
 )
 
@@ -220,4 +222,29 @@ func (d *DB) DeleteTask(id int64) error {
 		return err
 	}
 	return tx.Commit()
+}
+
+// ErrInvalidTaskRef reports a task reference that is negative or names no
+// existing task.
+var ErrInvalidTaskRef = errors.New("invalid task reference")
+
+// ValidateTaskRef checks a caller-supplied task id before it is written into an
+// asset's task_ids. 0 means "not linked to a task" and is valid. A negative id,
+// or one that names no existing (non-deleted) task, is rejected: task_ids is an
+// array with no foreign key, so nothing else stops a dangling reference.
+func (d *DB) ValidateTaskRef(id int64) error {
+	if id == 0 {
+		return nil
+	}
+	if id < 0 {
+		return fmt.Errorf("%w: task id %d is negative", ErrInvalidTaskRef, id)
+	}
+	t, err := d.GetTask(id)
+	if err != nil {
+		return fmt.Errorf("check task %d: %w", id, err)
+	}
+	if t == nil {
+		return fmt.Errorf("%w: task %d does not exist", ErrInvalidTaskRef, id)
+	}
+	return nil
 }

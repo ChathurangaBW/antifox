@@ -2,6 +2,41 @@
 
 This project's version update summary. The format follows [Keep a Changelog](https://keepachangelog.com/), and versions follow [SemVer](https://semver.org/).
 
+## v2.1.3 "Arctic"
+
+Fixes every gap found in the v2.1.2 release review (D1–D6, R1–R2, E1–E3). Each fix has tests written against the intended behavior first; the full suite runs on PostgreSQL 16 + pgvector with no skipped tests and passes under the race detector.
+
+### Fixed
+
+- **Tool upgrades no longer overwrite operator edits (D1)**: the `list_assets` upgrade decided "stock or customized" by the first words of the description and then replaced the whole definition, so an edited description that kept the stock opening, or an edit to a parameter, was lost. It now compares against every definition the tool actually shipped with (recorded from each release tag and upstream) and decides per part: the description and each parameter are replaced only if they exactly match a shipped version, and operator-added parameters are kept. The write applies only if the row is unchanged since it was read.
+- **Upgrades are recorded only when they happened (D2)**: a current description with an old schema was marked done without an upgrade, and a missing tool row was marked done too. Completion is now recorded only after re-reading the row and confirming every current parameter is present; a missing row retries on the next start. Every migration now logs a failed completion write instead of discarding it. Databases re-check once under a new flag.
+- **Assets can no longer reference tasks that do not exist (D3)**: `insert_assets` outside a task and `POST /api/assets` wrote any task id into `task_ids` (an array with no foreign key). A missing or negative task id is now refused before anything is written; omitting it inserts the asset unlinked.
+- **Interrupted runs say why (D4)**: a turn replaced by your next chat message, an operator stop, a pause, the planner killing a work, a task deadline, a completed task and a server shutdown all showed the same "suspended / termination / restart" text. Each now records its cause and the result names it ("Interrupted: replaced by a newer message"). Result rows carry an `outcome` (completed, cancelled, failed, budget reached); a cancellation is no longer marked as an error, and the transcript shows it in a muted style instead of error red.
+- **Tool output is bounded as a whole (R1)**: the output cap applied per text block, so a tool returning many small blocks could exceed it. The budget now covers the whole result, non-text blocks are limited separately, and anything over the budget is saved through the same spill-to-file path and reported.
+- **Startup cannot hang on the secret handoff (R2)**: the handoff wrote up to 32 KiB into a pipe before the reader existed; Linux shrinks pipes to 4 KiB under pipe-memory pressure, which could block startup. The payload limit is now 4 KiB and the write is non-blocking and single-shot: anything that does not fit falls back to the previous behavior and logs it, without the secret.
+
+### Release process
+
+- **Publishing is gated on tests (D5)**: a new `test` workflow runs on every push and pull request, and both `release` and `publish package` require it. It runs `go vet`, the full suite against PostgreSQL 16 + pgvector (any skipped test fails the gate), and the race detector, and keeps the JSON results and the tested commit as an artifact.
+- **Image platform stated correctly (D6)**: the published container image is linux/amd64 only. Release binaries also cover linux/arm64, macOS and Windows. Unused arm64 steps were removed from the image job.
+- **Release runbook (E1)**: `docs/release-runbook.md` covers the local gate, rehearsing the upgrade on a copy of production, collation and pgvector checks, verifying the published image's revision, deploying and rolling back.
+- `docker-compose.yml` now points at this fork's image, `ghcr.io/chathurangabw/antifox`.
+
+### Changed
+
+- **Verification label wording (E3)**: "Verified" is now "Evidence verified", and its explanation says what the check proves (every quote appears word for word in the linked traffic, at proof level 3 or higher) and what it does not (the vulnerability itself still needs review).
+
+### Upgrade notes (behavior changes since v2.1.1) (E2)
+
+Deliberate changes that can affect existing setups:
+
+- **Agent shells no longer receive the database DSN or model API keys.** A custom tool or script that read `OPENAI_API_KEY`, `ANTHROPIC_API_KEY`, `ANTIFOX_PG_DSN` or `ANTIFOX_LLM_PROXY` from its environment now gets nothing; pass what it needs explicitly.
+- **The planner and main agent pass the guard.** Destructive commands are blocked for them as for workers. An intercept rule with action "ask" makes the main agent wait for your approval in the task chat, and makes the planner skip the command and hand it to a worker.
+- **A first install needs a setup token** from the server log (`docker compose logs antifox | grep "Setup token"`).
+- **Changing a model profile's provider or base URL requires re-entering its API key.**
+- **Asset task ids must exist.** Integrations that posted made-up task ids to `POST /api/assets` now get 400.
+- **Goal decomposition, report narrative and enrichment** run on environment-configured models, so model usage rises.
+
 ## v2.1.2 "Fennec"
 
 Security hardening ported from ARTEX and Norma, plus fixes for the tool errors recorded in production. Every item below was reviewed against the reference implementation and covered by a test.

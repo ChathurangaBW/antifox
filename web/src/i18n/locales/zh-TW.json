@@ -1681,11 +1681,11 @@
     "unlinkTraffic": "Unlink",
     "trafficCount": "{{count}} linked",
     "verification": {
-      "verified": "Verified L{{level}}",
-      "verifiedHint": "Machine-checked: every evidence quote appears verbatim in the recorded traffic linked to this finding, at proof-of-exploitation level 3 or higher.",
+      "verified": "Evidence verified L{{level}}",
+      "verifiedHint": "Evidence check passed: every quote the agent gave appears word for word in the recorded traffic linked to this finding, and it declared proof-of-exploitation level 3 or higher. This confirms the quoted evidence is real; it does not prove the vulnerability on its own. Review the finding before reporting it.",
       "unverified": "Unverified",
       "notAssessed": "Not assessed",
-      "notAssessedHint": "The linked traffic could not be checked, for example a binary or undecodable response.",
+      "notAssessedHint": "The evidence check could not run, for example because the linked response is binary or cannot be decoded. This says nothing about whether the finding is real.",
       "label": "Verification"
     },
     "jumpTraffic": "View packet",

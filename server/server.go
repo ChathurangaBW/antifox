@@ -83,7 +83,7 @@ type Server struct {
 	// convBusyKey), so a manual stop can abort JUST that session's agent run. Set/
 	// cleared alongside chatBusy under chatMu. Aborting a run does NOT touch the P3
 	// trigger queue — the drain goroutine simply proceeds to the next queued fire.
-	chatCancel map[string]context.CancelFunc
+	chatCancel map[string]context.CancelCauseFunc
 	// chatLock serializes main-agent turns PER TASK. A new steering message preempts
 	// (cancels) the in-flight turn, then waits on this lock for it to release before
 	// taking over — so human steering is never rejected, just interleaved cleanly.
@@ -143,7 +143,7 @@ func New(ctx context.Context, m *Manager, skillDir string, dataDir string, opts 
 		log.Fatalf("[auth] JWT key: %v", err)
 	}
 	s := &Server{m: m, engine: NewEngine(m), ctx: ctx, skillDir: skillDir, dataDir: dataDir, jwtKey: key, chatBusy: map[string]bool{},
-		chatCancel: map[string]context.CancelFunc{}, chatLock: map[string]*sync.Mutex{}, triggerQ: map[string][]triggeredRun{}, triggerRun: map[string]bool{},
+		chatCancel: map[string]context.CancelCauseFunc{}, chatLock: map[string]*sync.Mutex{}, triggerQ: map[string][]triggeredRun{}, triggerRun: map[string]bool{},
 		profAgents: map[int64]*profBundle{}, profChatAgents: map[int64]*agent.ChatAgent{}, reportJobs: map[string]*reportJob{},
 		enrichJobs: map[int64]*enrichJob{}, provCache: map[int64]llm.Provider{}}
 	for _, o := range opts {
@@ -2160,7 +2160,7 @@ func (s *Server) chat(w http.ResponseWriter, r *http.Request) {
 		// Use per-task Serialization: taking over after taking over the old wheel before taking over defer Competition.
 		s.chatMu.Lock()
 		if c := s.chatCancel[t.ID]; c != nil {
-			c()
+			c(agent.ErrReplacedByMessage) // the new message replaces the running turn
 		}
 		lock := s.chatLockFor(t.ID)
 		s.chatMu.Unlock()
@@ -2170,13 +2170,15 @@ func (s *Server) chat(w http.ResponseWriter, r *http.Request) {
 			defer lock.Unlock()
 
 			// Single-wheel overtime: bad network/The tool closes automatically to point when it is hung up.chatBusy They are no longer indefinitely occupied and block subsequent rudders.
-			ctx, cancel := context.WithTimeout(s.ctx, chatTurnTimeout)
+			causeCtx, cancel := context.WithCancelCause(s.ctx)
+			ctx, cancelTimeout := context.WithTimeout(causeCtx, chatTurnTimeout)
 			s.chatMu.Lock()
 			s.chatBusy[t.ID] = true
 			s.chatCancel[t.ID] = cancel
 			s.chatMu.Unlock()
 			defer func() {
-				cancel()
+				cancelTimeout()
+				cancel(nil)
 				s.chatMu.Lock()
 				delete(s.chatBusy, t.ID)
 				delete(s.chatCancel, t.ID)
@@ -2223,7 +2225,7 @@ func (s *Server) stopChat(w http.ResponseWriter, r *http.Request) {
 		writeJSON(w, 200, map[string]any{"status": "idle"})
 		return
 	}
-	cancel()
+	cancel(agent.ErrStoppedByOperator)
 	writeJSON(w, 200, map[string]any{"status": "stopping"})
 }
 

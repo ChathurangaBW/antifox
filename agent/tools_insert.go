@@ -196,7 +196,17 @@ func (t *ToolSet) insertAssets() actool.CoreTool {
 				if a.TaskID != 0 && a.TaskID != t.taskID {
 					taskWarning = fmt.Sprintf("ignored caller task_id %d: bound to task %d", a.TaskID, t.taskID)
 				}
-			} else if a.TaskID > 0 {
+			} else if a.TaskID != 0 {
+				// Standalone call (no bound task): the caller's task_id goes straight
+				// into task_ids, an array with no foreign key. Reject a reference to a
+				// task that does not exist before writing anything, instead of
+				// leaving a dangling link. 0 or omitted means "not linked to a task".
+				if t.as == nil {
+					return actool.Errorf("insert_assets not enabled: AssetStore not initialized"), nil
+				}
+				if err := t.as.DB().ValidateTaskRef(a.TaskID); err != nil {
+					return actool.Errorf(err.Error() + "; omit task_id to insert assets without linking them to a task"), nil
+				}
 				taskID = a.TaskID
 			}
 

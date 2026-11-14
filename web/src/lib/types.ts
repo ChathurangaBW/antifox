@@ -300,6 +300,8 @@ export interface Activity {
   output_tokens?: number;
   cache_read_tokens?: number;
   cache_write_tokens?: number;
+  // run outcome (present only on kind='result' from v2.1.3)
+  outcome?: "completed" | "cancelled" | "failed" | "budget_reached";
 }
 
 // ---- Agent triggers (P3 Schedule, custom only agent) ----

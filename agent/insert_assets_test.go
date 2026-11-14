@@ -61,7 +61,7 @@ func TestInsertAssetsSubdomainSideEffects(t *testing.T) {
 				"record_value": []string{"7.8.9.10"},
 			},
 		},
-		"task_id": 999,
+		"task_id": realTaskID(t, d),
 	})
 
 	// no errors
@@ -180,7 +180,7 @@ func TestInsertAssetsHTTPServiceTechnologies(t *testing.T) {
 				"page_title":   "Tech Test Site",
 			},
 		},
-		"task_id": 888,
+		"task_id": realTaskID(t, d),
 	})
 
 	if errs, _ := out["errors"].([]any); len(errs) > 0 {
@@ -328,7 +328,7 @@ func TestInsertAssetsMixedBatch(t *testing.T) {
 			// endpoint
 			map[string]any{"type": "endpoint", "url": "https://batch-test.org/api/users", "method": "GET"},
 		},
-		"task_id": 777,
+		"task_id": realTaskID(t, d),
 	})
 
 	if errs, _ := out["errors"].([]any); len(errs) > 0 {
@@ -452,4 +452,19 @@ func TestBuildListAssetsDSL(t *testing.T) {
 			}
 		}
 	}
+}
+
+// realTaskID creates a task for tests that link inserted assets to one, and
+// removes it afterwards. Assets may only reference tasks that exist.
+func realTaskID(t *testing.T, d *db.DB) int64 {
+	t.Helper()
+	task, err := d.CreateTask("t-insert-assets", "desc", "goal", "", nil, 0)
+	if err != nil {
+		t.Fatal(err)
+	}
+	t.Cleanup(func() {
+		_, _ = d.Exec(`DELETE FROM tasks WHERE id=$1`, task.ID)
+		_, _ = d.Exec(`DELETE FROM explorations WHERE id=$1`, task.ExplorationID)
+	})
+	return task.ID
 }

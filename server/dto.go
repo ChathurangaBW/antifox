@@ -281,6 +281,9 @@ type ActivityDTO struct {
 	OutputTokens     *int `json:"output_tokens,omitempty"`
 	CacheReadTokens  *int `json:"cache_read_tokens,omitempty"`
 	CacheWriteTokens *int `json:"cache_write_tokens,omitempty"`
+	// Outcome of a run on its kind=result row: completed, cancelled, failed or
+	// budget_reached; empty on rows written before v2.1.3.
+	Outcome string `json:"outcome,omitempty"`
 }
 
 func activityDTO(a db.Activity) ActivityDTO {
@@ -303,6 +306,7 @@ func activityDTO(a db.Activity) ActivityDTO {
 		OutputTokens:     a.OutputTokens,
 		CacheReadTokens:  a.CacheReadTokens,
 		CacheWriteTokens: a.CacheWriteTokens,
+		Outcome:          a.Outcome,
 	}
 }
 

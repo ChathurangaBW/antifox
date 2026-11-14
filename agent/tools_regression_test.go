@@ -125,14 +125,34 @@ func TestInsertAssetsEnforcesTaskContext(t *testing.T) {
 		t.Fatalf("task_ids = %v, want [%d] (caller task_id must not override task context)", gotIDs, task.ID)
 	}
 
-	// Unbound ToolSet (taskID=0): caller task_id still works for standalone ingestion.
+	// Unbound ToolSet (taskID=0): a caller task_id naming an existing task is
+	// linked; a missing or negative one is rejected with no write at all; 0 or
+	// omitted inserts the asset without a task link.
 	unbound := NewToolSet(nil, "")
 	unbound.SetAssetStore(d.Assets(), d.Companies())
+	countIP := func(ip string) int {
+		var n int
+		_ = d.QueryRow(`SELECT count(*) FROM assets WHERE type='ip' AND ip=$1`, ip).Scan(&n)
+		return n
+	}
+	for _, bad := range []any{88888888, -5} {
+		raw, _ := json.Marshal(map[string]any{
+			"task_id": bad,
+			"assets":  []any{map[string]any{"type": "ip", "ip": "10.254.2.12"}},
+		})
+		res, err := unbound.insertAssets().Call(context.Background(), raw, nil)
+		if err != nil || !res.IsError || !strings.Contains(res.Flatten(), "invalid task reference") {
+			t.Fatalf("task_id %v: expected a rejection, got err=%v isError=%v %s", bad, err, res.IsError, res.Flatten())
+		}
+		if n := countIP("10.254.2.12"); n != 0 {
+			t.Fatalf("task_id %v: rejected request still wrote %d asset(s)", bad, n)
+		}
+	}
+	defer d.Exec(`DELETE FROM assets WHERE ip IN ('10.254.2.12','10.254.2.13')`)
+
 	out2 := callInsertAssets(t, unbound, map[string]any{
-		"task_id": 88888,
-		"assets": []any{
-			map[string]any{"type": "ip", "ip": "10.254.2.11"},
-		},
+		"task_id": task.ID,
+		"assets":  []any{map[string]any{"type": "ip", "ip": "10.254.2.11"}},
 	})
 	if errs, _ := out2["errors"].([]any); len(errs) > 0 {
 		t.Fatalf("unbound unexpected errors: %v", errs)
@@ -140,8 +160,18 @@ func TestInsertAssetsEnforcesTaskContext(t *testing.T) {
 	var gotUnbound []int64
 	_ = d.QueryRow(`SELECT array_to_json(task_ids)::text FROM assets WHERE type='ip' AND ip='10.254.2.11'`).Scan(&taskIDs)
 	_ = json.Unmarshal(taskIDs, &gotUnbound)
-	if len(gotUnbound) != 1 || gotUnbound[0] != 88888 {
-		t.Fatalf("unbound task_ids = %v, want [88888]", gotUnbound)
+	if len(gotUnbound) != 1 || gotUnbound[0] != task.ID {
+		t.Fatalf("unbound task_ids = %v, want [%d]", gotUnbound, task.ID)
+	}
+
+	callInsertAssets(t, unbound, map[string]any{
+		"assets": []any{map[string]any{"type": "ip", "ip": "10.254.2.13"}},
+	})
+	var noTask []int64
+	_ = d.QueryRow(`SELECT array_to_json(task_ids)::text FROM assets WHERE type='ip' AND ip='10.254.2.13'`).Scan(&taskIDs)
+	_ = json.Unmarshal(taskIDs, &noTask)
+	if len(noTask) != 0 {
+		t.Fatalf("omitted task_id should link no task, got %v", noTask)
 	}
 }
 

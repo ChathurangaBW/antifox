@@ -1,0 +1,122 @@
+[
+ {
+  "version": "upstream v0.1.0-v2.0.3 (zh)",
+  "description": "查询资产库。支持 DSL 表达式搜索、按 id/ids 直接取，分页。\nDSL 语法：field=value 模糊(ILIKE) | field==value 精确 | field!=value 排除 | port>80 数字比较 | 裸词=全文模糊。\n逻辑运算：AND / OR（关键字，AND 优先级高于 OR），括号分组。\n资产类型用独立的 type 参数过滤，DSL 里不含 type 字段。\n约束：未传 id/ids 时 dsl 必须非空——不允许无条件查询全部资产，必须带查询条件。\n字段一览：\n  domain      域名（根域名/子域名/服务域名）\n  root_domain 根域名（仅子域名/服务资产有）\n  ip          IPv4/IPv6 地址\n  url         完整 URL（服务/接口）\n  page_title  页面标题（HTTP 服务）\n  icp         ICP 备案号（根域名）\n  service_name 服务名称（非 HTTP 服务）\n  app_name    应用名称（app 类型）\n  method      HTTP 方法（接口类型，如 GET/POST）\n  service_type HTTP 服务类型：http|other\n  record_type DNS 解析类型（子域名，如 A/CNAME）\n  technology  指纹/技术栈（数组字段，= 模糊 == 精确）\n  port        端口号（整数，支持 > >= < <=）\n  status_code HTTP 状态码（整数，支持 > >= < <=）\n  company_id  归属企业 id（整数）\n  task_id     来源任务 id（整数）\n示例：status_code>=400 AND technology=shiro\n      method==POST AND url=/api/admin\n      icp=京 OR icp=沪\n      (port==80 OR port==443) AND technology=nginx",
+  "schema": {
+   "properties": {
+    "dsl": {
+     "description": "DSL 查询表达式，参见工具描述。未传 id/ids 时必须非空。例：status_code>=400 technology=shiro / method==POST url=/api/admin",
+     "type": "string"
+    },
+    "id": {
+     "description": "直接按单个资产 id 取（可选，与 dsl/type 互斥）",
+     "type": "integer"
+    },
+    "ids": {
+     "description": "直接按多个资产 id 取（可选，与 dsl/type 互斥）",
+     "items": {
+      "type": "integer"
+     },
+     "type": "array"
+    },
+    "limit": {
+     "description": "返回上限，默认 10（可选）",
+     "type": "integer"
+    },
+    "offset": {
+     "description": "分页偏移，默认 0（可选）",
+     "type": "integer"
+    },
+    "type": {
+     "description": "资产类型过滤：root_domain|ip|subdomain|app|service|endpoint（独立字段，可与 dsl 叠加；单独 type 不足以查询，仍需 dsl）",
+     "type": "string"
+    }
+   },
+   "type": "object"
+  }
+ },
+ {
+  "version": "fork v2.0.3-v2.1.1",
+  "description": "Search for asset bank. Support DSL Organisation id/ids Directly, page break.\nDSL Syntax:field=value Blur(ILIKE) | field==value Exact | field!=value Exclude | port>80 Number Comparison | Naked words.=The whole text is vague.\nLogical operation:AND / OR(Keywords,AND Priority above OR),parenthesis grouping.\nUse separate asset types type Parameter filter,DSL Not included type field.\nConstraints: Unheard id/ids Time dsl It has to be empty.——Unconditional access to all assets is not allowed and must be conditional.\nfield:\n  domain      Domain name (root domain / subdomain / service domain name)\n  root_domain Root domain name (subdomain-only / service assets available)\n  ip          IPv4/IPv6 Address\n  url         Full URL (service / endpoint)\n  page_title  Page title (HTTP services)\n  icp         ICP registration number (root domain)\n  service_name Name of the service (non-HTTP services)\n  app_name    Application name (app type)\n  method      HTTP method (endpoint type, e.g. GET/POST)\n  service_type HTTP service type: http|other\n  record_type DNS record type (subdomain name, such as A/CNAME)\n  technology  Fingerprint / technology stack (numeric fields: = fuzzy, == exact)\n  port        Port number (integer; supports > >= < <=)\n  status_code HTTP status code (integer; supports > >= < <=)\n  company_id  Owning company id (integer)\n  task_id     Source task id (integer)\nExample:status_code>=400 AND technology=shiro\n      method==POST AND url=/api/admin\n      icp=Beijing OR icp=Shanghai\n      (port==80 OR port==443) AND technology=nginx",
+  "schema": {
+   "properties": {
+    "dsl": {
+     "description": "DSL query expression; see the tool description. Required when neither id nor ids is supplied. Example: status_code>=400 technology=shiro / method==POST url=/api/admin",
+     "type": "string"
+    },
+    "id": {
+     "description": "Fetch a single asset directly by ID (optional; mutually exclusive with dsl/type)",
+     "type": "integer"
+    },
+    "ids": {
+     "description": "Fetch multiple assets directly by ID (optional; mutually exclusive with dsl/type)",
+     "items": {
+      "type": "integer"
+     },
+     "type": "array"
+    },
+    "limit": {
+     "description": "Maximum number of rows to return, default 10 (optional)",
+     "type": "integer"
+    },
+    "offset": {
+     "description": "Pagination offset, default 0 (optional)",
+     "type": "integer"
+    },
+    "type": {
+     "description": "Asset type filter: root_domain|ip|subdomain|app|service|endpoint (an independent field that can be combined with dsl; type on its own is not enough to run a query, so dsl is still required)",
+     "type": "string"
+    }
+   },
+   "type": "object"
+  }
+ },
+ {
+  "version": "fork v2.1.2",
+  "description": "Search the asset store using simple keyword query q, DSL expression dsl, or direct id/ids lookup, with optional pagination.\nDSL syntax: field=value (fuzzy ILIKE) | field==value (exact) | field!=value (exclude) | port>80 (numeric comparison) | bare word (full-text fuzzy).\nLogical operators: AND / OR (case-insensitive; AND binds tighter than OR), parentheses for grouping.\nUse the separate type parameter to filter by asset type (type is not a DSL field).\nConstraint: when id/ids are omitted, at least one filter (q, dsl, company_id, or task_id) must be provided; unconditional queries of all assets are rejected.\nFields:\n  domain      Domain name (root domain / subdomain / service host)\n  root_domain Root domain name (subdomains / services)\n  ip          IPv4/IPv6 address\n  url         Full URL (service / endpoint)\n  page_title  Page title (HTTP services)\n  icp         ICP registration number (root domain)\n  service_name Service name (non-HTTP services)\n  app_name    Application name (app assets)\n  method      HTTP method (endpoint assets, e.g. GET/POST)\n  service_type Service type: http|other\n  record_type DNS record type (subdomain assets, e.g. A/CNAME)\n  technology  Fingerprint / technology stack (= fuzzy, == exact)\n  port        Port number (integer; supports > >= < <=)\n  status_code HTTP status code (integer; supports > >= < <=)\n  company_id  Owning company ID (integer)\n  task_id     Source task ID (integer)\nExamples: q=\"10.129.205.13\"\n          dsl=\"status_code>=400 AND technology=shiro\"\n          dsl=\"method==POST AND url=/api/admin\"\n          dsl=\"(port==80 OR port==443) AND technology=nginx\"",
+  "schema": {
+   "properties": {
+    "company_id": {
+     "description": "Optional owning company ID filter",
+     "type": "integer"
+    },
+    "dsl": {
+     "description": "DSL query expression; see the tool description. Required when neither q nor id/ids/company_id/task_id is supplied. Example: status_code>=400 technology=shiro / method==POST url=/api/admin",
+     "type": "string"
+    },
+    "id": {
+     "description": "Fetch a single asset directly by ID (optional; mutually exclusive with dsl/q/type)",
+     "type": "integer"
+    },
+    "ids": {
+     "description": "Fetch multiple assets directly by ID (optional; mutually exclusive with dsl/q/type)",
+     "items": {
+      "type": "integer"
+     },
+     "type": "array"
+    },
+    "limit": {
+     "description": "Maximum number of rows to return, default 10 (optional)",
+     "type": "integer"
+    },
+    "offset": {
+     "description": "Pagination offset, default 0 (optional)",
+     "type": "integer"
+    },
+    "q": {
+     "description": "Simple keyword or IP/domain search query (alias for dsl full-text search; e.g. '10.129.205.13' or 'bedside').",
+     "type": "string"
+    },
+    "task_id": {
+     "description": "Optional source task ID filter",
+     "type": "integer"
+    },
+    "type": {
+     "description": "Asset type filter: root_domain|ip|subdomain|app|service|endpoint (can be combined with q or dsl)",
+     "type": "string"
+    }
+   },
+   "type": "object"
+  }
+ }
+]

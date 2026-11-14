@@ -49,13 +49,13 @@ type Engine struct {
 	// so pausing can CANCEL an in-flight run (not just skip the next one). Recreated
 	// on resume since cancelling is one-shot.
 	execMu     sync.Mutex
-	execCancel map[string]context.CancelFunc
+	execCancel map[string]context.CancelCauseFunc
 	execCtx    map[string]context.Context
 
 	// per-work (per running intent) cancel, so the planner's kill_work can stop a
 	// single worker without pausing the whole task. Keyed by globally-unique intent id.
 	workMu     sync.Mutex
-	workCancel map[int64]context.CancelFunc
+	workCancel map[int64]context.CancelCauseFunc
 
 	// steerBox queues planner course-corrections for a running work (keyed by intent
 	// id). The worker's PreToolUse hook drains it before its next tool call and hands
@@ -89,16 +89,17 @@ func (e *Engine) nextPlannerRound(taskID string) int {
 // for it (a long worker.Execute would otherwise keep going until it finishes).
 func (e *Engine) Pause(taskID string) {
 	e.paused.Store(taskID, true)
-	e.cancelExec(taskID)
+	e.cancelExec(taskID, agent.ErrTaskPaused)
 }
 
 // cancelExec cancels a task's current per-task exec context (any in-flight
-// planner.Plan / worker.Execute), if present. Shared by Pause and the settle
+// planner.Plan / worker.Execute), if present, recording cause so each run's
+// result says why it stopped. Shared by Pause, task completion and the settle
 // sequence's hard-drain backstop.
-func (e *Engine) cancelExec(taskID string) {
+func (e *Engine) cancelExec(taskID string, cause error) {
 	e.execMu.Lock()
 	if cancel := e.execCancel[taskID]; cancel != nil {
-		cancel()
+		cancel(cause)
 	}
 	e.execMu.Unlock()
 }
@@ -130,14 +131,14 @@ func (e *Engine) execContextFor(parent context.Context, taskID string) context.C
 	defer e.execMu.Unlock()
 	if e.IsPaused(taskID) {
 		// never hand out a live context while paused (guards the claim→Execute race)
-		c, cancel := context.WithCancel(parent)
-		cancel()
+		c, cancel := context.WithCancelCause(parent)
+		cancel(agent.ErrTaskPaused)
 		return c
 	}
 	if c := e.execCtx[taskID]; c != nil && c.Err() == nil {
 		return c
 	}
-	c, cancel := context.WithCancel(parent)
+	c, cancel := context.WithCancelCause(parent)
 	e.execCtx[taskID] = c
 	e.execCancel[taskID] = cancel
 	return c
@@ -168,12 +169,12 @@ func (e *Engine) touch(taskID string) { e.lastAct.Store(taskID, time.Now().Unix(
 
 func NewEngine(m *Manager) *Engine {
 	return &Engine{m: m, debounce: 800 * time.Millisecond, bc: NewBroadcaster(),
-		execCancel: map[string]context.CancelFunc{}, execCtx: map[string]context.Context{},
-		workCancel: map[int64]context.CancelFunc{}, steerBox: map[int64][]string{}}
+		execCancel: map[string]context.CancelCauseFunc{}, execCtx: map[string]context.Context{},
+		workCancel: map[int64]context.CancelCauseFunc{}, steerBox: map[int64][]string{}}
 }
 
 // registerWork records the cancel for the work currently running intentID.
-func (e *Engine) registerWork(intentID int64, cancel context.CancelFunc) {
+func (e *Engine) registerWork(intentID int64, cancel context.CancelCauseFunc) {
 	e.workMu.Lock()
 	e.workCancel[intentID] = cancel
 	e.workMu.Unlock()
@@ -184,7 +185,7 @@ func (e *Engine) unregisterWork(intentID int64) {
 	e.workMu.Lock()
 	if c := e.workCancel[intentID]; c != nil {
 		delete(e.workCancel, intentID)
-		c() // release context resources (no-op if already cancelled)
+		c(nil) // release context resources (no-op if already cancelled)
 	}
 	e.workMu.Unlock()
 	e.steerMu.Lock()
@@ -270,7 +271,7 @@ func (e *Engine) KillWork(intentID int64) error {
 	if c == nil {
 		return fmt.Errorf("Intention %d No running work((perhaps closed or not received)", intentID)
 	}
-	c()
+	c(agent.ErrWorkKilled)
 	return nil
 }
 
@@ -445,7 +446,7 @@ func (e *Engine) plannerLoop(ctx context.Context, t *Task) {
 				// Mission complete. → Cancel the running immediately. worker:It doesn't make sense what they're trying to do.
 				// Next round. worker The cycle crashes into the final door and no new intent.;That's what's been canceled."Task completed"Branch
 				// Attribution stopped(Not blocked).
-				e.cancelExec(t.ID)
+				e.cancelExec(t.ID, agent.ErrTaskCompleted)
 			default:
 				log.Printf("[planner] task %s Planning completed", t.ID)
 			}
@@ -499,7 +500,7 @@ func (e *Engine) workerLoop(ctx context.Context, t *Task, name string) {
 		emit := func(r db.Activity) { e.emitActivity(t, r) }
 		ectx := e.clockCtx(e.execContextFor(ctx, t.ID), t, false) // cancellable by Pause; Tasks deadline
 		// per-work child context so the planner's kill_work can stop just this work.
-		workCtx, workCancel := context.WithCancel(ectx)
+		workCtx, workCancel := context.WithCancelCause(ectx)
 		e.registerWork(intent.ID, workCancel)
 		// wrap the guard hooks so steer_work can inject a mid-run course-correction
 		// for THIS intent (drained before the worker's next tool call).

@@ -18,9 +18,13 @@ import (
 // the re-exec. It holds only a number, never a secret.
 const secretsFDEnv = "ANTIFOX_SECRETS_FD"
 
-// maxSecretsPayload keeps the handoff well under a pipe's buffer, so the write
-// completes before exec without a reader.
-const maxSecretsPayload = 32 << 10
+// maxSecretsPayload is the largest handoff attempted. The payload is written
+// into the pipe before exec, when no reader exists yet, so it must fit in the
+// pipe's buffer. Linux gives a pipe 64 KiB by default but only one page (4 KiB)
+// once the user is over fs.pipe-user-pages-soft, so 4 KiB is the size that
+// always fits. Real payloads (a DSN and a few keys) are a few hundred bytes;
+// anything larger keeps the previous behavior instead of risking a hang.
+const maxSecretsPayload = 4 << 10
 
 // handoffSecrets keeps the startup secrets out of /proc/<pid>/environ.
 //
@@ -53,29 +57,23 @@ func handoffSecrets() {
 		return
 	}
 	data, err := json.Marshal(secrets)
-	if err != nil || len(data) > maxSecretsPayload {
+	if err != nil {
+		return
+	}
+	if len(data) > maxSecretsPayload {
+		fmt.Fprintf(os.Stderr, "[secrets] handoff skipped: payload %d bytes exceeds %d; continuing with secrets in the start environment\n", len(data), maxSecretsPayload)
 		return
 	}
 	exe, err := os.Executable()
 	if err != nil {
 		return
 	}
-	r, w, err := os.Pipe()
+	readFD, err := writeHandoff(data)
 	if err != nil {
+		fmt.Fprintf(os.Stderr, "[secrets] handoff skipped, continuing with secrets in the start environment: %v\n", err)
 		return
 	}
-	if _, err := w.Write(data); err != nil {
-		r.Close()
-		w.Close()
-		return
-	}
-	w.Close()
-	fd := r.Fd()
-	// Keep the read end open across exec.
-	if _, _, e := syscall.Syscall(syscall.SYS_FCNTL, fd, syscall.F_SETFD, 0); e != 0 {
-		r.Close()
-		return
-	}
+	fd := uintptr(readFD)
 	env := make([]string, 0, len(os.Environ())+1)
 	for _, kv := range os.Environ() {
 		if k, _, ok := strings.Cut(kv, "="); ok {
@@ -88,7 +86,7 @@ func handoffSecrets() {
 	env = append(env, secretsFDEnv+"="+strconv.FormatUint(uint64(fd), 10))
 	err = syscall.Exec(exe, os.Args, env) // returns only on failure
 	fmt.Fprintf(os.Stderr, "[secrets] re-exec failed, continuing with secrets in the start environment: %v\n", err)
-	r.Close()
+	_ = syscall.Close(readFD)
 }
 
 // restoreSecrets reads the handoff from the inherited descriptor into the
@@ -123,4 +121,30 @@ func restoreSecrets(fdStr string) error {
 		}
 	}
 	return nil
+}
+
+// writeHandoff puts data into a new pipe and returns the read end, open across
+// exec. The pipe is non-blocking and the write is a single attempt: if the pipe
+// cannot take all of data at once, it fails immediately rather than waiting for
+// a reader that does not exist yet (the reader is this process after exec).
+func writeHandoff(data []byte) (int, error) {
+	var p [2]int
+	if err := syscall.Pipe2(p[:], syscall.O_CLOEXEC|syscall.O_NONBLOCK); err != nil {
+		return -1, fmt.Errorf("pipe: %w", err)
+	}
+	n, err := syscall.Write(p[1], data)
+	_ = syscall.Close(p[1])
+	if err != nil || n != len(data) {
+		_ = syscall.Close(p[0])
+		if err == nil {
+			err = fmt.Errorf("short write: %d of %d bytes", n, len(data))
+		}
+		return -1, fmt.Errorf("write: %w", err)
+	}
+	// Keep the read end open across exec.
+	if _, _, e := syscall.Syscall(syscall.SYS_FCNTL, uintptr(p[0]), syscall.F_SETFD, 0); e != 0 {
+		_ = syscall.Close(p[0])
+		return -1, fmt.Errorf("fcntl: %w", e)
+	}
+	return p[0], nil
 }

@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"log"
 	"runtime/debug"
+	"strings"
 
 	"antifox/engine/llm"
 	"antifox/engine/permission"
@@ -81,10 +82,10 @@ func (l *loop) execOne(use llm.ContentBlock, emitProgress func(tool.ProgressInfo
 	if err != nil {
 		res = tool.Errorf("Error: " + err.Error())
 	}
-	// Global output cap at the single post-tool choke point: every tool (built-in,
-	// MCP, custom, host) is bounded here whether or not it capped its own output,
-	// so no tool can flood the context window. CaptureOnce is idempotent, so
-	// output a tool already truncated or spilled is left untouched. Ported from Norma.
+	// Output budget at the single post-tool choke point: every tool (built-in,
+	// MCP, custom, host) passes through here whether or not it capped its own
+	// output. The budget is for the whole result, not per block, so a tool that
+	// returns many small blocks is bounded too; see capOutput.
 	res = capOutput(tc, res)
 
 	if l.in.Hooks != nil {
@@ -116,10 +117,77 @@ func safeCall(ctx context.Context, t tool.CoreTool, input json.RawMessage, tc *t
 // capOutput runs every text block of a tool result through the idempotent output
 // cap (tool.CaptureOnce). Non-text blocks, such as images, pass through untouched.
 func capOutput(tc *tool.ToolContext, res tool.Result) tool.Result {
-	for i, b := range res.Content {
-		if b.Type == llm.BlockText {
-			res.Content[i].Text = tool.CaptureOnce(tc, b.Text)
+	budget := tool.MaxOutput(tc)
+	used := 0
+	nonText := 0
+	var dropped []string // text blocks past the budget, in order
+	droppedNonText := 0
+	out := make([]llm.ContentBlock, 0, len(res.Content))
+	for _, b := range res.Content {
+		if b.Type != llm.BlockText {
+			if nonText < maxNonTextBlocks {
+				out = append(out, b)
+				nonText++
+			} else {
+				droppedNonText++
+			}
+			continue
 		}
+		remaining := budget - used
+		if remaining < minTextBlockBudget {
+			dropped = append(dropped, b.Text)
+			continue
+		}
+		// Cap this block at what is left of the result's budget. Oversized text
+		// spills to a file (when the session has an output dir) or keeps head and
+		// tail, so nothing is silently cut.
+		sub := tool.ToolContext{}
+		if tc != nil {
+			sub = *tc
+		}
+		sub.MaxOutputChars = remaining
+		b.Text = tool.CaptureOnce(&sub, b.Text)
+		used += len(b.Text)
+		out = append(out, b)
 	}
+	if len(dropped) > 0 || droppedNonText > 0 {
+		out = append(out, llm.TextBlock(omittedNotice(tc, budget, dropped, droppedNonText)))
+	}
+	res.Content = out
 	return res
+}
+
+// Result budget limits. The text budget is the session's MaxOutputChars for the
+// whole result. Non-text blocks (images) are counted separately: at most
+// maxNonTextBlocks per result.
+const (
+	maxNonTextBlocks = 8
+	// minTextBlockBudget is the smallest remainder still worth giving a block;
+	// below it, further blocks are reported as omitted rather than cut to a stub.
+	minTextBlockBudget = 256
+)
+
+// omittedNotice reports what the budget left out. The omitted text is saved
+// through the same capture path (spilled to a file when an output dir is set,
+// otherwise head and tail), so the agent can still read it and knows it exists.
+func omittedNotice(tc *tool.ToolContext, budget int, dropped []string, droppedNonText int) string {
+	var b strings.Builder
+	fmt.Fprintf(&b, "[Tool output exceeded the %d-character total output limit.", budget)
+	if len(dropped) > 0 {
+		fmt.Fprintf(&b, " %d further text block(s) omitted.", len(dropped))
+	}
+	if droppedNonText > 0 {
+		fmt.Fprintf(&b, " %d further non-text block(s) omitted (limit %d).", droppedNonText, maxNonTextBlocks)
+	}
+	b.WriteString("]")
+	if len(dropped) > 0 {
+		sub := tool.ToolContext{}
+		if tc != nil {
+			sub = *tc
+		}
+		sub.MaxOutputChars = minTextBlockBudget
+		b.WriteString("\n")
+		b.WriteString(tool.Capture(&sub, strings.Join(dropped, "\n")))
+	}
+	return b.String()
 }

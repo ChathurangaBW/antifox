@@ -1,0 +1,78 @@
+# Backend test gate. Runs on every push and pull request, and both publishing
+# workflows (release.yml, publish-package.yml) call it and refuse to publish
+# unless it passes.
+#
+# - go vet over every package.
+# - The full suite against PostgreSQL 16 with pgvector, the database production
+#   runs. The database-backed tests skip themselves when no database is
+#   configured, so this gate fails if any test skips: a green run must mean the
+#   tests actually ran.
+# - The race detector over the full suite.
+# - The results (go test -json) and the tested commit are kept as an artifact.
+name: test
+on:
+  push:
+    branches: ["**"]
+  pull_request:
+  workflow_call:
+
+permissions:
+  contents: read
+
+jobs:
+  go:
+    runs-on: ubuntu-latest
+    services:
+      postgres:
+        image: pgvector/pgvector:pg16
+        env:
+          POSTGRES_USER: antifox
+          POSTGRES_PASSWORD: antifox
+          POSTGRES_DB: antifox_test
+        ports: ["5432:5432"]
+        options: >-
+          --health-cmd "pg_isready -U antifox -d antifox_test"
+          --health-interval 5s --health-timeout 3s --health-retries 20
+    env:
+      ANTIFOX_PG_DSN: postgres://antifox:antifox@127.0.0.1:5432/antifox_test?sslmode=disable
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-go@v5
+        with:
+          go-version-file: go.mod
+      - name: Check python3 is available (custom-tool tests need it)
+        run: python3 --version
+      - name: go vet
+        run: go vet ./...
+      - name: Tests (must not skip)
+        run: |
+          set +e
+          go test -count=1 -p 1 -json ./... > test-results.json
+          status=$?
+          set -e
+          jq -r 'select(.Action=="output") | .Output' test-results.json | grep -E '^(--- FAIL|FAIL|ok |panic)' || true
+          skipped=$(jq -r 'select(.Action=="skip" and .Test != null) | "\(.Package) \(.Test)"' test-results.json)
+          passed=$(jq -r 'select(.Action=="pass" and .Test != null) | .Test' test-results.json | wc -l)
+          echo "tests passed: $passed"
+          if [ "$status" -ne 0 ]; then
+            echo "::error::go test failed"
+            jq -r 'select(.Action=="fail" and .Test != null) | "FAIL \(.Package) \(.Test)"' test-results.json
+            exit "$status"
+          fi
+          if [ -n "$skipped" ]; then
+            echo "::error::tests skipped; every test must run in this gate"
+            echo "$skipped"
+            exit 1
+          fi
+      - name: Race detector
+        run: CGO_ENABLED=1 go test -count=1 -p 1 -race ./...
+      - name: Record the tested commit
+        if: always()
+        run: echo "${GITHUB_SHA}" > tested-commit.txt
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: go-test-results
+          path: |
+            test-results.json
+            tested-commit.txt

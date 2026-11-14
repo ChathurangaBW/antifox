@@ -788,3 +788,10 @@ CREATE TABLE IF NOT EXISTS knowledge_config (
     updated_at TIMESTAMPTZ NOT NULL DEFAULT now()
 );
 INSERT INTO knowledge_config (id) VALUES (1) ON CONFLICT (id) DO NOTHING;
+
+-- Outcome of an agent run on its final 'result' row: completed | cancelled |
+-- failed | budget_reached. Lets the UI show a cancelled run (replaced by a new
+-- message, stopped, paused, shut down) apart from a failed one. NULL on rows
+-- written before this column existed.
+ALTER TABLE activity ADD COLUMN IF NOT EXISTS outcome TEXT;
+ALTER TABLE conversation_activities ADD COLUMN IF NOT EXISTS outcome TEXT;

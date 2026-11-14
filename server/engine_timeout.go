@@ -159,7 +159,7 @@ func (e *Engine) settleTask(ctx context.Context, t *Task) {
 	for e.inflightCount(t.ID) > 0 {
 		if time.Now().After(hardStop) {
 			log.Printf("[deadline] task %s drain Timeout(%s),It's hard to cancel. run", t.ID, settleDrainGrace)
-			e.cancelExec(t.ID)
+			e.cancelExec(t.ID, agent.ErrTaskDeadline)
 			_ = sleepCtx(ctx, 3*time.Second) // Here. worker A little bit of time for the branch./Category
 			break
 		}

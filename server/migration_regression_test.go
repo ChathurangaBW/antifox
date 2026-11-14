@@ -106,19 +106,36 @@ func TestPromptAndToolUpgradePreservesCustomizations(t *testing.T) {
 		_ = pg.UpdateTool(origRF.Key, origRF.Description, origRF.Schema, mustJSON(origRF.Agents), origRF.Enabled)
 		_ = pg.UpsertToolForce(origLA.Key, origLA.Description, origLA.Schema, mustJSON(origLA.Agents))
 		_ = pg.UpdateTool(origLA.Key, origLA.Description, origLA.Schema, mustJSON(origLA.Agents), origLA.Enabled)
-		_ = pg.SetSetting("tool_schema_refresh_list_assets_v1", "true")
+		_ = pg.SetSetting("tool_schema_refresh_list_assets_v2", "true")
 		_ = pg.SetSetting("planner_list_assets_v1", "true")
 	})
+	// The real v2.1.1 stock definition, from the recorded shipped versions.
+	stock, err := loadStockToolDefs("list_assets")
+	if err != nil {
+		t.Fatal(err)
+	}
+	var v211 stockToolDef
+	for _, d := range stock {
+		if d.Version == "fork v2.0.3-v2.1.1" {
+			v211 = d
+		}
+	}
+	if v211.Description == "" {
+		t.Fatal("v2.1.1 stock definition missing from stockdefs")
+	}
+	// The operator had changed only the limit default; every other part is stock.
+	v211Schema := jsonNormalize(v211.Schema).(map[string]any)
+	v211Schema["properties"].(map[string]any)["limit"].(map[string]any)["default"] = float64(25)
+	oldLASchema, _ := json.Marshal(v211Schema)
 
 	if err := pg.UpdateTool("record_fact", "CUSTOM RECORD FACT DESC", json.RawMessage(`{"type":"object","properties":{"summary":{"type":"string","default":"x"}}}`), mustJSON([]string{"worker"}), false); err != nil {
 		t.Fatal(err)
 	}
 	// Simulate an un-migrated v2.1.1 list_assets row without q or planner binding.
-	oldLASchema := json.RawMessage(`{"type":"object","properties":{"dsl":{"type":"string","description":"old dsl"},"limit":{"type":"integer","default":25}}}`)
-	if err := pg.UpdateTool("list_assets", "Search for asset bank. Old stock text.", oldLASchema, mustJSON([]string{"mainagent", "worker"}), true); err != nil {
+	if err := pg.UpdateTool("list_assets", v211.Description, oldLASchema, mustJSON([]string{"mainagent", "worker"}), true); err != nil {
 		t.Fatal(err)
 	}
-	_, _ = pg.Exec(`DELETE FROM settings WHERE key IN ('tool_schema_refresh_list_assets_v1','planner_list_assets_v1')`)
+	_, _ = pg.Exec(`DELETE FROM settings WHERE key IN ('tool_schema_refresh_list_assets_v2','planner_list_assets_v1')`)
 
 	s.seedOrchestrationTools()
 
@@ -127,7 +144,7 @@ func TestPromptAndToolUpgradePreservesCustomizations(t *testing.T) {
 		t.Fatalf("unrelated customized tool record_fact was altered by migration: %+v", rfAfter)
 	}
 	laAfter, _ := pg.GetTool("list_assets")
-	if laAfter == nil || laAfter.Description == "Search for asset bank. Old stock text." {
+	if laAfter == nil || laAfter.Description == v211.Description {
 		t.Fatalf("list_assets stock description did not upgrade: %+v", laAfter)
 	}
 	var laProps map[string]any
@@ -151,14 +168,22 @@ func TestPromptAndToolUpgradePreservesCustomizations(t *testing.T) {
 		t.Fatalf("upgraded list_assets agents missing planner: %v", laAfter.Agents)
 	}
 
-	// --- 4. User-customized list_assets description is ALSO preserved ---
-	if err := pg.UpdateTool("list_assets", "CUSTOM USER LIST ASSETS", oldLASchema, mustJSON([]string{"worker"}), true); err != nil {
-		t.Fatal(err)
-	}
-	_, _ = pg.Exec(`DELETE FROM settings WHERE key='tool_schema_refresh_list_assets_v1'`)
-	s.refreshToolListAssets()
-	laCustom, _ := pg.GetTool("list_assets")
-	if laCustom == nil || laCustom.Description != "CUSTOM USER LIST ASSETS" {
-		t.Fatalf("customized list_assets description was overwritten: %+v", laCustom)
+	// --- 4. User-customized list_assets descriptions are ALSO preserved, including
+	// an edit that keeps the stock opening words (the old prefix check overwrote it).
+	for _, custom := range []string{"CUSTOM USER LIST ASSETS", "Search for asset bank. Operator note: prefer dsl."} {
+		if err := pg.UpdateTool("list_assets", custom, oldLASchema, mustJSON([]string{"worker"}), true); err != nil {
+			t.Fatal(err)
+		}
+		_, _ = pg.Exec(`DELETE FROM settings WHERE key='tool_schema_refresh_list_assets_v2'`)
+		s.refreshToolListAssets()
+		laCustom, _ := pg.GetTool("list_assets")
+		if laCustom == nil || laCustom.Description != custom {
+			t.Fatalf("customized list_assets description %q was overwritten: %+v", custom, laCustom)
+		}
+		var m map[string]any
+		_ = json.Unmarshal(laCustom.Schema, &m)
+		if _, ok := m["properties"].(map[string]any)["q"]; !ok {
+			t.Fatalf("customized description must not block the schema upgrade: %s", laCustom.Schema)
+		}
 	}
 }

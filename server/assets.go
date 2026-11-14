@@ -2,6 +2,7 @@ package server
 
 import (
 	"encoding/json"
+	"errors"
 	"net/http"
 	"strconv"
 
@@ -403,6 +404,17 @@ func (s *Server) insertAssets(w http.ResponseWriter, r *http.Request) {
 	}
 	var results []result
 	var errs []errEntry
+
+	// task_ids has no foreign key: reject a reference to a missing task before any
+	// write, so a bad request never leaves dangling links.
+	if err := as.DB().ValidateTaskRef(req.TaskID); err != nil {
+		if errors.Is(err, db.ErrInvalidTaskRef) {
+			writeErr(w, 400, err.Error())
+		} else {
+			writeErr(w, 500, err.Error())
+		}
+		return
+	}
 
 	for i, a := range req.Assets {
 		var id int64

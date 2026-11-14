@@ -455,7 +455,7 @@ func (s *Server) refreshBuiltinToolSchemas() {
 			log.Printf("[tools] refresh %s desc failed: %v", sd.Key, err)
 		}
 	}
-	_ = s.m.pg.SetSetting(flag, "true")
+	s.markMigrationDone(flag)
 	log.Printf("[tools] Refreshed built-in tool schemas and descriptions to code defaults (one-time)")
 }
 
@@ -470,7 +470,7 @@ func (s *Server) seedAutoReportFindingBinding() {
 		log.Printf("[auto] report_finding Default binding failed: %v", err)
 		return
 	}
-	_ = s.m.pg.SetSetting(flag, "true")
+	s.markMigrationDone(flag)
 }
 
 // seedPlannerDefaultBindings adds "report_finding" and "list_assets" to "planner" ONCE
@@ -482,7 +482,7 @@ func (s *Server) seedPlannerDefaultBindings() {
 		if err := s.m.pg.AddAgentToToolBinding("planner", []string{"report_finding"}); err != nil {
 			log.Printf("[planner] report_finding Default binding failed: %v", err)
 		} else {
-			_ = s.m.pg.SetSetting(flag, "true")
+			s.markMigrationDone(flag)
 		}
 	}
 	const assetFlag = "planner_list_assets_v1"
@@ -490,7 +490,7 @@ func (s *Server) seedPlannerDefaultBindings() {
 		if err := s.m.pg.AddAgentToToolBinding("planner", []string{"list_assets"}); err != nil {
 			log.Printf("[planner] list_assets default binding failed: %v", err)
 		} else {
-			_ = s.m.pg.SetSetting(assetFlag, "true")
+			s.markMigrationDone(assetFlag)
 		}
 	}
 }
@@ -507,7 +507,7 @@ func (s *Server) seedPentestDefaultBindings() {
 		log.Printf("[pentest] default binding failed: %v", err)
 		return
 	}
-	_ = s.m.pg.SetSetting(flag, "true")
+	s.markMigrationDone(flag)
 }
 
 // seedMainagentReportFindingBinding binds report_finding to the Lord Agent
@@ -525,7 +525,7 @@ func (s *Server) seedMainagentReportFindingBinding() {
 		log.Printf("[mainagent] report_finding Default binding failed: %v", err)
 		return
 	}
-	_ = s.m.pg.SetSetting(flag, "true")
+	s.markMigrationDone(flag)
 	log.Printf("[mainagent] Default bound report_finding(Lord Agent )")
 }
 
@@ -546,7 +546,7 @@ func (s *Server) bumpWorkerRunSecondsTo1200() {
 		}
 		log.Printf("[worker] Single Wall Bell Default 600→1200s")
 	}
-	_ = s.m.pg.SetSetting(flag, "true")
+	s.markMigrationDone(flag)
 }
 
 // reseedAgentPrompt force-updates ONE agent's DB prompt to the current code default
@@ -573,12 +573,12 @@ func (s *Server) reseedAgentPrompt(key, flag, note string) {
 	// Fresh DBs just seeded this exact template as v1; appending an identical v2 is a
 	// cosmetic duplicate in the version history. Skip the write when already current.
 	if cur == tmpl {
-		_ = s.m.pg.SetSetting(flag, "true")
+		s.markMigrationDone(flag)
 		return
 	}
 	// Never overwrite a prompt that an operator customized (updated_by != "system").
 	if updatedBy != "system" {
-		_ = s.m.pg.SetSetting(flag, "true")
+		s.markMigrationDone(flag)
 		log.Printf("[%s] Preserving user-customized prompt (%s); skipped system prompt update", key, updatedBy)
 		return
 	}
@@ -586,69 +586,26 @@ func (s *Server) reseedAgentPrompt(key, flag, note string) {
 		log.Printf("[%s] prompt update failed: %v", key, err)
 		return
 	}
-	_ = s.m.pg.SetSetting(flag, "true")
+	s.markMigrationDone(flag)
 	log.Printf("[%s] Updated prompt (%s)", key, note)
 }
 
-// refreshToolListAssets updates ONLY list_assets on existing DBs (once per flag)
-// so new query parameters (q, company_id, task_id) and planner docs reach upgraded
-// databases without resetting unrelated built-in tools or user customizations.
+// refreshToolListAssets brings the stored list_assets definition up to the
+// current one (new q, company_id and task_id parameters) while keeping every
+// part an operator edited; see tool_schema_upgrade.go. The flag moved to v2:
+// v1 could be recorded without an upgrade (current description, stale schema),
+// so every database re-checks once. The check is idempotent and only records
+// completion after verifying the stored schema.
 func (s *Server) refreshToolListAssets() {
-	const flag = "tool_schema_refresh_list_assets_v1"
-	if v, _, _ := s.m.pg.GetSetting(flag); v == "true" {
+	const flag = "tool_schema_refresh_list_assets_v2"
+	if s.migrationDone(flag) {
 		return
 	}
-	var seed *agent.ToolSeed
-	for _, sd := range agent.BuiltinToolSeeds() {
-		if sd.Key == "list_assets" {
-			cp := sd
-			seed = &cp
-			break
-		}
-	}
-	if seed == nil {
+	if err := s.upgradeBuiltinToolDefinition("list_assets"); err != nil {
+		log.Printf("[tools] list_assets upgrade not completed: %v", err)
 		return
 	}
-	cur, err := s.m.pg.GetTool("list_assets")
-	if err != nil {
-		return
-	}
-	if cur == nil {
-		_ = s.m.pg.SetSetting(flag, "true")
-		return
-	}
-	isStock := cur.Description == "" ||
-		cur.Description == seed.Desc ||
-		strings.HasPrefix(cur.Description, "Search for asset bank") ||
-		strings.HasPrefix(cur.Description, "Search the asset store") ||
-		strings.HasPrefix(cur.Description, "搜索资产库")
-	if cur.Description != seed.Desc && isStock {
-		b, _ := json.Marshal(seed.Schema)
-		var seedMap map[string]any
-		_ = json.Unmarshal(b, &seedMap)
-		var curMap map[string]any
-		if json.Unmarshal(cur.Schema, &curMap) == nil {
-			if sp, ok := seedMap["properties"].(map[string]any); ok {
-				if cp, ok := curMap["properties"].(map[string]any); ok {
-					for k, v := range cp {
-						if cm, ok := v.(map[string]any); ok {
-							if def, hasDef := cm["default"]; hasDef {
-								if sm, ok := sp[k].(map[string]any); ok {
-									sm["default"] = def
-								}
-							}
-						}
-					}
-				}
-			}
-		}
-		schema, _ := json.Marshal(seedMap)
-		if err := s.m.pg.RefreshToolDefaults(seed.Key, seed.Desc, schema); err != nil {
-			log.Printf("[tools] refresh %s failed: %v", seed.Key, err)
-			return
-		}
-	}
-	_ = s.m.pg.SetSetting(flag, "true")
+	s.markMigrationDone(flag)
 }
 
 // refreshReportFindingSchema pushes report_finding's CODE schema to the DB tools table
@@ -670,7 +627,7 @@ func (s *Server) refreshReportFindingSchema() {
 			return
 		}
 	}
-	_ = s.m.pg.SetSetting(flag, "true")
+	s.markMigrationDone(flag)
 	log.Printf("[tools] Refreshed report_finding schema(Add reproduction Structured recurrence process parameters)")
 }
 
@@ -694,5 +651,5 @@ func (s *Server) seedAutoDefaultBindings() {
 		log.Printf("[auto] Default binding failed: %v", err)
 		return
 	}
-	_ = s.m.pg.SetSetting(flag, "true")
+	s.markMigrationDone(flag)
 }

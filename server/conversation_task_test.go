@@ -3,6 +3,7 @@ package server
 import (
 	"context"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"net/http"
 	"net/http/httptest"
@@ -108,4 +109,28 @@ func mustInt64(t *testing.T, s string) int64 {
 		t.Fatal(err)
 	}
 	return n
+}
+
+// TestStopConversationRecordsOperatorCause: the stop endpoint cancels the run
+// with the operator-stop cause, so its result says it was stopped, not failed.
+func TestStopConversationRecordsOperatorCause(t *testing.T) {
+	m, err := NewManager(t.TempDir(), "")
+	if err != nil || m.pg == nil {
+		t.Skip("postgres unavailable — skipping")
+	}
+	conv, err := m.pg.CreateConversation("auto", "stop-cause-test", nil)
+	if err != nil {
+		t.Fatal(err)
+	}
+	t.Cleanup(func() { _ = m.pg.DeleteConversation(conv.ID) })
+	s := &Server{m: m, chatCancel: map[string]context.CancelCauseFunc{}}
+	var got error
+	s.chatCancel[s.convBusyKey(conv.ID)] = func(cause error) { got = cause }
+	req := httptest.NewRequest(http.MethodPost, "/", nil)
+	req.SetPathValue("id", fmt.Sprint(conv.ID))
+	rec := httptest.NewRecorder()
+	s.pgStopConversation(rec, req)
+	if rec.Code != 200 || !errors.Is(got, agent.ErrStoppedByOperator) {
+		t.Fatalf("stop: code=%d cause=%v", rec.Code, got)
+	}
 }

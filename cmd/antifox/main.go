@@ -17,6 +17,7 @@ import (
 	"syscall"
 	"time"
 
+	"antifox/agent"
 	"antifox/config"
 	"antifox/selfupdate"
 	"antifox/server"
@@ -93,8 +94,21 @@ func run() int {
 		}
 	}
 
-	ctx, stop := signal.NotifyContext(context.Background(), os.Interrupt, syscall.SIGTERM)
-	defer stop()
+	// Root context: cancelled on SIGINT/SIGTERM with agent.ErrShutdown as the cause,
+	// so any agent run interrupted by a shutdown says so in its result instead of
+	// "cause unknown".
+	ctx, cancelRoot := context.WithCancelCause(context.Background())
+	defer cancelRoot(nil)
+	sigc := make(chan os.Signal, 1)
+	signal.Notify(sigc, os.Interrupt, syscall.SIGTERM)
+	defer signal.Stop(sigc)
+	go func() {
+		select {
+		case <-sigc:
+			cancelRoot(agent.ErrShutdown)
+		case <-ctx.Done():
+		}
+	}()
 
 	mgr, err := server.NewManager(*dataDir, *proxy)
 	if err != nil {

@@ -221,3 +221,24 @@ UPDATE tools SET description=$2, schema=$3, agents=$4, enabled=$5 WHERE key=$1`,
 		key, desc, schema, agents, enabled)
 	return err
 }
+
+// UpdateToolDefinitionIfUnchanged replaces a system tool's description and
+// schema only if the row still holds exactly oldDesc and oldSchema (compared as
+// JSON values), so a migration never overwrites an edit an operator saved after
+// the migration read the row. It reports whether a row was updated; agent
+// bindings and the enabled flag are never touched.
+func (d *DB) UpdateToolDefinitionIfUnchanged(key, oldDesc string, oldSchema json.RawMessage, newDesc string, newSchema json.RawMessage) (bool, error) {
+	if len(oldSchema) == 0 {
+		oldSchema = json.RawMessage("{}")
+	}
+	if len(newSchema) == 0 {
+		newSchema = json.RawMessage("{}")
+	}
+	res, err := d.Exec(`UPDATE tools SET description=$4, schema=$5, updated_at=now()
+WHERE key=$1 AND system AND description=$2 AND schema=$3::jsonb`, key, oldDesc, string(oldSchema), newDesc, string(newSchema))
+	if err != nil {
+		return false, err
+	}
+	n, err := res.RowsAffected()
+	return n == 1, err
+}
