@@ -2,6 +2,25 @@
 
 This project's version update summary. The format follows [Keep a Changelog](https://keepachangelog.com/), and versions follow [SemVer](https://semver.org/).
 
+## v2.1.7 "Kit"
+
+Task status reads the same everywhere, and inactivity no longer looks like a reason to rerun.
+
+### Fixed
+
+- **One task status for the header and the Overview**: both now read a single shared observation of the task's stats, taken from the backend's real `engine_mode`, so the header can no longer say Idle while the Overview says Stalled. A finished (terminal) task always shows as finished. If the stats are stale or cannot be fetched, the page says so instead of showing old data as current, and actions are disabled until fresh data arrives. The status updates together after pause and resume.
+- **Recent activity shows its real time**: it read a field the backend does not send and showed "—"; it now converts `last_activity_unix` in the selected language.
+- **Rerun only for finished tasks**: an inactive task no longer shows a rerun control on the task page or in the task list. Finished tasks keep it, labelled "Rerun (resets run clock)".
+- The "LLM not configured" badge no longer appears when a provider is configured; types, mock data and translations match the backend's actual responses.
+
+### Added
+
+- `scripts/check-task-status-ui.cjs`: a read-only browser check of 12 status scenarios that refuses any write request or external address. `scripts/engine-state-analysis.md` records the analysis behind this fix. Stall detection in the backend is unchanged.
+
+### Verified
+
+- In a clean checkout: `go vet`, and the full suite against PostgreSQL 16 + pgvector (203 passing tests, no failures or skips); frontend type check and static export; documentation link check.
+
 ## v2.1.6 "Bengal"
 
 Login and setup screens in the new brand.
