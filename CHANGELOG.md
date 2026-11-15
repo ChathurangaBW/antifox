@@ -2,6 +2,28 @@
 
 This project's version update summary. The format follows [Keep a Changelog](https://keepachangelog.com/), and versions follow [SemVer](https://semver.org/).
 
+## v2.1.8 "Corsac"
+
+Stay signed in, safer authorization, honest telemetry, and an English proxy page.
+
+### Changed
+
+- **No more idle auto-logout**: sessions no longer expire after 60 minutes of inactivity. Login tokens carry no expiry by default and the browser keeps them until you log out. A password change, disabling the account, or logging out still ends the session. To bring expiry back, set `auth.session_ttl_minutes` to a positive number of minutes.
+
+### Fixed
+
+- **Authorization fails closed**: a protected request is now rejected when the user's permissions cannot be looked up (HTTP 503), or when the token has no user (HTTP 401). Previously a failed permission lookup let the request through unchecked.
+- **Rerun only for finished tasks, enforced by the server**: a rerun request for a task that is not finished is rejected with HTTP 409 before anything is reset, so the run clock and task state are untouched. Before this, only the UI hid the button.
+- **Task telemetry tells the truth**: a finished task always reports as finished, even if engine markers remain. A planner that is still working is no longer reported as stalled just because no worker is running. If the database can't be read, `/api/stats` and `/api/tasks` return HTTP 503 instead of empty counters that look real. `/api/stats` adds optional `active_task.status` and `active_task.executions_in_flight` fields.
+- **The proxy port speaks English**: opening port 8788 directly in a browser returned a Chinese message from the proxy library; it now returns HTTP 400 with "This is a proxy server; direct requests are not supported."
+- **The default frontend build works again**: Merriweather is requested as a variable font. Requesting two separate weights made the Turbopack build of `npm run build:static` fail during Google Fonts processing.
+
+### Verified
+
+- In a clean copy against PostgreSQL 16 + pgvector: `go vet`, the full suite (265 passing tests, none skipped), and the full suite under the race detector; documentation link check; frontend type check and static export with Turbopack.
+- In Chromium against the embedded UI and a disposable database: a wrong password is refused (401), a correct one signs in, and the task list loads and stays signed in after a reload, with no console errors or external requests.
+- The browser + PostgreSQL integration test is opt-in (`-tags browserintegration`) and is not part of the default suite.
+
 ## v2.1.7 "Kit"
 
 Task status reads the same everywhere, and inactivity no longer looks like a reason to rerun.

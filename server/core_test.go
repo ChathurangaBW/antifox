@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"context"
 	"encoding/json"
+	"fmt"
 	"net/http"
 	"net/http/httptest"
 	"strconv"
@@ -24,7 +25,13 @@ func TestCoreTaskLifecyclePG(t *testing.T) {
 	td := t.TempDir()
 	s := New(context.Background(), m, td, td)
 	h := s.Handler()
-	tok, err := signJWT(s.jwtKey, "test-admin", "admin")
+	// Protected routes fail closed unless the token subject resolves to a real
+	// RBAC user, so sign for an actual admin rather than an unknown subject.
+	admin, err := m.pg.CreateRBACUser(fmt.Sprintf("test-admin-%d", time.Now().UnixNano()), "Test Admin", "x", true, []string{db.RBACRoleAdmin})
+	if err != nil {
+		t.Fatalf("create admin user: %v", err)
+	}
+	tok, err := signJWT(s.jwtKey, admin.ID, admin.Username)
 	if err != nil {
 		t.Fatalf("sign jwt: %v", err)
 	}

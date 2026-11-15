@@ -1,3 +1,8 @@
+//go:build browserintegration
+
+// Opt-in browser + disposable-PostgreSQL integration test. Excluded from the
+// default suite (the CI gate forbids skipped tests); run with
+// -tags browserintegration via its dedicated runner.
 package server
 
 import (

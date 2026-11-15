@@ -1,4 +1,4 @@
-# Local patch verification and deployment status
+﻿# Local patch verification and deployment status
 
 This evidence accompanies the local patch commit, not a deployment. The most
 recent live identity recorded during this work was `v2.1.6+statusfix`, containing
@@ -14,7 +14,7 @@ Existing redundant conditionals in auth remain to minimize the tested diff.
 
 This is AntiFox (Go/Next.js), not opencode-swarm. The latter's Bun/plugin invariant
 commands and `.swarm` publication workflow do not apply. No repository AGENTS.md
-or engineering-invariants.md was present. No push or PR is part of this commit.
+or engineering-invariants.md was present. Released as v2.1.8.
 
 ## Recorded checks
 
