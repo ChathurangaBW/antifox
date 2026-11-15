@@ -1,0 +1,269 @@
+{"Time":"2026-11-15T11:16:15.745402017+04:00","Action":"start","Package":"antifox/traffic"}
+{"Time":"2026-11-15T11:16:15.754974177+04:00","Action":"run","Package":"antifox/traffic","Test":"TestDirectProxyMessageEnglish"}
+{"Time":"2026-11-15T11:16:15.754999502+04:00","Action":"output","Package":"antifox/traffic","Test":"TestDirectProxyMessageEnglish","Output":"=== RUN   TestDirectProxyMessageEnglish\n"}
+{"Time":"2026-11-15T11:16:15.756693361+04:00","Action":"run","Package":"antifox/traffic","Test":"TestDirectProxyMessageEnglish/root"}
+{"Time":"2026-11-15T11:16:15.756714558+04:00","Action":"output","Package":"antifox/traffic","Test":"TestDirectProxyMessageEnglish/root","Output":"=== RUN   TestDirectProxyMessageEnglish/root\n"}
+{"Time":"2026-11-15T11:16:15.757577476+04:00","Action":"output","Package":"antifox/traffic","Test":"TestDirectProxyMessageEnglish/root","Output":"--- PASS: TestDirectProxyMessageEnglish/root (0.00s)\n"}
+{"Time":"2026-11-15T11:16:15.757599056+04:00","Action":"pass","Package":"antifox/traffic","Test":"TestDirectProxyMessageEnglish/root","Elapsed":0}
+{"Time":"2026-11-15T11:16:15.757641834+04:00","Action":"run","Package":"antifox/traffic","Test":"TestDirectProxyMessageEnglish/nested_path"}
+{"Time":"2026-11-15T11:16:15.757652173+04:00","Action":"output","Package":"antifox/traffic","Test":"TestDirectProxyMessageEnglish/nested_path","Output":"=== RUN   TestDirectProxyMessageEnglish/nested_path\n"}
+{"Time":"2026-11-15T11:16:15.758104986+04:00","Action":"output","Package":"antifox/traffic","Test":"TestDirectProxyMessageEnglish/nested_path","Output":"--- PASS: TestDirectProxyMessageEnglish/nested_path (0.00s)\n"}
+{"Time":"2026-11-15T11:16:15.758126614+04:00","Action":"pass","Package":"antifox/traffic","Test":"TestDirectProxyMessageEnglish/nested_path","Elapsed":0}
+{"Time":"2026-11-15T11:16:15.75813513+04:00","Action":"run","Package":"antifox/traffic","Test":"TestDirectProxyMessageEnglish/post"}
+{"Time":"2026-11-15T11:16:15.758136548+04:00","Action":"output","Package":"antifox/traffic","Test":"TestDirectProxyMessageEnglish/post","Output":"=== RUN   TestDirectProxyMessageEnglish/post\n"}
+{"Time":"2026-11-15T11:16:15.758578504+04:00","Action":"output","Package":"antifox/traffic","Test":"TestDirectProxyMessageEnglish/post","Output":"--- PASS: TestDirectProxyMessageEnglish/post (0.00s)\n"}
+{"Time":"2026-11-15T11:16:15.758593765+04:00","Action":"pass","Package":"antifox/traffic","Test":"TestDirectProxyMessageEnglish/post","Elapsed":0}
+{"Time":"2026-11-15T11:16:15.75859716+04:00","Action":"run","Package":"antifox/traffic","Test":"TestDirectProxyMessageEnglish/head"}
+{"Time":"2026-11-15T11:16:15.758598509+04:00","Action":"output","Package":"antifox/traffic","Test":"TestDirectProxyMessageEnglish/head","Output":"=== RUN   TestDirectProxyMessageEnglish/head\n"}
+{"Time":"2026-11-15T11:16:15.758881264+04:00","Action":"output","Package":"antifox/traffic","Test":"TestDirectProxyMessageEnglish/head","Output":"--- PASS: TestDirectProxyMessageEnglish/head (0.00s)\n"}
+{"Time":"2026-11-15T11:16:15.758900623+04:00","Action":"pass","Package":"antifox/traffic","Test":"TestDirectProxyMessageEnglish/head","Elapsed":0}
+{"Time":"2026-11-15T11:16:15.759088475+04:00","Action":"output","Package":"antifox/traffic","Test":"TestDirectProxyMessageEnglish","Output":"--- PASS: TestDirectProxyMessageEnglish (0.00s)\n"}
+{"Time":"2026-11-15T11:16:15.759105939+04:00","Action":"pass","Package":"antifox/traffic","Test":"TestDirectProxyMessageEnglish","Elapsed":0}
+{"Time":"2026-11-15T11:16:15.759109728+04:00","Action":"run","Package":"antifox/traffic","Test":"TestDirectProxyEntryEnglish"}
+{"Time":"2026-11-15T11:16:15.759111124+04:00","Action":"output","Package":"antifox/traffic","Test":"TestDirectProxyEntryEnglish","Output":"=== RUN   TestDirectProxyEntryEnglish\n"}
+{"Time":"2026-11-15T11:16:15.798266696+04:00","Action":"output","Package":"antifox/traffic","Test":"TestDirectProxyEntryEnglish","Output":"time=\"2026-11-15T11:16:15+04:00\" level=info msg=\"Proxy start listen at 127.0.0.1:45023\\n\"\n"}
+{"Time":"2026-11-15T11:16:15.798639523+04:00","Action":"output","Package":"antifox/traffic","Test":"TestDirectProxyEntryEnglish","Output":"    proxy_message_test.go:131: real proxy entry: HTTP 400; body=\"This is a proxy server; direct requests are not supported.\\n\"\n"}
+{"Time":"2026-11-15T11:16:15.798986918+04:00","Action":"output","Package":"antifox/traffic","Test":"TestDirectProxyEntryEnglish","Output":"--- PASS: TestDirectProxyEntryEnglish (0.04s)\n"}
+{"Time":"2026-11-15T11:16:15.799006232+04:00","Action":"pass","Package":"antifox/traffic","Test":"TestDirectProxyEntryEnglish","Elapsed":0.04}
+{"Time":"2026-11-15T11:16:15.799011583+04:00","Action":"output","Package":"antifox/traffic","Output":"PASS\n"}
+{"Time":"2026-11-15T11:16:16.800574325+04:00","Action":"output","Package":"antifox/traffic","Output":"ok  \tantifox/traffic\t1.055s\n"}
+{"Time":"2026-11-15T11:16:16.800615764+04:00","Action":"pass","Package":"antifox/traffic","Elapsed":1.055}
+{"Time":"2026-11-15T11:16:18.033325366+04:00","Action":"start","Package":"antifox/server"}
+{"Time":"2026-11-15T11:16:18.266583446+04:00","Action":"run","Package":"antifox/server","Test":"TestAuthorizationFailsClosed"}
+{"Time":"2026-11-15T11:16:18.266612098+04:00","Action":"output","Package":"antifox/server","Test":"TestAuthorizationFailsClosed","Output":"=== RUN   TestAuthorizationFailsClosed\n"}
+{"Time":"2026-11-15T11:16:18.266634116+04:00","Action":"run","Package":"antifox/server","Test":"TestAuthorizationFailsClosed/user_lookup"}
+{"Time":"2026-11-15T11:16:18.26663597+04:00","Action":"output","Package":"antifox/server","Test":"TestAuthorizationFailsClosed/user_lookup","Output":"=== RUN   TestAuthorizationFailsClosed/user_lookup\n"}
+{"Time":"2026-11-15T11:16:18.267045299+04:00","Action":"output","Package":"antifox/server","Test":"TestAuthorizationFailsClosed/user_lookup","Output":"    auth_failclosed_test.go:54: HTTP 503; handler_called=false\n"}
+{"Time":"2026-11-15T11:16:18.267068364+04:00","Action":"output","Package":"antifox/server","Test":"TestAuthorizationFailsClosed/user_lookup","Output":"--- PASS: TestAuthorizationFailsClosed/user_lookup (0.00s)\n"}
+{"Time":"2026-11-15T11:16:18.267071307+04:00","Action":"pass","Package":"antifox/server","Test":"TestAuthorizationFailsClosed/user_lookup","Elapsed":0}
+{"Time":"2026-11-15T11:16:18.267076879+04:00","Action":"run","Package":"antifox/server","Test":"TestAuthorizationFailsClosed/role_lookup"}
+{"Time":"2026-11-15T11:16:18.267078371+04:00","Action":"output","Package":"antifox/server","Test":"TestAuthorizationFailsClosed/role_lookup","Output":"=== RUN   TestAuthorizationFailsClosed/role_lookup\n"}
+{"Time":"2026-11-15T11:16:18.267451474+04:00","Action":"output","Package":"antifox/server","Test":"TestAuthorizationFailsClosed/role_lookup","Output":"    auth_failclosed_test.go:54: HTTP 503; handler_called=false\n"}
+{"Time":"2026-11-15T11:16:18.267473113+04:00","Action":"output","Package":"antifox/server","Test":"TestAuthorizationFailsClosed/role_lookup","Output":"--- PASS: TestAuthorizationFailsClosed/role_lookup (0.00s)\n"}
+{"Time":"2026-11-15T11:16:18.267475926+04:00","Action":"pass","Package":"antifox/server","Test":"TestAuthorizationFailsClosed/role_lookup","Elapsed":0}
+{"Time":"2026-11-15T11:16:18.267479392+04:00","Action":"run","Package":"antifox/server","Test":"TestAuthorizationFailsClosed/permission_lookup"}
+{"Time":"2026-11-15T11:16:18.267481295+04:00","Action":"output","Package":"antifox/server","Test":"TestAuthorizationFailsClosed/permission_lookup","Output":"=== RUN   TestAuthorizationFailsClosed/permission_lookup\n"}
+{"Time":"2026-11-15T11:16:18.267763783+04:00","Action":"output","Package":"antifox/server","Test":"TestAuthorizationFailsClosed/permission_lookup","Output":"    auth_failclosed_test.go:54: HTTP 503; handler_called=false\n"}
+{"Time":"2026-11-15T11:16:18.267784233+04:00","Action":"output","Package":"antifox/server","Test":"TestAuthorizationFailsClosed/permission_lookup","Output":"--- PASS: TestAuthorizationFailsClosed/permission_lookup (0.00s)\n"}
+{"Time":"2026-11-15T11:16:18.267791781+04:00","Action":"pass","Package":"antifox/server","Test":"TestAuthorizationFailsClosed/permission_lookup","Elapsed":0}
+{"Time":"2026-11-15T11:16:18.267837783+04:00","Action":"run","Package":"antifox/server","Test":"TestAuthorizationFailsClosed/missing_user"}
+{"Time":"2026-11-15T11:16:18.267842745+04:00","Action":"output","Package":"antifox/server","Test":"TestAuthorizationFailsClosed/missing_user","Output":"=== RUN   TestAuthorizationFailsClosed/missing_user\n"}
+{"Time":"2026-11-15T11:16:18.268079713+04:00","Action":"output","Package":"antifox/server","Test":"TestAuthorizationFailsClosed/missing_user","Output":"    auth_failclosed_test.go:54: HTTP 503; handler_called=false\n"}
+{"Time":"2026-11-15T11:16:18.268133871+04:00","Action":"output","Package":"antifox/server","Test":"TestAuthorizationFailsClosed/missing_user","Output":"--- PASS: TestAuthorizationFailsClosed/missing_user (0.00s)\n"}
+{"Time":"2026-11-15T11:16:18.268144027+04:00","Action":"pass","Package":"antifox/server","Test":"TestAuthorizationFailsClosed/missing_user","Elapsed":0}
+{"Time":"2026-11-15T11:16:18.26814733+04:00","Action":"run","Package":"antifox/server","Test":"TestAuthorizationFailsClosed/missing_manager"}
+{"Time":"2026-11-15T11:16:18.268148902+04:00","Action":"output","Package":"antifox/server","Test":"TestAuthorizationFailsClosed/missing_manager","Output":"=== RUN   TestAuthorizationFailsClosed/missing_manager\n"}
+{"Time":"2026-11-15T11:16:18.268398316+04:00","Action":"output","Package":"antifox/server","Test":"TestAuthorizationFailsClosed/missing_manager","Output":"    auth_failclosed_test.go:54: HTTP 503; handler_called=false\n"}
+{"Time":"2026-11-15T11:16:18.268469318+04:00","Action":"output","Package":"antifox/server","Test":"TestAuthorizationFailsClosed/missing_manager","Output":"--- PASS: TestAuthorizationFailsClosed/missing_manager (0.00s)\n"}
+{"Time":"2026-11-15T11:16:18.268472734+04:00","Action":"pass","Package":"antifox/server","Test":"TestAuthorizationFailsClosed/missing_manager","Elapsed":0}
+{"Time":"2026-11-15T11:16:18.268476415+04:00","Action":"run","Package":"antifox/server","Test":"TestAuthorizationFailsClosed/missing_database"}
+{"Time":"2026-11-15T11:16:18.268477902+04:00","Action":"output","Package":"antifox/server","Test":"TestAuthorizationFailsClosed/missing_database","Output":"=== RUN   TestAuthorizationFailsClosed/missing_database\n"}
+{"Time":"2026-11-15T11:16:18.268707474+04:00","Action":"output","Package":"antifox/server","Test":"TestAuthorizationFailsClosed/missing_database","Output":"    auth_failclosed_test.go:54: HTTP 503; handler_called=false\n"}
+{"Time":"2026-11-15T11:16:18.268746896+04:00","Action":"output","Package":"antifox/server","Test":"TestAuthorizationFailsClosed/missing_database","Output":"--- PASS: TestAuthorizationFailsClosed/missing_database (0.00s)\n"}
+{"Time":"2026-11-15T11:16:18.268749787+04:00","Action":"pass","Package":"antifox/server","Test":"TestAuthorizationFailsClosed/missing_database","Elapsed":0}
+{"Time":"2026-11-15T11:16:18.268791641+04:00","Action":"run","Package":"antifox/server","Test":"TestAuthorizationFailsClosed/empty_subject"}
+{"Time":"2026-11-15T11:16:18.268803324+04:00","Action":"output","Package":"antifox/server","Test":"TestAuthorizationFailsClosed/empty_subject","Output":"=== RUN   TestAuthorizationFailsClosed/empty_subject\n"}
+{"Time":"2026-11-15T11:16:18.269022868+04:00","Action":"output","Package":"antifox/server","Test":"TestAuthorizationFailsClosed/empty_subject","Output":"    auth_failclosed_test.go:54: HTTP 401; handler_called=false\n"}
+{"Time":"2026-11-15T11:16:18.269081656+04:00","Action":"output","Package":"antifox/server","Test":"TestAuthorizationFailsClosed/empty_subject","Output":"--- PASS: TestAuthorizationFailsClosed/empty_subject (0.00s)\n"}
+{"Time":"2026-11-15T11:16:18.269101041+04:00","Action":"pass","Package":"antifox/server","Test":"TestAuthorizationFailsClosed/empty_subject","Elapsed":0}
+{"Time":"2026-11-15T11:16:18.269105291+04:00","Action":"run","Package":"antifox/server","Test":"TestAuthorizationFailsClosed/valid_access"}
+{"Time":"2026-11-15T11:16:18.269106874+04:00","Action":"output","Package":"antifox/server","Test":"TestAuthorizationFailsClosed/valid_access","Output":"=== RUN   TestAuthorizationFailsClosed/valid_access\n"}
+{"Time":"2026-11-15T11:16:18.269418941+04:00","Action":"output","Package":"antifox/server","Test":"TestAuthorizationFailsClosed/valid_access","Output":"    auth_failclosed_test.go:54: HTTP 204; handler_called=true\n"}
+{"Time":"2026-11-15T11:16:18.269454215+04:00","Action":"output","Package":"antifox/server","Test":"TestAuthorizationFailsClosed/valid_access","Output":"--- PASS: TestAuthorizationFailsClosed/valid_access (0.00s)\n"}
+{"Time":"2026-11-15T11:16:18.269465836+04:00","Action":"pass","Package":"antifox/server","Test":"TestAuthorizationFailsClosed/valid_access","Elapsed":0}
+{"Time":"2026-11-15T11:16:18.26949362+04:00","Action":"output","Package":"antifox/server","Test":"TestAuthorizationFailsClosed","Output":"--- PASS: TestAuthorizationFailsClosed (0.00s)\n"}
+{"Time":"2026-11-15T11:16:18.269510387+04:00","Action":"pass","Package":"antifox/server","Test":"TestAuthorizationFailsClosed","Elapsed":0}
+{"Time":"2026-11-15T11:16:18.269611144+04:00","Action":"run","Package":"antifox/server","Test":"TestAuthenticatedObservations"}
+{"Time":"2026-11-15T11:16:18.269628609+04:00","Action":"output","Package":"antifox/server","Test":"TestAuthenticatedObservations","Output":"=== RUN   TestAuthenticatedObservations\n"}
+{"Time":"2026-11-15T11:16:18.269632119+04:00","Action":"run","Package":"antifox/server","Test":"TestAuthenticatedObservations/stats"}
+{"Time":"2026-11-15T11:16:18.269633597+04:00","Action":"output","Package":"antifox/server","Test":"TestAuthenticatedObservations/stats","Output":"=== RUN   TestAuthenticatedObservations/stats\n"}
+{"Time":"2026-11-15T11:16:18.270366616+04:00","Action":"output","Package":"antifox/server","Test":"TestAuthenticatedObservations/stats","Output":"    authenticated_observation_test.go:56: stats: HTTP 200\n"}
+{"Time":"2026-11-15T11:16:18.270423232+04:00","Action":"output","Package":"antifox/server","Test":"TestAuthenticatedObservations/stats","Output":"--- PASS: TestAuthenticatedObservations/stats (0.00s)\n"}
+{"Time":"2026-11-15T11:16:18.270434442+04:00","Action":"pass","Package":"antifox/server","Test":"TestAuthenticatedObservations/stats","Elapsed":0}
+{"Time":"2026-11-15T11:16:18.270438343+04:00","Action":"run","Package":"antifox/server","Test":"TestAuthenticatedObservations/tasks"}
+{"Time":"2026-11-15T11:16:18.270439733+04:00","Action":"output","Package":"antifox/server","Test":"TestAuthenticatedObservations/tasks","Output":"=== RUN   TestAuthenticatedObservations/tasks\n"}
+{"Time":"2026-11-15T11:16:18.271090778+04:00","Action":"output","Package":"antifox/server","Test":"TestAuthenticatedObservations/tasks","Output":"    authenticated_observation_test.go:56: tasks: HTTP 200\n"}
+{"Time":"2026-11-15T11:16:18.271105988+04:00","Action":"output","Package":"antifox/server","Test":"TestAuthenticatedObservations/tasks","Output":"--- PASS: TestAuthenticatedObservations/tasks (0.00s)\n"}
+{"Time":"2026-11-15T11:16:18.271108166+04:00","Action":"pass","Package":"antifox/server","Test":"TestAuthenticatedObservations/tasks","Elapsed":0}
+{"Time":"2026-11-15T11:16:18.271189716+04:00","Action":"run","Package":"antifox/server","Test":"TestAuthenticatedObservations/stats_failure"}
+{"Time":"2026-11-15T11:16:18.271219382+04:00","Action":"output","Package":"antifox/server","Test":"TestAuthenticatedObservations/stats_failure","Output":"=== RUN   TestAuthenticatedObservations/stats_failure\n"}
+{"Time":"2026-11-15T11:16:18.271538451+04:00","Action":"output","Package":"antifox/server","Test":"TestAuthenticatedObservations/stats_failure","Output":"    authenticated_observation_test.go:56: stats_failure: HTTP 503\n"}
+{"Time":"2026-11-15T11:16:18.271576369+04:00","Action":"output","Package":"antifox/server","Test":"TestAuthenticatedObservations/stats_failure","Output":"--- PASS: TestAuthenticatedObservations/stats_failure (0.00s)\n"}
+{"Time":"2026-11-15T11:16:18.271588777+04:00","Action":"pass","Package":"antifox/server","Test":"TestAuthenticatedObservations/stats_failure","Elapsed":0}
+{"Time":"2026-11-15T11:16:18.271620544+04:00","Action":"run","Package":"antifox/server","Test":"TestAuthenticatedObservations/tasks_failure"}
+{"Time":"2026-11-15T11:16:18.271622599+04:00","Action":"output","Package":"antifox/server","Test":"TestAuthenticatedObservations/tasks_failure","Output":"=== RUN   TestAuthenticatedObservations/tasks_failure\n"}
+{"Time":"2026-11-15T11:16:18.271994701+04:00","Action":"output","Package":"antifox/server","Test":"TestAuthenticatedObservations/tasks_failure","Output":"    authenticated_observation_test.go:56: tasks_failure: HTTP 503\n"}
+{"Time":"2026-11-15T11:16:18.272038601+04:00","Action":"output","Package":"antifox/server","Test":"TestAuthenticatedObservations/tasks_failure","Output":"--- PASS: TestAuthenticatedObservations/tasks_failure (0.00s)\n"}
+{"Time":"2026-11-15T11:16:18.272053024+04:00","Action":"pass","Package":"antifox/server","Test":"TestAuthenticatedObservations/tasks_failure","Elapsed":0}
+{"Time":"2026-11-15T11:16:18.272117247+04:00","Action":"run","Package":"antifox/server","Test":"TestAuthenticatedObservations/rerun_rejected"}
+{"Time":"2026-11-15T11:16:18.272133363+04:00","Action":"output","Package":"antifox/server","Test":"TestAuthenticatedObservations/rerun_rejected","Output":"=== RUN   TestAuthenticatedObservations/rerun_rejected\n"}
+{"Time":"2026-11-15T11:16:18.272485808+04:00","Action":"output","Package":"antifox/server","Test":"TestAuthenticatedObservations/rerun_rejected","Output":"    authenticated_observation_test.go:56: rerun_rejected: HTTP 409\n"}
+{"Time":"2026-11-15T11:16:18.272537739+04:00","Action":"output","Package":"antifox/server","Test":"TestAuthenticatedObservations/rerun_rejected","Output":"--- PASS: TestAuthenticatedObservations/rerun_rejected (0.00s)\n"}
+{"Time":"2026-11-15T11:16:18.272550854+04:00","Action":"pass","Package":"antifox/server","Test":"TestAuthenticatedObservations/rerun_rejected","Elapsed":0}
+{"Time":"2026-11-15T11:16:18.272556066+04:00","Action":"run","Package":"antifox/server","Test":"TestAuthenticatedObservations/missing_token"}
+{"Time":"2026-11-15T11:16:18.272557642+04:00","Action":"output","Package":"antifox/server","Test":"TestAuthenticatedObservations/missing_token","Output":"=== RUN   TestAuthenticatedObservations/missing_token\n"}
+{"Time":"2026-11-15T11:16:18.272778329+04:00","Action":"output","Package":"antifox/server","Test":"TestAuthenticatedObservations/missing_token","Output":"    authenticated_observation_test.go:56: missing_token: HTTP 401\n"}
+{"Time":"2026-11-15T11:16:18.272815793+04:00","Action":"output","Package":"antifox/server","Test":"TestAuthenticatedObservations/missing_token","Output":"--- PASS: TestAuthenticatedObservations/missing_token (0.00s)\n"}
+{"Time":"2026-11-15T11:16:18.272827558+04:00","Action":"pass","Package":"antifox/server","Test":"TestAuthenticatedObservations/missing_token","Elapsed":0}
+{"Time":"2026-11-15T11:16:18.272881523+04:00","Action":"run","Package":"antifox/server","Test":"TestAuthenticatedObservations/invalid_token"}
+{"Time":"2026-11-15T11:16:18.272893796+04:00","Action":"output","Package":"antifox/server","Test":"TestAuthenticatedObservations/invalid_token","Output":"=== RUN   TestAuthenticatedObservations/invalid_token\n"}
+{"Time":"2026-11-15T11:16:18.273045321+04:00","Action":"output","Package":"antifox/server","Test":"TestAuthenticatedObservations/invalid_token","Output":"    authenticated_observation_test.go:56: invalid_token: HTTP 401\n"}
+{"Time":"2026-11-15T11:16:18.27307866+04:00","Action":"output","Package":"antifox/server","Test":"TestAuthenticatedObservations/invalid_token","Output":"--- PASS: TestAuthenticatedObservations/invalid_token (0.00s)\n"}
+{"Time":"2026-11-15T11:16:18.273090172+04:00","Action":"pass","Package":"antifox/server","Test":"TestAuthenticatedObservations/invalid_token","Elapsed":0}
+{"Time":"2026-11-15T11:16:18.273114043+04:00","Action":"output","Package":"antifox/server","Test":"TestAuthenticatedObservations","Output":"--- PASS: TestAuthenticatedObservations (0.00s)\n"}
+{"Time":"2026-11-15T11:16:18.273126102+04:00","Action":"pass","Package":"antifox/server","Test":"TestAuthenticatedObservations","Elapsed":0}
+{"Time":"2026-11-15T11:16:18.273168026+04:00","Action":"run","Package":"antifox/server","Test":"TestRerunRejectsNonterminalWithoutMutation"}
+{"Time":"2026-11-15T11:16:18.273178732+04:00","Action":"output","Package":"antifox/server","Test":"TestRerunRejectsNonterminalWithoutMutation","Output":"=== RUN   TestRerunRejectsNonterminalWithoutMutation\n"}
+{"Time":"2026-11-15T11:16:18.273225762+04:00","Action":"run","Package":"antifox/server","Test":"TestRerunRejectsNonterminalWithoutMutation/status_created"}
+{"Time":"2026-11-15T11:16:18.273236289+04:00","Action":"output","Package":"antifox/server","Test":"TestRerunRejectsNonterminalWithoutMutation/status_created","Output":"=== RUN   TestRerunRejectsNonterminalWithoutMutation/status_created\n"}
+{"Time":"2026-11-15T11:16:18.273362133+04:00","Action":"output","Package":"antifox/server","Test":"TestRerunRejectsNonterminalWithoutMutation/status_created","Output":"--- PASS: TestRerunRejectsNonterminalWithoutMutation/status_created (0.00s)\n"}
+{"Time":"2026-11-15T11:16:18.273374379+04:00","Action":"pass","Package":"antifox/server","Test":"TestRerunRejectsNonterminalWithoutMutation/status_created","Elapsed":0}
+{"Time":"2026-11-15T11:16:18.273407442+04:00","Action":"run","Package":"antifox/server","Test":"TestRerunRejectsNonterminalWithoutMutation/status_running"}
+{"Time":"2026-11-15T11:16:18.273419524+04:00","Action":"output","Package":"antifox/server","Test":"TestRerunRejectsNonterminalWithoutMutation/status_running","Output":"=== RUN   TestRerunRejectsNonterminalWithoutMutation/status_running\n"}
+{"Time":"2026-11-15T11:16:18.273518938+04:00","Action":"output","Package":"antifox/server","Test":"TestRerunRejectsNonterminalWithoutMutation/status_running","Output":"--- PASS: TestRerunRejectsNonterminalWithoutMutation/status_running (0.00s)\n"}
+{"Time":"2026-11-15T11:16:18.273531307+04:00","Action":"pass","Package":"antifox/server","Test":"TestRerunRejectsNonterminalWithoutMutation/status_running","Elapsed":0}
+{"Time":"2026-11-15T11:16:18.273568943+04:00","Action":"run","Package":"antifox/server","Test":"TestRerunRejectsNonterminalWithoutMutation/status_paused"}
+{"Time":"2026-11-15T11:16:18.273580138+04:00","Action":"output","Package":"antifox/server","Test":"TestRerunRejectsNonterminalWithoutMutation/status_paused","Output":"=== RUN   TestRerunRejectsNonterminalWithoutMutation/status_paused\n"}
+{"Time":"2026-11-15T11:16:18.273671313+04:00","Action":"output","Package":"antifox/server","Test":"TestRerunRejectsNonterminalWithoutMutation/status_paused","Output":"--- PASS: TestRerunRejectsNonterminalWithoutMutation/status_paused (0.00s)\n"}
+{"Time":"2026-11-15T11:16:18.273683508+04:00","Action":"pass","Package":"antifox/server","Test":"TestRerunRejectsNonterminalWithoutMutation/status_paused","Elapsed":0}
+{"Time":"2026-11-15T11:16:18.273689933+04:00","Action":"run","Package":"antifox/server","Test":"TestRerunRejectsNonterminalWithoutMutation/status_"}
+{"Time":"2026-11-15T11:16:18.27369147+04:00","Action":"output","Package":"antifox/server","Test":"TestRerunRejectsNonterminalWithoutMutation/status_","Output":"=== RUN   TestRerunRejectsNonterminalWithoutMutation/status_\n"}
+{"Time":"2026-11-15T11:16:18.273791255+04:00","Action":"output","Package":"antifox/server","Test":"TestRerunRejectsNonterminalWithoutMutation/status_","Output":"--- PASS: TestRerunRejectsNonterminalWithoutMutation/status_ (0.00s)\n"}
+{"Time":"2026-11-15T11:16:18.273808498+04:00","Action":"pass","Package":"antifox/server","Test":"TestRerunRejectsNonterminalWithoutMutation/status_","Elapsed":0}
+{"Time":"2026-11-15T11:16:18.273812688+04:00","Action":"run","Package":"antifox/server","Test":"TestRerunRejectsNonterminalWithoutMutation/status_unknown"}
+{"Time":"2026-11-15T11:16:18.27381421+04:00","Action":"output","Package":"antifox/server","Test":"TestRerunRejectsNonterminalWithoutMutation/status_unknown","Output":"=== RUN   TestRerunRejectsNonterminalWithoutMutation/status_unknown\n"}
+{"Time":"2026-11-15T11:16:18.273963575+04:00","Action":"output","Package":"antifox/server","Test":"TestRerunRejectsNonterminalWithoutMutation/status_unknown","Output":"--- PASS: TestRerunRejectsNonterminalWithoutMutation/status_unknown (0.00s)\n"}
+{"Time":"2026-11-15T11:16:18.273975451+04:00","Action":"pass","Package":"antifox/server","Test":"TestRerunRejectsNonterminalWithoutMutation/status_unknown","Elapsed":0}
+{"Time":"2026-11-15T11:16:18.273978676+04:00","Action":"output","Package":"antifox/server","Test":"TestRerunRejectsNonterminalWithoutMutation","Output":"--- PASS: TestRerunRejectsNonterminalWithoutMutation (0.00s)\n"}
+{"Time":"2026-11-15T11:16:18.274008388+04:00","Action":"pass","Package":"antifox/server","Test":"TestRerunRejectsNonterminalWithoutMutation","Elapsed":0}
+{"Time":"2026-11-15T11:16:18.274227048+04:00","Action":"run","Package":"antifox/server","Test":"TestStatsObservationHTTP"}
+{"Time":"2026-11-15T11:16:18.274238432+04:00","Action":"output","Package":"antifox/server","Test":"TestStatsObservationHTTP","Output":"=== RUN   TestStatsObservationHTTP\n"}
+{"Time":"2026-11-15T11:16:18.274277263+04:00","Action":"run","Package":"antifox/server","Test":"TestStatsObservationHTTP/inactive"}
+{"Time":"2026-11-15T11:16:18.274288313+04:00","Action":"output","Package":"antifox/server","Test":"TestStatsObservationHTTP/inactive","Output":"=== RUN   TestStatsObservationHTTP/inactive\n"}
+{"Time":"2026-11-15T11:16:18.274971581+04:00","Action":"output","Package":"antifox/server","Test":"TestStatsObservationHTTP/inactive","Output":"--- PASS: TestStatsObservationHTTP/inactive (0.00s)\n"}
+{"Time":"2026-11-15T11:16:18.274984162+04:00","Action":"pass","Package":"antifox/server","Test":"TestStatsObservationHTTP/inactive","Elapsed":0}
+{"Time":"2026-11-15T11:16:18.274987017+04:00","Action":"run","Package":"antifox/server","Test":"TestStatsObservationHTTP/planner_in_flight"}
+{"Time":"2026-11-15T11:16:18.274988576+04:00","Action":"output","Package":"antifox/server","Test":"TestStatsObservationHTTP/planner_in_flight","Output":"=== RUN   TestStatsObservationHTTP/planner_in_flight\n"}
+{"Time":"2026-11-15T11:16:18.275492302+04:00","Action":"output","Package":"antifox/server","Test":"TestStatsObservationHTTP/planner_in_flight","Output":"--- PASS: TestStatsObservationHTTP/planner_in_flight (0.00s)\n"}
+{"Time":"2026-11-15T11:16:18.275505617+04:00","Action":"pass","Package":"antifox/server","Test":"TestStatsObservationHTTP/planner_in_flight","Elapsed":0}
+{"Time":"2026-11-15T11:16:18.275507905+04:00","Action":"run","Package":"antifox/server","Test":"TestStatsObservationHTTP/running_worker"}
+{"Time":"2026-11-15T11:16:18.275509496+04:00","Action":"output","Package":"antifox/server","Test":"TestStatsObservationHTTP/running_worker","Output":"=== RUN   TestStatsObservationHTTP/running_worker\n"}
+{"Time":"2026-11-15T11:16:18.275991613+04:00","Action":"output","Package":"antifox/server","Test":"TestStatsObservationHTTP/running_worker","Output":"--- PASS: TestStatsObservationHTTP/running_worker (0.00s)\n"}
+{"Time":"2026-11-15T11:16:18.276013854+04:00","Action":"pass","Package":"antifox/server","Test":"TestStatsObservationHTTP/running_worker","Elapsed":0}
+{"Time":"2026-11-15T11:16:18.276016963+04:00","Action":"run","Package":"antifox/server","Test":"TestStatsObservationHTTP/paused"}
+{"Time":"2026-11-15T11:16:18.276018477+04:00","Action":"output","Package":"antifox/server","Test":"TestStatsObservationHTTP/paused","Output":"=== RUN   TestStatsObservationHTTP/paused\n"}
+{"Time":"2026-11-15T11:16:18.2765612+04:00","Action":"output","Package":"antifox/server","Test":"TestStatsObservationHTTP/paused","Output":"--- PASS: TestStatsObservationHTTP/paused (0.00s)\n"}
+{"Time":"2026-11-15T11:16:18.276585258+04:00","Action":"pass","Package":"antifox/server","Test":"TestStatsObservationHTTP/paused","Elapsed":0}
+{"Time":"2026-11-15T11:16:18.276588424+04:00","Action":"run","Package":"antifox/server","Test":"TestStatsObservationHTTP/done_over_started_and_paused"}
+{"Time":"2026-11-15T11:16:18.276589926+04:00","Action":"output","Package":"antifox/server","Test":"TestStatsObservationHTTP/done_over_started_and_paused","Output":"=== RUN   TestStatsObservationHTTP/done_over_started_and_paused\n"}
+{"Time":"2026-11-15T11:16:18.277189978+04:00","Action":"output","Package":"antifox/server","Test":"TestStatsObservationHTTP/done_over_started_and_paused","Output":"--- PASS: TestStatsObservationHTTP/done_over_started_and_paused (0.00s)\n"}
+{"Time":"2026-11-15T11:16:18.277205826+04:00","Action":"pass","Package":"antifox/server","Test":"TestStatsObservationHTTP/done_over_started_and_paused","Elapsed":0}
+{"Time":"2026-11-15T11:16:18.277208418+04:00","Action":"run","Package":"antifox/server","Test":"TestStatsObservationHTTP/failed_over_started"}
+{"Time":"2026-11-15T11:16:18.277210131+04:00","Action":"output","Package":"antifox/server","Test":"TestStatsObservationHTTP/failed_over_started","Output":"=== RUN   TestStatsObservationHTTP/failed_over_started\n"}
+{"Time":"2026-11-15T11:16:18.277774746+04:00","Action":"output","Package":"antifox/server","Test":"TestStatsObservationHTTP/failed_over_started","Output":"--- PASS: TestStatsObservationHTTP/failed_over_started (0.00s)\n"}
+{"Time":"2026-11-15T11:16:18.277786869+04:00","Action":"pass","Package":"antifox/server","Test":"TestStatsObservationHTTP/failed_over_started","Elapsed":0}
+{"Time":"2026-11-15T11:16:18.277790259+04:00","Action":"run","Package":"antifox/server","Test":"TestStatsObservationHTTP/timeout_over_started"}
+{"Time":"2026-11-15T11:16:18.277791855+04:00","Action":"output","Package":"antifox/server","Test":"TestStatsObservationHTTP/timeout_over_started","Output":"=== RUN   TestStatsObservationHTTP/timeout_over_started\n"}
+{"Time":"2026-11-15T11:16:18.27827705+04:00","Action":"output","Package":"antifox/server","Test":"TestStatsObservationHTTP/timeout_over_started","Output":"--- PASS: TestStatsObservationHTTP/timeout_over_started (0.00s)\n"}
+{"Time":"2026-11-15T11:16:18.278292438+04:00","Action":"pass","Package":"antifox/server","Test":"TestStatsObservationHTTP/timeout_over_started","Elapsed":0}
+{"Time":"2026-11-15T11:16:18.278295582+04:00","Action":"output","Package":"antifox/server","Test":"TestStatsObservationHTTP","Output":"--- PASS: TestStatsObservationHTTP (0.00s)\n"}
+{"Time":"2026-11-15T11:16:18.27833113+04:00","Action":"pass","Package":"antifox/server","Test":"TestStatsObservationHTTP","Elapsed":0}
+{"Time":"2026-11-15T11:16:18.278387482+04:00","Action":"run","Package":"antifox/server","Test":"TestTelemetryReadFailuresHTTP"}
+{"Time":"2026-11-15T11:16:18.27839767+04:00","Action":"output","Package":"antifox/server","Test":"TestTelemetryReadFailuresHTTP","Output":"=== RUN   TestTelemetryReadFailuresHTTP\n"}
+{"Time":"2026-11-15T11:16:18.278442202+04:00","Action":"run","Package":"antifox/server","Test":"TestTelemetryReadFailuresHTTP/assets/query"}
+{"Time":"2026-11-15T11:16:18.278459608+04:00","Action":"output","Package":"antifox/server","Test":"TestTelemetryReadFailuresHTTP/assets/query","Output":"=== RUN   TestTelemetryReadFailuresHTTP/assets/query\n"}
+{"Time":"2026-11-15T11:16:18.278604271+04:00","Action":"output","Package":"antifox/server","Test":"TestTelemetryReadFailuresHTTP/assets/query","Output":"--- PASS: TestTelemetryReadFailuresHTTP/assets/query (0.00s)\n"}
+{"Time":"2026-11-15T11:16:18.278617884+04:00","Action":"pass","Package":"antifox/server","Test":"TestTelemetryReadFailuresHTTP/assets/query","Elapsed":0}
+{"Time":"2026-11-15T11:16:18.278621727+04:00","Action":"run","Package":"antifox/server","Test":"TestTelemetryReadFailuresHTTP/assets/scan"}
+{"Time":"2026-11-15T11:16:18.278623361+04:00","Action":"output","Package":"antifox/server","Test":"TestTelemetryReadFailuresHTTP/assets/scan","Output":"=== RUN   TestTelemetryReadFailuresHTTP/assets/scan\n"}
+{"Time":"2026-11-15T11:16:18.278762678+04:00","Action":"output","Package":"antifox/server","Test":"TestTelemetryReadFailuresHTTP/assets/scan","Output":"--- PASS: TestTelemetryReadFailuresHTTP/assets/scan (0.00s)\n"}
+{"Time":"2026-11-15T11:16:18.278778266+04:00","Action":"pass","Package":"antifox/server","Test":"TestTelemetryReadFailuresHTTP/assets/scan","Elapsed":0}
+{"Time":"2026-11-15T11:16:18.278782063+04:00","Action":"run","Package":"antifox/server","Test":"TestTelemetryReadFailuresHTTP/assets/rows"}
+{"Time":"2026-11-15T11:16:18.278783544+04:00","Action":"output","Package":"antifox/server","Test":"TestTelemetryReadFailuresHTTP/assets/rows","Output":"=== RUN   TestTelemetryReadFailuresHTTP/assets/rows\n"}
+{"Time":"2026-11-15T11:16:18.278913607+04:00","Action":"output","Package":"antifox/server","Test":"TestTelemetryReadFailuresHTTP/assets/rows","Output":"--- PASS: TestTelemetryReadFailuresHTTP/assets/rows (0.00s)\n"}
+{"Time":"2026-11-15T11:16:18.278931143+04:00","Action":"pass","Package":"antifox/server","Test":"TestTelemetryReadFailuresHTTP/assets/rows","Elapsed":0}
+{"Time":"2026-11-15T11:16:18.278935421+04:00","Action":"run","Package":"antifox/server","Test":"TestTelemetryReadFailuresHTTP/exploration/query"}
+{"Time":"2026-11-15T11:16:18.278936924+04:00","Action":"output","Package":"antifox/server","Test":"TestTelemetryReadFailuresHTTP/exploration/query","Output":"=== RUN   TestTelemetryReadFailuresHTTP/exploration/query\n"}
+{"Time":"2026-11-15T11:16:18.27911689+04:00","Action":"output","Package":"antifox/server","Test":"TestTelemetryReadFailuresHTTP/exploration/query","Output":"--- PASS: TestTelemetryReadFailuresHTTP/exploration/query (0.00s)\n"}
+{"Time":"2026-11-15T11:16:18.279131915+04:00","Action":"pass","Package":"antifox/server","Test":"TestTelemetryReadFailuresHTTP/exploration/query","Elapsed":0}
+{"Time":"2026-11-15T11:16:18.27914544+04:00","Action":"run","Package":"antifox/server","Test":"TestTelemetryReadFailuresHTTP/exploration/scan"}
+{"Time":"2026-11-15T11:16:18.279147338+04:00","Action":"output","Package":"antifox/server","Test":"TestTelemetryReadFailuresHTTP/exploration/scan","Output":"=== RUN   TestTelemetryReadFailuresHTTP/exploration/scan\n"}
+{"Time":"2026-11-15T11:16:18.279294461+04:00","Action":"output","Package":"antifox/server","Test":"TestTelemetryReadFailuresHTTP/exploration/scan","Output":"--- PASS: TestTelemetryReadFailuresHTTP/exploration/scan (0.00s)\n"}
+{"Time":"2026-11-15T11:16:18.279310851+04:00","Action":"pass","Package":"antifox/server","Test":"TestTelemetryReadFailuresHTTP/exploration/scan","Elapsed":0}
+{"Time":"2026-11-15T11:16:18.279315969+04:00","Action":"run","Package":"antifox/server","Test":"TestTelemetryReadFailuresHTTP/exploration/rows"}
+{"Time":"2026-11-15T11:16:18.279317747+04:00","Action":"output","Package":"antifox/server","Test":"TestTelemetryReadFailuresHTTP/exploration/rows","Output":"=== RUN   TestTelemetryReadFailuresHTTP/exploration/rows\n"}
+{"Time":"2026-11-15T11:16:18.279462229+04:00","Action":"output","Package":"antifox/server","Test":"TestTelemetryReadFailuresHTTP/exploration/rows","Output":"--- PASS: TestTelemetryReadFailuresHTTP/exploration/rows (0.00s)\n"}
+{"Time":"2026-11-15T11:16:18.279475366+04:00","Action":"pass","Package":"antifox/server","Test":"TestTelemetryReadFailuresHTTP/exploration/rows","Elapsed":0}
+{"Time":"2026-11-15T11:16:18.279481088+04:00","Action":"run","Package":"antifox/server","Test":"TestTelemetryReadFailuresHTTP/intent/query"}
+{"Time":"2026-11-15T11:16:18.279482638+04:00","Action":"output","Package":"antifox/server","Test":"TestTelemetryReadFailuresHTTP/intent/query","Output":"=== RUN   TestTelemetryReadFailuresHTTP/intent/query\n"}
+{"Time":"2026-11-15T11:16:18.279644881+04:00","Action":"output","Package":"antifox/server","Test":"TestTelemetryReadFailuresHTTP/intent/query","Output":"--- PASS: TestTelemetryReadFailuresHTTP/intent/query (0.00s)\n"}
+{"Time":"2026-11-15T11:16:18.279658976+04:00","Action":"pass","Package":"antifox/server","Test":"TestTelemetryReadFailuresHTTP/intent/query","Elapsed":0}
+{"Time":"2026-11-15T11:16:18.279683032+04:00","Action":"run","Package":"antifox/server","Test":"TestTelemetryReadFailuresHTTP/intent/scan"}
+{"Time":"2026-11-15T11:16:18.279695149+04:00","Action":"output","Package":"antifox/server","Test":"TestTelemetryReadFailuresHTTP/intent/scan","Output":"=== RUN   TestTelemetryReadFailuresHTTP/intent/scan\n"}
+{"Time":"2026-11-15T11:16:18.279893648+04:00","Action":"output","Package":"antifox/server","Test":"TestTelemetryReadFailuresHTTP/intent/scan","Output":"--- PASS: TestTelemetryReadFailuresHTTP/intent/scan (0.00s)\n"}
+{"Time":"2026-11-15T11:16:18.279907743+04:00","Action":"pass","Package":"antifox/server","Test":"TestTelemetryReadFailuresHTTP/intent/scan","Elapsed":0}
+{"Time":"2026-11-15T11:16:18.279935843+04:00","Action":"run","Package":"antifox/server","Test":"TestTelemetryReadFailuresHTTP/intent/rows"}
+{"Time":"2026-11-15T11:16:18.279947439+04:00","Action":"output","Package":"antifox/server","Test":"TestTelemetryReadFailuresHTTP/intent/rows","Output":"=== RUN   TestTelemetryReadFailuresHTTP/intent/rows\n"}
+{"Time":"2026-11-15T11:16:18.280107764+04:00","Action":"output","Package":"antifox/server","Test":"TestTelemetryReadFailuresHTTP/intent/rows","Output":"--- PASS: TestTelemetryReadFailuresHTTP/intent/rows (0.00s)\n"}
+{"Time":"2026-11-15T11:16:18.280121039+04:00","Action":"pass","Package":"antifox/server","Test":"TestTelemetryReadFailuresHTTP/intent/rows","Elapsed":0}
+{"Time":"2026-11-15T11:16:18.280134912+04:00","Action":"run","Package":"antifox/server","Test":"TestTelemetryReadFailuresHTTP/goal/query"}
+{"Time":"2026-11-15T11:16:18.280147171+04:00","Action":"output","Package":"antifox/server","Test":"TestTelemetryReadFailuresHTTP/goal/query","Output":"=== RUN   TestTelemetryReadFailuresHTTP/goal/query\n"}
+{"Time":"2026-11-15T11:16:18.28031884+04:00","Action":"output","Package":"antifox/server","Test":"TestTelemetryReadFailuresHTTP/goal/query","Output":"--- PASS: TestTelemetryReadFailuresHTTP/goal/query (0.00s)\n"}
+{"Time":"2026-11-15T11:16:18.280332737+04:00","Action":"pass","Package":"antifox/server","Test":"TestTelemetryReadFailuresHTTP/goal/query","Elapsed":0}
+{"Time":"2026-11-15T11:16:18.280336191+04:00","Action":"run","Package":"antifox/server","Test":"TestTelemetryReadFailuresHTTP/goal/scan"}
+{"Time":"2026-11-15T11:16:18.280337739+04:00","Action":"output","Package":"antifox/server","Test":"TestTelemetryReadFailuresHTTP/goal/scan","Output":"=== RUN   TestTelemetryReadFailuresHTTP/goal/scan\n"}
+{"Time":"2026-11-15T11:16:18.280539471+04:00","Action":"output","Package":"antifox/server","Test":"TestTelemetryReadFailuresHTTP/goal/scan","Output":"--- PASS: TestTelemetryReadFailuresHTTP/goal/scan (0.00s)\n"}
+{"Time":"2026-11-15T11:16:18.280552741+04:00","Action":"pass","Package":"antifox/server","Test":"TestTelemetryReadFailuresHTTP/goal/scan","Elapsed":0}
+{"Time":"2026-11-15T11:16:18.280586005+04:00","Action":"run","Package":"antifox/server","Test":"TestTelemetryReadFailuresHTTP/goal/rows"}
+{"Time":"2026-11-15T11:16:18.28059897+04:00","Action":"output","Package":"antifox/server","Test":"TestTelemetryReadFailuresHTTP/goal/rows","Output":"=== RUN   TestTelemetryReadFailuresHTTP/goal/rows\n"}
+{"Time":"2026-11-15T11:16:18.280776848+04:00","Action":"output","Package":"antifox/server","Test":"TestTelemetryReadFailuresHTTP/goal/rows","Output":"--- PASS: TestTelemetryReadFailuresHTTP/goal/rows (0.00s)\n"}
+{"Time":"2026-11-15T11:16:18.280795297+04:00","Action":"pass","Package":"antifox/server","Test":"TestTelemetryReadFailuresHTTP/goal/rows","Elapsed":0}
+{"Time":"2026-11-15T11:16:18.280799515+04:00","Action":"run","Package":"antifox/server","Test":"TestTelemetryReadFailuresHTTP/tokens/query"}
+{"Time":"2026-11-15T11:16:18.280801153+04:00","Action":"output","Package":"antifox/server","Test":"TestTelemetryReadFailuresHTTP/tokens/query","Output":"=== RUN   TestTelemetryReadFailuresHTTP/tokens/query\n"}
+{"Time":"2026-11-15T11:16:18.28091877+04:00","Action":"output","Package":"antifox/server","Test":"TestTelemetryReadFailuresHTTP/tokens/query","Output":"--- PASS: TestTelemetryReadFailuresHTTP/tokens/query (0.00s)\n"}
+{"Time":"2026-11-15T11:16:18.280931626+04:00","Action":"pass","Package":"antifox/server","Test":"TestTelemetryReadFailuresHTTP/tokens/query","Elapsed":0}
+{"Time":"2026-11-15T11:16:18.280934801+04:00","Action":"run","Package":"antifox/server","Test":"TestTelemetryReadFailuresHTTP/tokens/scan"}
+{"Time":"2026-11-15T11:16:18.280936298+04:00","Action":"output","Package":"antifox/server","Test":"TestTelemetryReadFailuresHTTP/tokens/scan","Output":"=== RUN   TestTelemetryReadFailuresHTTP/tokens/scan\n"}
+{"Time":"2026-11-15T11:16:18.281100342+04:00","Action":"output","Package":"antifox/server","Test":"TestTelemetryReadFailuresHTTP/tokens/scan","Output":"--- PASS: TestTelemetryReadFailuresHTTP/tokens/scan (0.00s)\n"}
+{"Time":"2026-11-15T11:16:18.281116205+04:00","Action":"pass","Package":"antifox/server","Test":"TestTelemetryReadFailuresHTTP/tokens/scan","Elapsed":0}
+{"Time":"2026-11-15T11:16:18.281119777+04:00","Action":"run","Package":"antifox/server","Test":"TestTelemetryReadFailuresHTTP/tokens/rows"}
+{"Time":"2026-11-15T11:16:18.281121328+04:00","Action":"output","Package":"antifox/server","Test":"TestTelemetryReadFailuresHTTP/tokens/rows","Output":"=== RUN   TestTelemetryReadFailuresHTTP/tokens/rows\n"}
+{"Time":"2026-11-15T11:16:18.281300056+04:00","Action":"output","Package":"antifox/server","Test":"TestTelemetryReadFailuresHTTP/tokens/rows","Output":"--- PASS: TestTelemetryReadFailuresHTTP/tokens/rows (0.00s)\n"}
+{"Time":"2026-11-15T11:16:18.281312861+04:00","Action":"pass","Package":"antifox/server","Test":"TestTelemetryReadFailuresHTTP/tokens/rows","Elapsed":0}
+{"Time":"2026-11-15T11:16:18.281316108+04:00","Action":"run","Package":"antifox/server","Test":"TestTelemetryReadFailuresHTTP/activity/query"}
+{"Time":"2026-11-15T11:16:18.281317669+04:00","Action":"output","Package":"antifox/server","Test":"TestTelemetryReadFailuresHTTP/activity/query","Output":"=== RUN   TestTelemetryReadFailuresHTTP/activity/query\n"}
+{"Time":"2026-11-15T11:16:18.281453188+04:00","Action":"output","Package":"antifox/server","Test":"TestTelemetryReadFailuresHTTP/activity/query","Output":"--- PASS: TestTelemetryReadFailuresHTTP/activity/query (0.00s)\n"}
+{"Time":"2026-11-15T11:16:18.281467693+04:00","Action":"pass","Package":"antifox/server","Test":"TestTelemetryReadFailuresHTTP/activity/query","Elapsed":0}
+{"Time":"2026-11-15T11:16:18.281492112+04:00","Action":"run","Package":"antifox/server","Test":"TestTelemetryReadFailuresHTTP/activity/scan"}
+{"Time":"2026-11-15T11:16:18.281503746+04:00","Action":"output","Package":"antifox/server","Test":"TestTelemetryReadFailuresHTTP/activity/scan","Output":"=== RUN   TestTelemetryReadFailuresHTTP/activity/scan\n"}
+{"Time":"2026-11-15T11:16:18.281662247+04:00","Action":"output","Package":"antifox/server","Test":"TestTelemetryReadFailuresHTTP/activity/scan","Output":"--- PASS: TestTelemetryReadFailuresHTTP/activity/scan (0.00s)\n"}
+{"Time":"2026-11-15T11:16:18.281675438+04:00","Action":"pass","Package":"antifox/server","Test":"TestTelemetryReadFailuresHTTP/activity/scan","Elapsed":0}
+{"Time":"2026-11-15T11:16:18.281678572+04:00","Action":"run","Package":"antifox/server","Test":"TestTelemetryReadFailuresHTTP/activity/rows"}
+{"Time":"2026-11-15T11:16:18.281679947+04:00","Action":"output","Package":"antifox/server","Test":"TestTelemetryReadFailuresHTTP/activity/rows","Output":"=== RUN   TestTelemetryReadFailuresHTTP/activity/rows\n"}
+{"Time":"2026-11-15T11:16:18.281852025+04:00","Action":"output","Package":"antifox/server","Test":"TestTelemetryReadFailuresHTTP/activity/rows","Output":"--- PASS: TestTelemetryReadFailuresHTTP/activity/rows (0.00s)\n"}
+{"Time":"2026-11-15T11:16:18.281866218+04:00","Action":"pass","Package":"antifox/server","Test":"TestTelemetryReadFailuresHTTP/activity/rows","Elapsed":0}
+{"Time":"2026-11-15T11:16:18.281895276+04:00","Action":"run","Package":"antifox/server","Test":"TestTelemetryReadFailuresHTTP/task_goals/query"}
+{"Time":"2026-11-15T11:16:18.281907168+04:00","Action":"output","Package":"antifox/server","Test":"TestTelemetryReadFailuresHTTP/task_goals/query","Output":"=== RUN   TestTelemetryReadFailuresHTTP/task_goals/query\n"}
+{"Time":"2026-11-15T11:16:18.282104161+04:00","Action":"output","Package":"antifox/server","Test":"TestTelemetryReadFailuresHTTP/task_goals/query","Output":"--- PASS: TestTelemetryReadFailuresHTTP/task_goals/query (0.00s)\n"}
+{"Time":"2026-11-15T11:16:18.28211876+04:00","Action":"pass","Package":"antifox/server","Test":"TestTelemetryReadFailuresHTTP/task_goals/query","Elapsed":0}
+{"Time":"2026-11-15T11:16:18.282148514+04:00","Action":"run","Package":"antifox/server","Test":"TestTelemetryReadFailuresHTTP/task_goals/scan"}
+{"Time":"2026-11-15T11:16:18.282160412+04:00","Action":"output","Package":"antifox/server","Test":"TestTelemetryReadFailuresHTTP/task_goals/scan","Output":"=== RUN   TestTelemetryReadFailuresHTTP/task_goals/scan\n"}
+{"Time":"2026-11-15T11:16:18.282367832+04:00","Action":"output","Package":"antifox/server","Test":"TestTelemetryReadFailuresHTTP/task_goals/scan","Output":"--- PASS: TestTelemetryReadFailuresHTTP/task_goals/scan (0.00s)\n"}
+{"Time":"2026-11-15T11:16:18.282381396+04:00","Action":"pass","Package":"antifox/server","Test":"TestTelemetryReadFailuresHTTP/task_goals/scan","Elapsed":0}
+{"Time":"2026-11-15T11:16:18.282411336+04:00","Action":"run","Package":"antifox/server","Test":"TestTelemetryReadFailuresHTTP/task_goals/rows"}
+{"Time":"2026-11-15T11:16:18.282422829+04:00","Action":"output","Package":"antifox/server","Test":"TestTelemetryReadFailuresHTTP/task_goals/rows","Output":"=== RUN   TestTelemetryReadFailuresHTTP/task_goals/rows\n"}
+{"Time":"2026-11-15T11:16:18.282597328+04:00","Action":"output","Package":"antifox/server","Test":"TestTelemetryReadFailuresHTTP/task_goals/rows","Output":"--- PASS: TestTelemetryReadFailuresHTTP/task_goals/rows (0.00s)\n"}
+{"Time":"2026-11-15T11:16:18.28261325+04:00","Action":"pass","Package":"antifox/server","Test":"TestTelemetryReadFailuresHTTP/task_goals/rows","Elapsed":0}
+{"Time":"2026-11-15T11:16:18.282615991+04:00","Action":"output","Package":"antifox/server","Test":"TestTelemetryReadFailuresHTTP","Output":"--- PASS: TestTelemetryReadFailuresHTTP (0.00s)\n"}
+{"Time":"2026-11-15T11:16:18.282649458+04:00","Action":"pass","Package":"antifox/server","Test":"TestTelemetryReadFailuresHTTP","Elapsed":0}
+{"Time":"2026-11-15T11:16:18.28266537+04:00","Action":"run","Package":"antifox/server","Test":"TestStatsTrafficReadFailureHTTP"}
+{"Time":"2026-11-15T11:16:18.282667631+04:00","Action":"output","Package":"antifox/server","Test":"TestStatsTrafficReadFailureHTTP","Output":"=== RUN   TestStatsTrafficReadFailureHTTP\n"}
+{"Time":"2026-11-15T11:16:18.351442909+04:00","Action":"output","Package":"antifox/server","Test":"TestStatsTrafficReadFailureHTTP","Output":"--- PASS: TestStatsTrafficReadFailureHTTP (0.07s)\n"}
+{"Time":"2026-11-15T11:16:18.351479097+04:00","Action":"pass","Package":"antifox/server","Test":"TestStatsTrafficReadFailureHTTP","Elapsed":0.07}
+{"Time":"2026-11-15T11:16:18.351487763+04:00","Action":"run","Package":"antifox/server","Test":"TestStatsObservationBoundary"}
+{"Time":"2026-11-15T11:16:18.351489953+04:00","Action":"output","Package":"antifox/server","Test":"TestStatsObservationBoundary","Output":"=== RUN   TestStatsObservationBoundary\n"}
+{"Time":"2026-11-15T11:16:18.351578781+04:00","Action":"output","Package":"antifox/server","Test":"TestStatsObservationBoundary","Output":"--- PASS: TestStatsObservationBoundary (0.00s)\n"}
+{"Time":"2026-11-15T11:16:18.35159929+04:00","Action":"pass","Package":"antifox/server","Test":"TestStatsObservationBoundary","Elapsed":0}
+{"Time":"2026-11-15T11:16:18.351696973+04:00","Action":"output","Package":"antifox/server","Output":"PASS\n"}
+{"Time":"2026-11-15T11:16:19.35578011+04:00","Action":"output","Package":"antifox/server","Output":"ok  \tantifox/server\t1.322s\n"}
+{"Time":"2026-11-15T11:16:19.355809495+04:00","Action":"pass","Package":"antifox/server","Elapsed":1.322}

@@ -1,0 +1,11 @@
+=== RUN   TestDisposablePostgresBrowser
+2026/11/15 11:26:15 [auth] Login failed="fixture" ip=127.0.0.1 Reason=Password error
+2026/11/15 11:26:15 [auth] Login Successful User="fixture" ip=127.0.0.1
+    postgres_browser_observation_test.go:130: actual UI login: {"loginStatuses":[401,200],"taskVisible":true,"reloadAuthenticated":true,"javascriptErrors":[],"externalRequests":[]}
+    postgres_browser_observation_test.go:167: browser healthy: [{"path":"/api/stats?task=5","status":200},{"path":"/api/tasks","status":200},{"path":"/api/tasks/5/control","status":409},{"path":"/api/stats","status":401}]
+    postgres_browser_observation_test.go:167: browser telemetry_failure: [{"path":"/api/stats?task=5","status":503},{"path":"/api/tasks","status":200},{"path":"/api/tasks/5/control","status":409},{"path":"/api/stats","status":401}]
+    postgres_browser_observation_test.go:167: browser auth_failure: [{"path":"/api/stats?task=5","status":503},{"path":"/api/tasks","status":503},{"path":"/api/tasks/5/control","status":503},{"path":"/api/stats","status":401}]
+    postgres_browser_observation_test.go:172: PASS: real PostgreSQL, read-only runtime role, browser JWT requests; inert engine and preserved clocks
+--- PASS: TestDisposablePostgresBrowser (4.92s)
+PASS
+ok  	antifox/server	6.174s

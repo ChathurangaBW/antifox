@@ -660,8 +660,10 @@ export interface ActiveTaskStats {
   description: string;
   goal: string;
   running: boolean;
+  status?: TaskStatus; // Added by the lifecycle-aware stats projection.
   paused: boolean;
   in_flight: number; // Running intent rows, not a planner-health measurement.
+  executions_in_flight?: number; // Observed planner + worker calls, not workers alone.
   last_activity: number; // Unix seconds; distinct from Task.last_activity_unix.
   stalled: boolean;
   goals_total: number;

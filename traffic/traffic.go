@@ -209,6 +209,12 @@ type sink struct {
 	t *Traffic
 }
 
+// AccessProxyServer handles direct browser requests to the proxy port. Override
+// the dependency's default message while preserving its bad-request status.
+func (s *sink) AccessProxyServer(_ *http.Request, res http.ResponseWriter) {
+	http.Error(res, "This is a proxy server; direct requests are not supported.", http.StatusBadRequest)
+}
+
 func (s *sink) Response(f *mproxy.Flow) {
 	if f.Request == nil || f.Response == nil {
 		return

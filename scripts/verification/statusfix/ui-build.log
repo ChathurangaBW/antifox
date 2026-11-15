@@ -1,0 +1,57 @@
+
+> antifox-web@2.0.0 build:static
+> NEXT_EXPORT=1 next build
+
+▲ Next.js 16.2.9 (Turbopack)
+- Environments: .env.production
+
+  Creating an optimized production build ...
+✓ Compiled successfully in 6.6s
+  Running TypeScript ...
+  Finished TypeScript in 7.4s ...
+  Collecting page data using 30 workers ...
+  Generating static pages using 30 workers (0/29) ...
+  Generating static pages using 30 workers (7/29)
+  Generating static pages using 30 workers (14/29)
+  Generating static pages using 30 workers (21/29)
+✓ Generating static pages using 30 workers (29/29) in 501ms
+  Finalizing page optimization ...
+
+Route (app)
+┌ ○ /
+├ ○ /_not-found
+├ ○ /apple-icon.png
+├ ○ /chat
+├ ○ /dashboard
+├ ○ /function/assets
+├ ○ /function/findings
+├ ○ /function/sync
+├ ○ /function/tasks
+├ ○ /function/tasks/detail
+├ ○ /function/traffic
+├ ○ /icon.png
+├ ○ /login
+├ ○ /setup
+├ ○ /system/agents
+├ ○ /system/agents/detail
+├ ○ /system/intercept
+├ ○ /system/intercept/approvals
+├ ○ /system/knowledge
+├ ○ /system/llm
+├ ○ /system/logs
+├ ○ /system/mcp
+├ ○ /system/rbac
+├ ○ /system/reports
+├ ○ /system/settings
+├ ○ /system/skills
+└ ○ /system/tools
+
+
+ƒ Proxy (Middleware)
+
+○  (Static)  prerendered as static content
+
+⚠ Statically exporting a Next.js application via `next export` disables API routes and middleware.
+This command is meant for static-only hosts, and is not necessary to make your application static.
+Pages in your application without server-side data dependencies will be automatically statically exported by `next build`, including pages powered by `getStaticProps`.
+Learn more: https://nextjs.org/docs/messages/api-routes-static-export

@@ -137,9 +137,21 @@ func (s *Server) requireAuth(h http.Handler) http.Handler {
 			writeErr(w, 401, "Not authorized or token Expired")
 			return
 		}
-		// Parsing authorized images RBAC Forced and managed) , account disabled / token The version is rejected if it expires.
+		if claims.Subject == "" {
+			writeErr(w, http.StatusUnauthorized, "Invalid authentication subject")
+			return
+		}
+		if s.m == nil || s.m.pg == nil {
+			writeErr(w, http.StatusServiceUnavailable, "Authorization unavailable")
+			return
+		}
+		// Resolve access before permitting any protected handler to run.
 		if s.m != nil && s.m.pg != nil && claims.Subject != "" {
 			acc, err := s.m.pg.ResolveRBACAccess(claims.Subject)
+			if err != nil || acc == nil {
+				writeErr(w, http.StatusServiceUnavailable, "Authorization unavailable")
+				return
+			}
 			if err == nil && acc != nil {
 				if !acc.User.Enabled {
 					writeErr(w, 403, "Account disabled")

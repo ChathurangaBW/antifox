@@ -1,0 +1,12 @@
+{
+  "server/auth.go": "9fd0380ffde048483714da2c8616cc05b52d8d8484b3030368a46c6390224dc3",
+  "server/auth_failclosed_test.go": "2862985011c1cd2660fbd7b3fae939e0e7a39378f35dd798f430e612d03658c2",
+  "server/server.go": "3eaeaa19451cb6639ed9f84b83de6b7182ee98439e61749dc41959bf4ee65a60",
+  "server/stats_observation.go": "50cf67beeab275f1f48e26141f9ee45df7ff6006bcf9042f8bb3e3dcc592514e",
+  "server/stats_observation_test.go": "2ad3093b08e349ddf86820c6d24a49959def0e6e37e5ff4fca1161db6435af79",
+  "server/control_restrictions_test.go": "876682555835d047c7fe13dadcda11d96bfbe233d555c4f7cbd7c8cdad0f331c",
+  "server/authenticated_observation_test.go": "bb540f9d5219fe75c2ed64f407b677046d8f69048d4193df50ff2e4070614305",
+  "traffic/traffic.go": "0b9f6ab5ed71ad400899d26314edb6873632d319b2b71eae3f20e963ce5615eb",
+  "traffic/proxy_message_test.go": "e9b928bc94ee934db1358865bcbf3f692f408aa6c71b8e82d85ee92e33508b18",
+  "web/src/lib/types.ts": "722eb604c23aa1a9a47e8bf71167ab3c9c48b82f4cc7c241d8fbdbf6992c6cc0"
+}

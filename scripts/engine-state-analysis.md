@@ -8,6 +8,290 @@ revision comparisons describe committed source before the local patch below.
 
 ## Local implementation and verification
 
+### Turbopack artifact browser verification (latest; isolated)
+
+The generated `web/out` tree and current UI source were checked against the
+`antifox-default-build-1y3hwpid` manifests. The isolated embedded UI tree was
+replaced with that exact artifact and checked for equal file sets and hashes,
+both before and after testing, preventing stale Webpack files from mixing in.
+
+The actual login/task-list browser test passed against this Turbopack artifact
+with Go race detection: incorrect password 401, valid password 200, visible task,
+authenticated reload, zero JavaScript errors and zero external browser requests.
+All 12 PostgreSQL-backed API checks also passed (healthy reads, telemetry/RBAC
+failures, rejected reruns, and missing-token rejection). Engine remained inert;
+task clocks/lifecycle were preserved. Login audit writes were confined to the
+disposable database. `go vet ./server` passed and the container was removed.
+
+Evidence, screenshot, source/artifact manifests, exact embedded-artifact identity,
+test/build logs and cleanup record:
+`C:\Users\Sniffer\AppData\Local\Temp\opencode\antifox-pg-browser-fulm5jlg`.
+
+This closes the latest-artifact browser gap noted below. Changes still remain
+uncommitted and undeployed; no final deployed artifact has been verified.
+
+### Default Turbopack build corrected (latest; local only)
+
+Merriweather requested discrete weights 400 and 700. The fetched modern-browser
+Google Fonts CSS repeats the same variable-font URLs for both weights; the
+previous build failed in Turbopack's font URL processing with `next/font/google
+queries have exactly one entry`. The registry now requests Merriweather's default
+variable font instead of duplicate discrete weights, preserving its CSS variable
+and availability of normal/bold weights.
+
+After this targeted change, the unchanged default command `npm run build:static`
+passed using Next.js 16.2.9 Turbopack: compilation, TypeScript, and 29 generated
+pages. No Webpack override was used. All tracked UI source files matched the
+isolated build snapshot. Evidence, baseline failure log, source SHA-256 manifest,
+and generated-artifact SHA-256 manifest:
+`C:\Users\Sniffer\AppData\Local\Temp\opencode\antifox-default-build-1y3hwpid`.
+
+This supersedes the unresolved default-build issue below. The preceding login
+browser run used the earlier Webpack artifact; the new Turbopack artifact has
+build verification only. All fixes remain local/uncommitted and undeployed;
+final deployed artifact verification remains outstanding.
+
+### Actual UI/password login verification (latest; isolated, not deployed)
+
+Fresh static UI source was built and embedded using the real `webuiHandler`.
+Chromium exercised the actual `/login/` form against `authLogin`, bcrypt, and a
+disposable PostgreSQL RBAC account. Observed results:
+
+```text
+loginStatuses: [401, 200]
+taskVisible: true
+reloadAuthenticated: true
+javascriptErrors: []
+externalRequests: []
+PASS TestDisposablePostgresBrowser (race detection enabled)
+```
+
+The invalid password stored no token; valid login stored a token, redirected to
+the task list, and displayed the fixture task after reload. All 12 subsequent
+browser API checks also passed. Task clocks/lifecycle remained unchanged and no
+engine loops ran. Login used a separate fixture DB connection with write access
+for normal login audit records; protected observation/control handlers used the
+SELECT-only runtime role. Thus this run does not claim zero database writes.
+
+`npm run build:static -- --webpack` passed compilation, TypeScript, and static
+generation of 29 pages. Default Turbopack failed on Google-font processing;
+that build-path failure remains unresolved. An initial dependency symlink was
+also rejected by Turbopack and replaced with a copied dependency directory in
+the isolated workspace. No production source was altered for these build steps.
+
+Evidence directory:
+`C:\Users\Sniffer\AppData\Local\Temp\opencode\antifox-pg-browser-8xywi5z6`
+contains the successful test log, build logs, authenticated task-list screenshot,
+eleven-file backend/test identity, all tracked UI-source hashes, UI artifact
+hashes, and disposable-container cleanup evidence. All tracked UI source matched
+the build snapshot. `go vet ./server` passed.
+
+This covers actual login and task-list UI rendering, not every application page
+or the live deployment. Auxiliary endpoints outside the selected fixture routes
+are not integrated. Changes remain uncommitted and undeployed; final deployed
+artifact verification and the default build failure remain outstanding.
+
+### Disposable PostgreSQL and authenticated browser (latest; local only)
+
+`server/postgres_browser_observation_test.go` now provides an explicitly opted-in
+integration check. It applies the real database schema to a fresh PostgreSQL 16
+container using `pgvector/pgvector:pg16`, seeds a fixture RBAC account/role, then
+serves actual protected handlers with an inert engine. The runtime PostgreSQL
+role has SELECT privileges only; the test checks that it cannot UPDATE tasks.
+No application constructors, planner loops, or worker loops run.
+
+A Chromium page makes real same-origin HTTP requests using a fixture-signed JWT.
+The three phases passed under Go race detection:
+
+| Phase | Stats | Task list | Nonterminal rerun | No token |
+|---|---|---|---|---|
+| Healthy database | 200 | 200 | 409 | 401 |
+| Asset SELECT revoked | 503 | 200 | 409 | 401 |
+| RBAC-user SELECT revoked | 503 | 503 | 503 | 401 |
+
+All 12 browser requests matched expectations; task lifecycle and clocks were
+preserved. `go vet ./server` passed. Eleven source/test files match the tested
+snapshot. Container data used tmpfs and the container was removed in cleanup.
+Logs, cleanup evidence, and SHA-256 manifest:
+`C:\Users\Sniffer\AppData\Local\Temp\opencode\antifox-pg-browser-8_r79d4o`.
+An initial run could not launch Playwright's expected browser revision; the
+successful run explicitly selected the installed Chromium executable.
+
+Scope: this validates real PostgreSQL query execution and RBAC with browser HTTP
+requests, not application-page rendering or the password-login flow. The task
+object is an in-memory fixture; persisted task data migration/resumption is not
+covered. The database begins with empty telemetry tables. Proxy localization's
+real-entry check is covered separately by the prior combined suite. Changes
+remain uncommitted and undeployed, so this is not a verified final release.
+
+### Authorization fail-closed correction (latest; local only)
+
+Protected requests now reject empty JWT subjects (401), unavailable manager/DB
+dependencies (503), and failed or nil RBAC access resolution (503), before the
+protected handler executes. Responses contain generic errors. Public-route
+exceptions retain their existing behavior.
+
+Isolated regressions cover user/role/permission lookup failures, absent user rows,
+missing manager/database, empty subjects, and a successful-access control.
+Rejected requests never reach the test handler. The fixture asserts zero SQL
+writes; no task execution is started. A nil access result is guarded explicitly;
+the existing concrete resolver's missing-user behavior is a no-rows error.
+
+Combined suite: **61 tests/subtests passed normally and with race detection;
+zero skips**. `go vet ./traffic ./server` passed, and ten source/test files match
+the tested snapshot. Evidence and SHA-256 manifest:
+`C:\Users\Sniffer\AppData\Local\Temp\opencode\antifox-auth-closed-ovoes784`.
+
+This supersedes the unresolved lookup-fallthrough concern in the earlier record.
+Changes remain uncommitted and undeployed; authenticated browser and PostgreSQL
+integration verification remain outstanding. No final-deployment claim is made.
+
+### Combined authenticated verification (latest; local only)
+
+The local control handler now rejects nonterminal reruns with HTTP 409 before
+reactivation. Five state cases preserve lifecycle, pause state and task clocks.
+The combined suite includes real proxy-entry localization, telemetry regressions,
+rerun rejection, and JWT authentication with successful fixture-backed RBAC lookup.
+Authenticated stats/task reads return 200, failed telemetry returns 503, rejected
+reruns return 409, and missing/invalid credentials return 401. No engine loops
+are started; the SQL fixture rejects writes and asserts zero writes.
+
+Combined verification: **52 tests/subtests passed normally and with race detection,
+zero skips**. `go vet ./traffic ./server` passed. Eight source/test files match
+the tested snapshot; hashes and logs are recorded at
+`C:\Users\Sniffer\AppData\Local\Temp\opencode\antifox-combined-uu7smwii`.
+
+This is middleware/handler verification, not browser/login or PostgreSQL integration.
+The auth middleware currently falls through when RBAC resolution fails; the test
+explicitly verifies successful RBAC resolution so that behavior cannot substitute
+for authentication coverage. That separate fail-open concern remains unresolved.
+All follow-up changes remain local, uncommitted and undeployed; the live image's
+previously verified identity is still `v2.1.6+statusfix`. A fully patched final
+deployment has not been established. Older outstanding-work lists below describe
+their respective historical verification points.
+
+### Latest follow-up: real proxy entry and read-only telemetry (not deployed)
+
+The proxy integration regression now starts the actual `go-mitmproxy` entry
+handler on loopback, registers the application's `sink` addon, and sends a
+direct request. It fails against the original dependency fallback and passes
+with the localization override:
+
+```text
+real proxy entry: HTTP 400; body="This is a proxy server; direct requests are not supported.\n"
+```
+
+No forwarding destination, CONNECT request, application server, or task engine
+is involved. The test creates its CA only inside a disposable test directory
+and closes its listener during cleanup.
+
+Additional local changes:
+
+- `server/stats_observation.go` projects lifecycle, pause, running intent count,
+  last activity, and the existing combined planner/worker execution counter.
+  The counter is read atomically without creating an entry on a miss. It does
+  not change execution, scheduling, retries, or task controls.
+- Terminal tasks return `engine_mode: idle`, their terminal lifecycle in
+  `active_task.status`, and false `running`/`stalled` flags. The existing mode
+  enum remains compatible. Pause takes precedence over inactivity for other
+  tasks.
+- A nonzero execution counter prevents the zero-worker-intents heuristic from
+  marking an executing planner as stalled. `active_task.in_flight` retains its
+  running-intent meaning; the additive `executions_in_flight` field represents
+  planner and worker calls together. It does not prove progress or distinguish
+  planner calls from worker calls. TypeScript describes both additive fields
+  as optional for compatibility with the deployed older server.
+- `/api/stats` returns generic HTTP 503 errors on traffic, asset, exploration,
+  intent, or goal telemetry failure. `/api/tasks` does the same for token,
+  activity, or goal aggregate failures. Neither handler emits a partial success
+  with failure-derived empty counters. Existing UI failure handling can therefore
+  mark observations stale/unavailable.
+
+`server/stats_observation_test.go` exercises the real HTTP handlers and database
+decoding with a read-only SQL fixture driver. Query errors, scan errors, and
+row-iteration errors are tested for seven reads (21 failure cases), with a
+separate closed disposable SQLite fixture for traffic-count failure. Other cases
+cover planner/worker observations, pause, all terminal statuses, and inactivity
+boundaries. Repeated status reads must preserve task clocks/status and must not
+create execution counters or issue SQL writes. Planner/worker objects are inert;
+no engine loop or LLM call is started. PostgreSQL dialect/server integration is
+not established by the SQL fixture tests.
+
+Verification from an isolated snapshot based on `f55dc85`:
+
+```text
+PASS: real proxy entry regression detects the original HTTP 400 non-English fallback
+PASS: HTTP telemetry regressions fail against the unpatched handlers
+PASS: go vet ./traffic ./server
+PASS: proxy-normal:     2 top-level, 6 including subtests, 0 skipped
+PASS: proxy-race:       2 top-level, 6 including subtests, 0 skipped
+PASS: telemetry-normal: 4 top-level, 32 including subtests, 0 skipped
+PASS: telemetry-race:   4 top-level, 32 including subtests, 0 skipped
+```
+
+Evidence:
+`C:\Users\Sniffer\AppData\Local\Temp\opencode\antifox-observations-fqzrv77p`
+contains baseline failure logs, normal/race JSON test logs, vet/format logs,
+source hashes in `identity.json`, and `summary.json`.
+
+**Current assessment:** proxy localization and the targeted read-only telemetry
+corrections are locally implemented and regression-tested, but uncommitted and
+undeployed. Server-side rerun restrictions and authenticated live-browser
+verification remain outstanding. These checks do not establish a fully patched
+final deployment. Prior deployment evidence below describes the UI patch only.
+
+### Follow-up: proxy response localization (local, not deployed)
+
+The live direct-request response on port 8788 was confirmed as HTTP 400 with
+Chinese text (`此为代理服务器，不能直接发起请求`). This comes from
+`github.com/lqqyt2423/go-mitmproxy v1.9.2`, `proxy/entry.go:200-212`, rather than
+the frontend translations. The dependency calls addon `AccessProxyServer` hooks
+for direct requests before emitting its fallback when no addon has responded.
+CONNECT handling precedes that branch; absolute-URL forwarding follows it.
+
+The local patch overrides `sink.AccessProxyServer` in `traffic/traffic.go`, using
+the existing registered addon. It returns HTTP 400 with plain UTF-8 English:
+
+```text
+This is a proxy server; direct requests are not supported.
+```
+
+No module-cache edits, dependency replacements, task changes, or live service
+restarts were made for this follow-up. This localization patch is not present in
+the deployed `v2.1.6+statusfix` binary and remains uncommitted locally.
+
+`traffic/proxy_message_test.go` exercises the actual callback through a loopback
+HTTP test server: root GET, nested GET with an unreflected query value, POST, and
+HEAD. Assertions cover status, response text, content type, `nosniff`, and HEAD's
+empty response body. The original callback test uses no database, task engine,
+or forwarding destination. The later integration test above additionally reaches
+the dependency's proxy dispatcher; neither exercises CONNECT/forwarding.
+
+Evidence from an isolated source snapshot based on
+`f55dc85ace7de4a7aa11308437d48fa70a53bb77`:
+
+```text
+PASS: new regression fails on the unpatched callback (status 200, no message)
+PASS: gofmt and go vet ./traffic
+PASS: normal tests: 12 top-level, 23 including subtests, 0 skipped
+PASS: race tests:   12 top-level, 23 including subtests, 0 skipped
+```
+
+The baseline's HTTP 200 is from testing the inherited no-op callback alone;
+the full dependency's fallback is what supplies the live HTTP 400 and Chinese
+text. This distinction is intentional in the regression evidence.
+
+Evidence directory:
+`C:\Users\Sniffer\AppData\Local\Temp\opencode\antifox-proxy-message-1seec538`
+contains baseline failure output, normal/race test JSON logs, vet/format logs,
+`identity.json` with source hashes, and `summary.json`.
+
+At this earlier verification point, only localization was fixed locally. The
+latest follow-up above records the subsequent read-only telemetry work. The
+deployed UI patch's evidence below is unchanged.
+
+### Previously deployed UI patch
+
 Status: **display-only patch implemented, validated, committed and deployed to the
 local compose service on 2026-11-15.** The original diagnosis and upstream
 references below refer to the base revision, so their line numbers are not line
@@ -111,13 +395,14 @@ the offline scenarios above and by the embedded-label checks below.
 
 ### Remaining scope
 
-`server`, `agent`, and `db` are unchanged. Backend planner-aware telemetry,
-discarded database-read errors, and server-side restrictions on existing rerun
-requests remain unimplemented. The UI terminal-precedence correction does not
-change what `/api/stats` sends to other consumers. The Phase A/B design below is
-therefore not implemented in full. Saved task data was not modified by the
-deployment; the database backup and row snapshot above record the pre-deploy
-state, and post-deploy read-only queries confirm the same rows.
+For the previously deployed UI patch, `server`, `agent`, and `db` were unchanged;
+backend telemetry and server-side rerun restrictions were not included. The
+latest local changes above address the targeted telemetry concerns but have not
+been deployed. The Phase A/B design below is therefore not implemented in full
+on the live service. The earlier database backup and row snapshot record the
+pre-deploy state, and post-deploy queries checked selected task fields. Those
+checks do not prove that all saved data was unchanged: startup resumed task work,
+which can write new activity and other task data.
 
 ## Conclusion
 

@@ -93,7 +93,8 @@ const robotoSlab = Roboto_Slab({
 
 const merriweather = Merriweather({
   subsets: ["latin"],
-  weight: ["400", "700"],
+  // Use the variable font: discrete weights can return duplicate font URLs,
+  // which trigger Turbopack's Google-font URL rewriting error.
   variable: "--font-merriweather",
 });
 

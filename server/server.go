@@ -846,7 +846,11 @@ func (s *Server) stats(w http.ResponseWriter, r *http.Request) {
 	out["engine_mode"] = "idle"              // spec enum; overridden below when a task is active
 	out["llm_configured"] = s.engine.Ready() // is an LLM provider installed at all
 	if tr := s.m.Traffic(); tr != nil {
-		c, _ := tr.Count()
+		c, err := tr.Count()
+		if err != nil {
+			writeErr(w, http.StatusServiceUnavailable, "traffic telemetry unavailable")
+			return
+		}
 		out["traffic"] = c
 		out["traffic_enabled"] = true
 	}
@@ -857,6 +861,9 @@ func (s *Server) stats(w http.ResponseWriter, r *http.Request) {
 		}
 		out["assets"] = total
 		out["asset_counts"] = counts
+	} else {
+		writeErr(w, http.StatusServiceUnavailable, "asset telemetry unavailable")
+		return
 	}
 
 	// resolve the task: explicit ?task=<id> binds to that task (so a detail view
@@ -872,51 +879,50 @@ func (s *Server) stats(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	st, _ := t.Store.Stats()
+	st, err := t.Store.Stats()
+	if err != nil {
+		writeErr(w, http.StatusServiceUnavailable, "exploration telemetry unavailable")
+		return
+	}
 	out["exploration"] = st
 
 	// per-task running state + heartbeat (distinct from "LLM configured").
-	intents, _ := t.Store.ListByKind(db.KindIntent, 100000)
+	intents, err := t.Store.ListByKind(db.KindIntent, 100000)
+	if err != nil {
+		writeErr(w, http.StatusServiceUnavailable, "intent telemetry unavailable")
+		return
+	}
 	inFlight := 0
 	for _, in := range intents {
 		if in.State == "running" {
 			inFlight++
 		}
 	}
-	goals, _ := t.Store.ListByKind(db.KindGoal, 10000)
+	goals, err := t.Store.ListByKind(db.KindGoal, 10000)
+	if err != nil {
+		writeErr(w, http.StatusServiceUnavailable, "goal telemetry unavailable")
+		return
+	}
 	goalsMet := 0
 	for _, g := range goals {
 		if g.State == "met" {
 			goalsMet++
 		}
 	}
-	last := s.engine.LastActivity(t.ID)
-	paused := s.engine.IsPaused(t.ID)
-	running := s.engine.Ready() && s.engine.Started(t.ID) && !paused
-	// stalled: running but no activity for a while and nothing in flight.
-	stalled := running && inFlight == 0 && last > 0 && time.Now().Unix()-last > 60
-
-	// engine_mode follows the spec enum (exploring|paused|stalled|idle).
-	switch {
-	case paused:
-		out["engine_mode"] = "paused"
-	case stalled:
-		out["engine_mode"] = "stalled"
-	case running:
-		out["engine_mode"] = "exploring"
-	default:
-		out["engine_mode"] = "idle"
-	}
+	observed := s.engine.observeTaskEngine(t, inFlight, time.Now())
+	out["engine_mode"] = observed.Mode
 
 	out["active_task"] = map[string]any{
 		"id": t.ID, "description": t.Description, "goal": t.Goal,
-		"running":       running,
-		"paused":        paused,
-		"in_flight":     inFlight,
-		"last_activity": last,
-		"stalled":       stalled,
-		"goals_total":   len(goals),
-		"goals_met":     goalsMet,
+		"status":               observed.Status,
+		"running":              observed.Running,
+		"paused":               observed.Paused,
+		"in_flight":            inFlight,
+		"executions_in_flight": observed.Executions,
+		"last_activity":        observed.Last,
+		"stalled":              observed.Stalled,
+		"goals_total":          len(goals),
+		"goals_met":            goalsMet,
 	}
 	writeJSON(w, 200, out)
 }
@@ -927,9 +933,21 @@ func (s *Server) listTasks(w http.ResponseWriter, r *http.Request) {
 		active = t.ID
 	}
 	list := s.m.List()
-	toks, _ := s.m.PG().TokenTotalsAll()      // whole-task token totals, one query for all tasks
-	lastAct, _ := s.m.PG().LastActivityAll()  // persisted last-activity per task, one query
-	goalCounts, _ := s.m.PG().GoalCountsAll() // goal progress per exploration, one query
+	toks, err := s.m.PG().TokenTotalsAll() // whole-task token totals, one query for all tasks
+	if err != nil {
+		writeErr(w, http.StatusServiceUnavailable, "task token telemetry unavailable")
+		return
+	}
+	lastAct, err := s.m.PG().LastActivityAll() // persisted last-activity per task, one query
+	if err != nil {
+		writeErr(w, http.StatusServiceUnavailable, "task activity telemetry unavailable")
+		return
+	}
+	goalCounts, err := s.m.PG().GoalCountsAll() // goal progress per exploration, one query
+	if err != nil {
+		writeErr(w, http.StatusServiceUnavailable, "task goal telemetry unavailable")
+		return
+	}
 	dtos := make([]TaskDTO, 0, len(list))
 	for _, t := range list {
 		status := "created"
@@ -1038,6 +1056,10 @@ func (s *Server) control(w http.ResponseWriter, r *http.Request) {
 		s.engine.Run(s.ctx, t) // ensure loops are alive, then un-pause + nudge
 		s.engine.Resume(t)
 	case "rerun":
+		if !isTerminalStatus(t.Status) {
+			writeErr(w, http.StatusConflict, "rerun is only available for finished tasks")
+			return
+		}
 		// Continue: Stop/Ended task reactivated(Reset non-final+Clear run clock),Keep the map, keep running.
 		if err := s.m.ReactivateTask(t.ID); err != nil {
 			writeErr(w, 500, "reactivate: "+err.Error())
