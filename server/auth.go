@@ -25,7 +25,9 @@ const (
 	// defaultSessionTTL SessionJWT)Default for length——At the same time,"Timeout"Window:
 	// Backend slides in active use (see requireAuth),More than that. token Expiry requires re-entry.
 	// Available Settings auth.session_ttl_minutes Overwrite (minutes).
-	defaultSessionTTL = 60 * time.Minute
+	// 0 = no idle/absolute expiry (auto-logout disabled). Sessions still end on
+	// logout, password change, or account disable (token_version check).
+	defaultSessionTTL = 0
 	sessionTTLKey     = "auth.session_ttl_minutes"
 	keyChars          = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789"
 )
@@ -87,15 +89,18 @@ func signJWT(key []byte, userID, username string) (string, error) {
 // signJWTTTL issues an HS256 token that expires after ttl, stamped with the user's
 // current token_version (ver) so a later password change / disable invalidates it.
 func signJWTTTL(key []byte, userID, username string, ver int, ttl time.Duration) (string, error) {
-	return jwt.NewWithClaims(jwt.SigningMethodHS256, authClaims{
+	claims := authClaims{
 		Username: username,
 		Ver:      ver,
 		RegisteredClaims: jwt.RegisteredClaims{
-			Subject:   userID,
-			ExpiresAt: jwt.NewNumericDate(time.Now().Add(ttl)),
-			IssuedAt:  jwt.NewNumericDate(time.Now()),
+			Subject:  userID,
+			IssuedAt: jwt.NewNumericDate(time.Now()),
 		},
-	}).SignedString(key)
+	}
+	if ttl > 0 { // ttl <= 0: non-expiring session (no exp claim)
+		claims.ExpiresAt = jwt.NewNumericDate(time.Now().Add(ttl))
+	}
+	return jwt.NewWithClaims(jwt.SigningMethodHS256, claims).SignedString(key)
 }
 
 // parseJWT validates and returns the claims.

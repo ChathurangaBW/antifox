@@ -1,5 +1,6 @@
 export const TOKEN_KEY = "antifox_token";
-const COOKIE_MAX_AGE = 7 * 24 * 60 * 60; // 7 Days (seconds)
+// Auto-logout disabled: keep the cookie for ~10 years (session ends on explicit logout).
+export const COOKIE_MAX_AGE = 10 * 365 * 24 * 60 * 60;
 
 export interface CurrentUser {
   id: string;

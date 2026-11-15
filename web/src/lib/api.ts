@@ -4,7 +4,7 @@
 // are passed through and formatted at the call site.
 
 import i18n from "@/i18n/config";
-import { TOKEN_KEY } from "@/lib/auth";
+import { COOKIE_MAX_AGE, TOKEN_KEY } from "@/lib/auth";
 import { MOCK } from "@/lib/mock/enabled";
 import { mockHandle } from "@/lib/mock/handler";
 import type {
@@ -40,7 +40,7 @@ async function http<T>(path: string, init?: RequestInit): Promise<T> {
   const refreshed = r.headers.get("X-Refresh-Token");
   if (refreshed && typeof window !== "undefined") {
     localStorage.setItem(TOKEN_KEY, refreshed);
-    document.cookie = `${TOKEN_KEY}=${encodeURIComponent(refreshed)}; path=/; max-age=${7 * 24 * 60 * 60}; SameSite=Lax`;
+    document.cookie = `${TOKEN_KEY}=${encodeURIComponent(refreshed)}; path=/; max-age=${COOKIE_MAX_AGE}; SameSite=Lax`;
   }
   if (r.status === 401) {
     // Authentication request (/auth/login and similar). A 401 is a document error: the caller shows a hint and must not trigger a refresh, otherwise the login-failure message is lost.
@@ -126,7 +126,7 @@ export const api = {
       // Avoid the next user request to be posted (other equipment used) token It's still not working.
       if (r.token && typeof window !== "undefined") {
         localStorage.setItem(TOKEN_KEY, r.token);
-        document.cookie = `${TOKEN_KEY}=${encodeURIComponent(r.token)}; path=/; max-age=${7 * 24 * 60 * 60}; SameSite=Lax`;
+        document.cookie = `${TOKEN_KEY}=${encodeURIComponent(r.token)}; path=/; max-age=${COOKIE_MAX_AGE}; SameSite=Lax`;
       }
       return r;
     }),
